@@ -742,7 +742,7 @@ alarmsCont_el.addEventListener("click", evt => {
 
   if (targ_el.classList.contains("alarmEnable")) {
     stopRinger(); //if needed
-    setAlarm(alarmInst_el==active_aI_el?false:alarmInst_el); //toggle
+    setAlarm(alarmInst_el==active_aI_el?false:alarmInst_el, "wakelockoff"); //toggle
 
   } else if (targ_el.classList.contains("alarmTime")) {
     editAlarmTime();
@@ -858,7 +858,7 @@ function deleteAlarm() {
   jm.prompt_boolean("Delete alarm?", 0, resp => {
     if (resp != true) return; //null or false //-->
     alarmInst_el.remove();
-    if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
+    if (alarmInst_el == active_aI_el) setAlarm(false, "wakelockoff"); //if alarm was on, turn off
     else saveAlarms();
   });
 } //deleteAlarm()
@@ -1039,7 +1039,7 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
 } //proc_alarmTimeText()
 
 
-function setAlarm(aI_el) {
+function setAlarm(aI_el, wakelockoff_flag) {
   var flag= !!aI_el;
   if (flag) {
     var alarm_str= aI_el.ELO["aTime"].textContent;
@@ -1077,6 +1077,7 @@ function setAlarm(aI_el) {
     active_aI_el= undefined;
     alarm_ctdn_m= 0;
     alarmCountdown_el.style.display= "none";
+    if (wakelockoff_flag && wakeLockObj) setWakeLock(); //off
     alarm_flag= false;
     play_sound("slam");
   }
