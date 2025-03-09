@@ -444,6 +444,12 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 
 <script>
+//orig clock app: https://codepen.io/opheliafl/pen/RaYbvL/
+
+//favicon
+//<a href="https://www.freepik.com/icon/alarm-clock_15092469#fromView=keyword&page=1&position=21&uuid=6aee3d4d-c58a-453e-8681-22457f5c0a34">Icon by sonnycandra</a>
+//https://realfavicongenerator.net/
+
 var audioClips= {
   beep: new Audio("https://cdn.freesound.org/previews/426/426892_7913959-lq.mp3"),
   buzz: new Audio("https://cdn.freesound.org/previews/696/696600_14786418-lq.mp3"),
@@ -453,8 +459,6 @@ var audioClips= {
   rngr: new Audio("https://cdn.freesound.org/previews/246/246332_4486188-lq.mp3")
 };
 
-
-//orig: https://codepen.io/opheliafl/pen/RaYbvL/
 
 function drawClock() {
   var clockFace_el= document.querySelector("DIV#clockFace");
