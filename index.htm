@@ -407,7 +407,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 <div id="editSettings" class="button squareButton leftButton" title="Settings">︙</div>
 
 <div id="alarm">
-  <div id="alarmInfo" title="User text"></div>
+  <div id="alarmInfo" title="User notes"></div>
   <div id="alarmsContainer">
     <div class="alarmInstance">
       <div class="alarmEnable button" title="On/Off">⏹</div>
@@ -802,7 +802,7 @@ function editSettings() { //just snooze duration
 } //editSettings()
 
 function editAlarmInfo(info_str= alarmInfo_el.textContent) {
-  jm.prompt_textarea("Alarm Info", info_str, resp => {
+  jm.prompt_textarea("User notes", info_str, resp => {
     if (resp==null || resp==info_str) return; //-->
     info_str= resp.trim();
     if (info_str.length > 80) {
