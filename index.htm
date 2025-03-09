@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 
-<title>T I M E C K S</title>
+<title>TIMECKS</title>
 
 <style type="text/css">
 @import url("https://fonts.cdnfonts.com/css/seven-segment");
@@ -237,25 +237,25 @@ div#alarm {
   font-size: larger;
   padding: 8px;
 
-  div#alarmInfo {
-    font-size: medium;
-    background: #eee;
-    padding: 12px;
-    max-width: 200px;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    cursor: pointer;
-  }
-
   div.alarmInstance {
-    height: 52px;
+    margin-bottom: 20px;
 
     * {
       cursor: pointer;
       user-select: none;
     }
 
-    div.alarmEnable {
+    div.alarmInfo {
+      max-width: 220px;
+      overflow: auto;
+      font-size: medium;
+      background: #eee;
+      padding: 6px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    span.alarmEnable {
       padding: 8px;
       padding: 8px;
       margin-right:8px;
@@ -267,14 +267,14 @@ div#alarm {
       }
     }
 
-    div.alarmTime {
+    span.alarmTime {
       width: 130px;
+      display: inline-block;
       font: bold 28px "Seven Segment", sans-serif;
       color: greenyellow;
       background: black;
       padding: 4px;
       border-radius: 2px;
-      float: right;
 
       &::before {
         content: "🕭 ";
@@ -407,12 +407,12 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 <div id="editSettings" class="button squareButton leftButton" title="Settings">︙</div>
 
 <div id="alarm">
-  <div id="alarmInfo" title="User notes"></div>
   <div id="alarmsContainer">
     <div class="alarmInstance">
-      <div class="alarmEnable button" title="On/Off">⏹</div>
+      <div class="alarmInfo" title="Alarm info"></div>
+      <span class="alarmEnable button" title="On/Off">⏹</span>
+      <span class="alarmTime faded" title="Edit time"></span>
       <span class="roundButton delAlarmBut" title="Delete alarm">❌</span>
-      <div class="alarmTime faded" title="Edit time"></div>
     </div>
   </div>
   <div id="alarmCountdown">&nbsp;</div>
@@ -678,7 +678,6 @@ var body_el= document.querySelector("body");
 
 //div#alarm
 var editStgs_el= document.querySelector("div#editSettings");
-var alarmInfo_el= document.querySelector("div#alarmInfo");
 
 var alarmsCont_el= document.querySelector("div#alarmsContainer");
 var alarmInst_el= alarmsCont_el.querySelector("div.alarmInstance");
@@ -689,40 +688,38 @@ var wlEnable_el= document.querySelector("div#wakeLockEnable");
 var alarmCountdown_el= document.querySelector("div#alarmCountdown");
 
 var alarm_flag;
-var alarms_arr= (localStorage.getItem("alarms") || "12:00 AM").split("|"); //w empty default
 
 function add_instanceShortcuts(aI_el) { //.dataset only stores strings
   //breaks html/js laws, but as far as js only goes, an element is just an object
   aI_el.ELO= {
-    aTime: aI_el.querySelector("div.alarmTime"),
-    aEnable: aI_el.querySelector("div.alarmEnable")
+    aInfo: aI_el.querySelector("div.alarmInfo"),
+    aEnable: aI_el.querySelector("span.alarmEnable"),
+    aTime: aI_el.querySelector("span.alarmTime")
   };
 } //add_instanceShortcuts()
 
 function startAlarms() {
+  var alarms_json= localStorage.getItem("alarms");
+  var alarms_arr= [{t:"12:00 AM"}]; //empty default
+  if (alarms_json) try {alarms_arr= JSON.parse(alarms_json); } catch (err) {}
+
   var aInst_el= alarmInst_el;
   var init_aInst_el;
-  alarms_arr.forEach((a_str, i) => {
+  alarms_arr.forEach((a_obj, i) => {
     if (i) {
       aInst_el= alarmInst_el.cloneNode(true); //clone
       alarmsCont_el.appendChild(aInst_el); //add
     }
-    add_instanceShortcuts(aInst_el);
 
-    if (a_str.includes("!")) { //active
-      a_str= a_str.replace("!", "");
-      init_aInst_el= aInst_el;
-    }
-    aInst_el.ELO["aTime"].textContent= a_str;
+    add_instanceShortcuts(aInst_el);
+    aInst_el.ELO["aInfo"].textContent= a_obj.i;
+    aInst_el.ELO["aTime"].textContent= a_obj.t;
+    if (a_obj.a) setAlarm(aInst_el); //active
   });
 
-  if (init_aInst_el) setAlarm(init_aInst_el);
 } //startAlarms()
 
 var snooze_def_num= (localStorage.getItem("snooze_num") || 5) *1; //default 5
-
-alarmInfo_el.textContent= localStorage.getItem("alarm_info");
-
 
 document.addEventListener("keyup", evt => { //capture any keyup
   if (!document.body.classList.contains("jw-modal-active")) { //modal inactive
@@ -738,8 +735,6 @@ document.addEventListener("keyup", evt => { //capture any keyup
 
 editStgs_el.addEventListener("click", editSettings);
 
-alarmInfo_el.addEventListener("click", () => editAlarmInfo()); //edit alarm info
-
 alarmsCont_el.addEventListener("click", evt => {
   var targ_el= evt.target;
   alarmInst_el= targ_el.closest("div.alarmInstance");
@@ -747,6 +742,9 @@ alarmsCont_el.addEventListener("click", evt => {
   if (targ_el.classList.contains("alarmEnable")) {
     stopRinger(); //if needed
     setAlarm(alarmInst_el==active_aI_el?false:alarmInst_el, "wakelockoff"); //toggle
+
+  } else if (targ_el.classList.contains("alarmInfo")) {
+    editAlarmInfo();
 
   } else if (targ_el.classList.contains("alarmTime")) {
     editAlarmTime();
@@ -805,17 +803,18 @@ function editSettings() { //just snooze duration
   });
 } //editSettings()
 
-function editAlarmInfo(info_str= alarmInfo_el.textContent) {
-  jm.prompt_textarea("User notes", info_str, resp => {
+function editAlarmInfo() {
+  var info_str= alarmInst_el.ELO["aInfo"].textContent;
+  jm.prompt_textarea("Alarm info", info_str, resp => {
     if (resp==null || resp==info_str) return; //-->
     info_str= resp.trim();
     if (info_str.length > 80) {
       jm.error("Info length is up to 80 chars. Your text is " +info_str.length +" chars", () => {
-        editAlarmInfo(info_str); //try again
+        editAlarmInfo(info_str); //try again (and we dont throw away what you typed in)
       });
     } else {
-      alarmInfo_el.textContent= info_str;
-      localStorage.setItem("alarm_info", info_str);
+      alarmInst_el.ELO["aInfo"].textContent= info_str;
+      saveAlarms();
     }
   });
 } //editAlarmInfo()
@@ -842,9 +841,8 @@ function editAlarmTime() {
     end_cb: resp => {
       delete jm._els.Description.emph_el; //cleanup after yourself
 
-      if (resp == null) return; //-->
+      if (resp==null || resp==alarm_str) return; //-->
       var new_alarm_str= resp;
-      if (new_alarm_str == alarm_str) return; //same, do nothing //-->
 
       //proc input str
       var new_alarm_obj;
@@ -870,6 +868,7 @@ function deleteAlarm() {
 function addnewAlarm() {
   var clAlrmInst_el= alarmInst_el.cloneNode(true); //clone //any alarmInst_el will do
   add_instanceShortcuts(clAlrmInst_el);
+  clAlrmInst_el.ELO["aInfo"].textContent= "";
   clAlrmInst_el.ELO["aEnable"].classList.remove("down");
 
   var el= clAlrmInst_el.ELO["aTime"];
@@ -1090,14 +1089,16 @@ function setAlarm(aI_el, wakelockoff_flag) {
 } //setAlarm()
 
 function saveAlarms() {
-  alarms_arr= [];
-  var a_str;
+  var alarms_arr= [];
+  var a_obj;
+  var info_str;
   alarmsCont_el.querySelectorAll("div.alarmInstance").forEach(alrmInst_el => {
-    a_str= alrmInst_el.ELO["aTime"].textContent;
-    if (alrmInst_el.ELO["aEnable"].classList.contains("down")) a_str+= "!";
-    alarms_arr.push(a_str);
+    a_obj= {t: alrmInst_el.ELO["aTime"].textContent};
+    if (info_str= alrmInst_el.ELO["aInfo"].textContent) a_obj.i= info_str;
+    if (alrmInst_el.ELO["aEnable"].classList.contains("down")) a_obj.a= 1;
+    alarms_arr.push(a_obj);
   });
-  localStorage.setItem("alarms", alarms_arr.join("|"));
+  localStorage.setItem("alarms", JSON.stringify(alarms_arr));
 } //saveAlarms()
 
 function checkAlarm() {
@@ -1445,6 +1446,7 @@ jm.init();
 //INIT
 var init_dtO= new Date();
 console.log("INIT", init_dtO.toLocaleString());
+
 jm.alert("Click to start", () => {
   startClock();
   startAlarms();
