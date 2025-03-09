@@ -35,31 +35,159 @@ i {
   font-size: 24px;
 }
 
-div#dtDisplay {
-  font-size: 32px;
-  font-weight: bold;
-  color: #bbb;
+.button {
+  color: lightgray;
   background: #eee;
-  padding: 6px;
-  border-radius: 12px;
-  text-align: center;
-  position: absolute;
-  left: 50%;
-  bottom: 25%;
-  transform: translateX(-50%);
+  border-radius: 8px;
+  border: 2px solid chartreuse;
+  cursor: pointer;
+  user-select: none;
 
-  &.pm {
-    color: #eee;
-    background: #bbb;
+  &.squareButton {
+    font-size: larger;
+    margin: 8px;
+    padding: 8px;
+    color: gray;
+    width: 20px;
+    height: 20px;
+  }
+  &.leftButton {
+    float: left;
+  }
+  &.rightButton {
+    float: right;
+    margin-right: 0;
+  }
+  &.on {
+    background-color: aquamarine;
   }
 }
 
+.roundButton {
+  border-radius: 100%;
+  border: 8px solid lightgray;
+  background:lightgray;
+  margin-left: 8px;
+  float: right;
+  font-size: x-small;
+  cursor: pointer;
+  user-select: none;
+}
+
+div#alarm {
+  float: right;
+  font-size: larger;
+  padding: 8px;
+  position: relative;
+  z-index: 1;
+
+  div.alarmInstance {
+    margin-bottom: 20px;
+
+    * {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    div.alarmInfo {
+      max-width: 220px;
+      overflow: auto;
+      font-size: medium;
+      background: #eee;
+      padding: 8px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      opacity: 50%;
+    }
+
+    span.alarmEnable {
+      padding: 8px;
+      padding: 8px;
+      margin-right:8px;
+      width: 20px;
+      float: left;
+    }
+
+    span.alarmTime {
+      width: 140px;
+      display: inline-block;
+      font: bold 28px "Seven Segment", sans-serif;
+      color: greenyellow;
+      background: black;
+      padding: 4px;
+      border-radius: 2px;
+      opacity: 25%;
+
+      &::before {
+        content: "🕭 ";
+      }
+    }
+
+    &.alarm-active {
+      div.alarmInfo {
+          background: black;
+          color:white;
+          opacity: 100%;
+      }
+      span.alarmEnable {
+        color: chartreuse;
+      }
+      span.alarmTime {
+        opacity: 100%;
+      }
+    }
+
+  }
+
+  div#alarmCountdown {
+    text-align: right;
+    color:gray;
+    margin-top: 8px;
+  }
+
+  span#addAlarmBut {
+    margin-top: 8px;
+  }
+
+  div#alarmStatus {
+    margin-bottom: 16px;
+
+    div#ringerButs {
+      margin-top: 16px;
+
+      div#ringerSnooze, div#ringerOff {
+        width: 100%;
+        height:60px;
+        line-height:60px;
+        text-align: center;
+        margin-top: 12px;
+        color: darkgray;
+        font-weight: bold;
+        font-size: 24px;
+      }
+      div#ringerOff {}
+      div#ringerSnooze {
+        background: dimgray;
+
+        &.but-active {
+          color: chartreuse;
+        }
+      }
+    }
+
+    div#rSnzCountdown {
+      text-align: right;
+      color:gray;
+      margin-top: 8px;
+    }
+  }
+
+} /*alarm*/
 
 div#clockFace {
   width: 272px;
   height: 272px;
   background: #FDFAF7;
-  opacity: 80%;
   border: 12px solid lightgray;
   border-radius: 100%;
   position: absolute;
@@ -115,7 +243,6 @@ div#clockFace {
     left: 50%;
     transform: translate(-50%, -50%);
   }
-
 
   span { /*tickmarks //each span has 2 tickmarks, uses ::before and ::after to create left and right, so only 30*/
     display: block;
@@ -174,7 +301,6 @@ div#clockFace {
     }
   }
 
-
   h2, h3 {
     font-size: 7px;
     letter-spacing: 1px;
@@ -191,148 +317,27 @@ div#clockFace {
     font-weight: bold;
   }
 
+  div#dtDisplay {
+    font-size: 32px;
+    font-weight: bold;
+    color: #bbb;
+    background: #eee;
+    padding: 6px;
+    border-radius: 12px;
+    text-align: center;
+    position: absolute;
+    left: 50%;
+    bottom: 25%;
+    transform: translateX(-50%);
+
+    &.pm {
+      color: #eee;
+      background: #bbb;
+    }
+  }
 
 } /*clockface*/
 
-.button {
-  color: lightgray;
-  background: #eee;
-  border-radius: 8px;
-  border: 2px solid chartreuse;
-  cursor: pointer;
-  user-select: none;
-
-  &.squareButton {
-    font-size: larger;
-    margin: 8px;
-    padding: 8px;
-    color: gray;
-    width: 20px;
-    height: 20px;
-  }
-  &.leftButton {
-    float: left;
-  }
-  &.rightButton {
-    float: right;
-    margin-right: 0;
-  }
-  &.on {
-    background-color: aquamarine;
-  }
-}
-
-.roundButton {
-  border-radius: 100%;
-  border: 8px solid lightgray;
-  background:lightgray;
-  margin-left: 8px;
-  float: right;
-  font-size: x-small;
-  cursor: pointer;
-  user-select: none;
-}
-
-div#alarm {
-  float: right;
-  font-size: larger;
-  padding: 8px;
-
-  div.alarmInstance {
-    margin-bottom: 20px;
-
-    * {
-      cursor: pointer;
-      user-select: none;
-    }
-
-    div.alarmInfo {
-      max-width: 220px;
-      overflow: auto;
-      font-size: medium;
-      background: #eee;
-      padding: 8px;
-      border-radius: 8px;
-      margin-bottom: 8px;
-    }
-
-    span.alarmEnable {
-      padding: 8px;
-      padding: 8px;
-      margin-right:8px;
-      width: 20px;
-      float: left;
-    }
-
-    span.alarmTime {
-      width: 140px;
-      display: inline-block;
-      font: bold 28px "Seven Segment", sans-serif;
-      color: greenyellow;
-      background: black;
-      padding: 4px;
-      border-radius: 2px;
-      opacity: 25%;
-
-      &::before {
-        content: "🕭 ";
-      }
-    }
-
-    &.alarm-active {
-      div.alarmInfo {
-          background: black;
-          color:white;
-      }
-      span.alarmEnable {
-        color: chartreuse;
-      }
-      span.alarmTime {
-        opacity: 100%;
-      }
-    }
-
-  }
-
-  div#alarmCountdown {
-    text-align: right;
-    color:gray;
-    margin-top: 8px;
-  }
-
-  span#addAlarmBut {
-    margin-top: 8px;
-  }
-
-  div#ringerButs {
-    margin-top: 18px;
-
-    div#ringerSnooze, div#ringerOff {
-      width: 100%;
-      height:60px;
-      line-height:60px;
-      text-align: center;
-      margin-top: 12px;
-      color: darkgray;
-      font-weight: bold;
-      font-size: 24px;
-    }
-    div#ringerOff {}
-    div#ringerSnooze {
-      background: dimgray;
-
-      &.but-active {
-        color: chartreuse;
-      }
-    }
-  }
-
-  div#rSnzCountdown {
-    text-align: right;
-    color:gray;
-  }
-
-} /*alarm*/
 
 /* MODAL
 orig: https://jasonwatmore.com/post/2023/01/04/vanilla-js-css-modal-popup-dialog-tutorial-with-example#styles-css
@@ -398,6 +403,31 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <body>
 
+<div id="editSettings" class="button squareButton leftButton" title="Settings">︙</div>
+
+<div id="alarm">
+  <div id="alarmsContainer">
+    <div class="alarmInstance">
+      <div class="alarmInfo" title="Alarm info"></div>
+      <span class="alarmEnable button" title="On/Off">⏹</span>
+      <span class="alarmTime" title="Edit time"></span>
+      <span class="roundButton delAlarmBut" title="Delete alarm">❌</span>
+    </div>
+    <div id="alarmStatus">
+      <div id="alarmCountdown">&nbsp;</div>
+      <div id="ringerButs">
+        <div id="ringerOff" class="button">OFF</div>
+        <div id="ringerSnooze" class="button">SNOOZE</div>
+        <div id="rSnzCountdown"></div>
+      </div>
+    </div>
+  </div>
+  <div id="lowerRightButs">
+    <span id="addAlarmBut" class="roundButton" title="Add alarm">➕</span>
+    <div id="wakeLockEnable" class="button squareButton rightButton" title="Wake Lock">🔒</div>
+  </div>
+</div>
+
 <div id="clockFace">
   <h2>TIMECKS</h2>
   <h3>alarm clock</h3>
@@ -410,31 +440,6 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   <div id="hourHand" class="hands"></div>
   <div id="spindle"></div>
 </div>
-
-
-<div id="editSettings" class="button squareButton leftButton" title="Settings">︙</div>
-
-<div id="alarm">
-  <div id="alarmsContainer">
-    <div class="alarmInstance">
-      <div class="alarmInfo" title="Alarm info"></div>
-      <span class="alarmEnable button" title="On/Off">⏹</span>
-      <span class="alarmTime" title="Edit time"></span>
-      <span class="roundButton delAlarmBut" title="Delete alarm">❌</span>
-    </div>
-  </div>
-  <div id="alarmCountdown">&nbsp;</div>
-  <div id="ringerButs">
-    <div id="ringerOff" class="button">OFF</div>
-    <div id="ringerSnooze" class="button">SNOOZE</div>
-    <div id="rSnzCountdown"></div>
-  </div>
-  <div id="lowerRightButs">
-    <span id="addAlarmBut" class="roundButton" title="Add alarm">➕</span>
-    <div id="wakeLockEnable" class="button squareButton rightButton" title="Wake Lock">🔒</div>
-  </div>
-</div>
-
 
 <div id="jwmOverlay">
   <div id="jwmModal" class="jw-modal-item">
@@ -692,9 +697,12 @@ var alarmsCont_el= document.querySelector("div#alarmsContainer");
 var alarmInst_el= alarmsCont_el.querySelector("div.alarmInstance");
 var active_aI_el;
 
+var alarmStatus_el= document.querySelector("div#alarmStatus");
+alarmStatus_el.style.display= "none";
+var alarmCountdown_el= alarmStatus_el.querySelector("div#alarmCountdown");
+
 var wlEnable_el= document.querySelector("div#wakeLockEnable");
 
-var alarmCountdown_el= document.querySelector("div#alarmCountdown");
 
 var alarm_flag;
 
@@ -753,7 +761,7 @@ alarmsCont_el.addEventListener("click", evt => {
 
   if (targ_el.classList.contains("alarmEnable")) {
     stopRinger(); //if needed
-    setAlarm(alarmInst_el==active_aI_el?false:alarmInst_el, "wakelockoff"); //toggle
+    setAlarm(alarmInst_el==active_aI_el?false:alarmInst_el, "turnoff"); //toggle
 
   } else if (targ_el.classList.contains("alarmInfo")) {
     editAlarmInfo();
@@ -832,27 +840,21 @@ function editAlarmInfo() {
 } //editAlarmInfo()
 
 function editAlarmTime() {
-  stopRinger(); //if needed
   var alarm_str= alarmInst_el.ELO["aTime"].textContent;
+  var emph_el;
   jm.prompt('Alarm time: <span class="emph">' +alarm_str +'</span>', alarm_str, {
     //jm custom hooks object
 
     begin_cb: () => {
-      var emph_el= jm._els.Description.querySelector(".emph");
-      if (emph_el) jm._els.Description.emph_el= emph_el;
+      emph_el= jm._els.Description.querySelector(".emph");
     },
 
     Input_keyup: evt => { //or "aliasIO_keyup" would work also
-      var emph_el= jm._els.Description.emph_el;
-      //if (!emph_el) return;
-
       var new_alarm_obj= proc_alarmTimeText(jm._els.Input.value, "formatOnly");
       emph_el.innerHTML= new_alarm_obj ? (new_alarm_obj.time +"<br>" +new_alarm_obj.ahead) : "";
     },
 
     end_cb: resp => {
-      delete jm._els.Description.emph_el; //cleanup after yourself
-
       if (resp==null || resp==alarm_str) return; //-->
       var new_alarm_str= resp;
 
@@ -861,8 +863,12 @@ function editAlarmTime() {
       if (new_alarm_obj= proc_alarmTimeText(new_alarm_str, undefined, editAlarmTime)) {
         //.. passed editAlarmTime() as err_cb, try again
         alarmInst_el.ELO["aTime"].textContent= new_alarm_obj.time;
-        if (alarmInst_el==active_aI_el || !active_aI_el) setAlarm(alarmInst_el);
-        else saveAlarms();
+        if (alarmInst_el==active_aI_el || g_alarmInsts().length==1) {
+          stopRinger(); //if needed
+          setAlarm(alarmInst_el);
+        } else {
+          saveAlarms();
+        }
       }
     }
   });
@@ -872,7 +878,7 @@ function deleteAlarm() {
   jm.prompt_boolean("Delete alarm?", 0, resp => {
     if (resp != true) return; //null or false //-->
     alarmInst_el.remove();
-    if (alarmInst_el == active_aI_el) setAlarm(false, "wakelockoff"); //if alarm was on, turn off
+    if (alarmInst_el == active_aI_el) setAlarm(false, "turnoff"); //if alarm was on, turn off
     else saveAlarms();
   });
 } //deleteAlarm()
@@ -1051,7 +1057,7 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
 } //proc_alarmTimeText()
 
 
-function setAlarm(aI_el, wakelockoff_flag) {
+function setAlarm(aI_el, turnoff_flag) {
   var flag= !!aI_el;
   if (flag) {
     var alarm_str= aI_el.ELO["aTime"].textContent;
@@ -1079,6 +1085,8 @@ function setAlarm(aI_el, wakelockoff_flag) {
     active_aI_el= aI_el;
     aI_el.classList.add("alarm-active");
 
+    aI_el.after(alarmStatus_el);
+    alarmStatus_el.style.display= "block";
     alarmCountdown_el.style.display= "block";
     if (!wakeLockObj) setWakeLock(); //on
     alarm_flag= true;
@@ -1088,19 +1096,26 @@ function setAlarm(aI_el, wakelockoff_flag) {
     active_aI_el= undefined;
     alarm_ctdn_m= 0;
     alarmCountdown_el.style.display= "none";
-    if (wakelockoff_flag && wakeLockObj) setWakeLock(); //off
     alarm_flag= false;
     play_sound("slam");
+    if (turnoff_flag) {
+      alarmStatus_el.style.display= "none";
+      if (wakeLockObj) setWakeLock(); //off
+    }
   }
 
   saveAlarms();
 } //setAlarm()
 
+function g_alarmInsts() {
+  return alarmsCont_el.querySelectorAll("div.alarmInstance");
+} //g_alarmInsts()
+
 function saveAlarms() {
   var alarms_arr= [];
   var a_obj;
   var info_str;
-  alarmsCont_el.querySelectorAll("div.alarmInstance").forEach(alrmInst_el => {
+  g_alarmInsts().forEach(alrmInst_el => {
     a_obj= {t: alrmInst_el.ELO["aTime"].textContent};
     if (info_str= alrmInst_el.ELO["aInfo"].textContent) a_obj.i= info_str;
     if (alrmInst_el.classList.contains("alarm-active")) a_obj.a= 1;
@@ -1160,6 +1175,7 @@ function stopRinger(snooze_flag) {
 
   } else { //ringer off
     if (ring_flag) play_sound("slam"); //ringer-off slam
+    alarmStatus_el.style.display= "none";
     ringerButs_el.style.display= "none";
     snooze_ctdn_m= 0; //if needed
     ringerSnooze_el.classList.remove("but-active"); //if needed
