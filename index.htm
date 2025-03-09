@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+
+<title>T I M E C K S</title>
+
+<style type="text/css">
+@import url("https://fonts.cdnfonts.com/css/seven-segment");
+
+/*prereq css begin*/
+/*https://codepen.io*/
+body {
+  font-family: 'Lato', sans-serif;
+  font-size: 100%;
+  font-style: normal;
+  font-weight: 300;
+}
+ul {list-style: none; }
+/*prereq css end*/
+
+
+body.ringing {
+  background: lightgray;
+}
+body.ringingFlash {
+  background: pink;
+}
+
+i {
+  font-style: normal;
+  font-weight: bold;
+  font-size: 24px;
+}
+
+div#dtDisplay {
+  font-size: 32px;
+  font-weight: bold;
+  color: #bbb;
+  background: #eee;
+  padding: 6px;
+  border-radius: 12px;
+  text-align: center;
+  position: absolute;
+  left: 50%;
+  bottom: 25%;
+  transform: translateX(-50%);
+
+  &.pm {
+    color: #eee;
+    background: #bbb;
+  }
+}
+
+
+div#clockFace {
+  width: 272px;
+  height: 272px;
+  background: #FDFAF7;
+  opacity: 80%;
+  border: 12px solid lightgray;
+  border-radius: 100%;
+  position: absolute;
+  left: 33%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  user-select: none;
+
+  div.hands  {
+    width: 1px;
+    height: 1px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform-origin: 50% 0;
+    transform: translate(-50%, -50%);
+  }
+
+  div.hands::before {
+    content: "";
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    transform-origin: 50% 0;
+    transform: translateX(-50%);
+  }
+
+  div#minuteHand {transition: transform 1s linear}
+  div#minuteHand::before {
+    width: 6px;
+    height: 110px;
+    background: black;
+    opacity: 33%;
+    border-radius: 3px;
+  }
+
+  div#hourHand::before {
+    width: 10px;
+    height: 70px;
+    background: black;
+    opacity: 33%;
+    border-radius: 3px;
+  }
+
+  div#spindle {
+    width: 7px;
+    height: 7px;
+    background: #FDFAF7;
+    border: 2px solid darkgray;
+    border-radius: 100%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+
+  span { /*tickmarks //each span has 2 tickmarks, uses ::before and ::after to create left and right, so only 30*/
+    display: block;
+    width: 1px;
+    height: 95%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+
+    &::after {
+      content: "";
+      background: #A0A1A4;
+      position: absolute;
+      width: 100%;
+      height: 10px;
+      top: 0;
+      left: 0;
+    }
+    &::before {
+      content: "";
+      background: #A0A1A4;
+      position: absolute;
+      width: 100%;
+      height: 10px;
+      bottom: 0;
+      left: 0;
+    }
+
+    &.fives {
+      &::after,
+      &::before {height: 20px}
+    }
+  }
+
+
+  ul#hourNumbers {
+    height: 38%;
+    width: 0;
+    position: absolute;
+    bottom: 44%; /*changed (eyeballed) from 50%*/
+    left: 50%;
+
+    li {
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 50% 100%;
+
+      i {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+    }
+  }
+
+
+  h2, h3 {
+    font-size: 7px;
+    letter-spacing: 1px;
+    font-variant: small-caps;
+    position: absolute;
+    left: 50%;
+    top: 32%;
+    transform: translateX(-50%);
+  }
+  h2 {
+    font-size: 8px;
+    top: 29%;
+    letter-spacing: 3px;
+    font-weight: bold;
+  }
+
+
+} /*clockface*/
+
+.button {
+  color: lightgray;
+  background: #eee;
+  border-radius: 8px;
+  border: 2px solid chartreuse;
+  cursor: pointer;
+  user-select: none;
+
+  &.squareButton {
+    font-size: larger;
+    margin: 8px;
+    padding: 8px;
+    color: gray;
+    width: 20px;
+    height: 20px;
+  }
+  &.leftButton {
+    float: left;
+  }
+  &.rightButton {
+    float: right;
+    margin-right: 0;
+  }
+  &.on {
+    background-color: aquamarine;
+  }
+}
+
+.roundButton {
+  border-radius: 100%;
+  border: 8px solid lightgray;
+  background:lightgray;
+  margin-left: 8px;
+  float: right;
+  font-size: x-small;
+  cursor: pointer;
+  user-select: none;
+}
+
+div#alarm {
+  float: right;
+  font-size: larger;
+  padding: 8px;
+
+  div#alarmInfo {
+    font-size: medium;
+    background: #eee;
+    padding: 12px;
+    max-width: 200px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+
+  div.alarmInstance {
+    height: 52px;
+
+    * {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    div.alarmEnable {
+      padding: 8px;
+      padding: 8px;
+      margin-right:8px;
+      width: 20px;
+      float: left;
+
+      &.down {
+        color: chartreuse;
+      }
+    }
+
+    div.alarmTime {
+      width: 130px;
+      font: bold 28px "Seven Segment", sans-serif;
+      color: greenyellow;
+      background: black;
+      padding: 4px;
+      border-radius: 2px;
+      float: right;
+
+      &::before {
+        content: "🕭 ";
+      }
+      &.faded {
+        opacity: 25%;
+      }
+    }
+
+  }
+
+  div#alarmCountdown {
+    text-align: right;
+    color:gray;
+    margin-top: 8px;
+  }
+
+  span#addAlarmBut {
+    margin-top: 8px;
+  }
+
+  div#ringerButs {
+    margin-top: 18px;
+
+    div#ringerSnooze, div#ringerOff {
+      width: 100%;
+      height:60px;
+      line-height:60px;
+      text-align: center;
+      margin-top: 12px;
+      color: darkgray;
+      font-weight: bold;
+      font-size: 24px;
+    }
+    div#ringerOff {}
+    div#ringerSnooze {
+      background: dimgray;
+
+      &.down {
+        color: chartreuse;
+      }
+    }
+  }
+
+  div#rSnzCountdown {
+    text-align: right;
+    color:gray;
+  }
+
+} /*alarm*/
+
+/* MODAL
+orig: https://jasonwatmore.com/post/2023/01/04/vanilla-js-css-modal-popup-dialog-tutorial-with-example#styles-css
+-------------------------------*/
+body.jw-modal-active { /*dont edit this css*/
+  overflow: hidden; /* to hide main scrollbar when modal is active */
+  div#jwmOverlay {
+    display: block;
+  }
+}
+
+div#jwmOverlay { /*background mask and overall container*/  /*edit this css carefully*/
+  display: none; /* modals are hidden by default */
+  position: fixed; /* modal container fixed across whole screen */
+  inset: 0;
+  z-index: 10000; /* z-index must be higher than everything else on the page */
+  background-color: rgba(0, 0, 0, .75); /* semi-transparent black background exposed by padding */
+  padding: 40px;
+  overflow: auto; /* enables scrolling for tall modals */
+
+  .jw-modal-item { /*modal instance*/
+    width: 270px;
+    padding: 4px 8px;
+    background: #fff;
+    margin: 0px auto; /*center horiz*/
+    border-radius: 8px;
+
+    .open { /*dont edit this css*/
+      display: block;
+    }
+
+    * {
+      margin:8px;
+    }
+
+    div#jwmContent {
+      margin-top: 50px;
+    }
+    div#jwmDescription b {
+      color: red;
+    }
+    input#jwmInput {
+      width: 230px;
+      font-size: xxx-large;
+    }
+    textarea#jwmTextarea {
+      width: 230px;
+      height: 100px;
+      font-size: large;
+    }
+    .hilite {
+      background: lightblue;
+    }
+    .emph {
+      color: blue;
+      font-weight: bold;
+    }
+  }
+} /*jwmOverlay*/
+
+</style>
+</head>
+
+<body>
+
+<div id="clockFace">
+  <h2>TIMECKS</h2>
+  <h3>alarm clock</h3>
+
+  <div id="dtDisplay"></div>
+
+  <ul id="hourNumbers"></ul>
+
+  <div id="minuteHand" class="hands"></div>
+  <div id="hourHand" class="hands"></div>
+  <div id="spindle"></div>
+</div>
+
+
+<div id="editSettings" class="button squareButton leftButton" title="Settings">︙</div>
+
+<div id="alarm">
+  <div id="alarmInfo" title="User text"></div>
+  <div id="alarmsContainer">
+    <div class="alarmInstance">
+      <div class="alarmEnable button" title="On/Off">⏹</div>
+      <span class="roundButton delAlarmBut" title="Delete alarm">❌</span>
+      <div class="alarmTime faded" title="Edit time"></div>
+    </div>
+  </div>
+  <div id="alarmCountdown">&nbsp;</div>
+  <div id="ringerButs">
+    <div id="ringerOff" class="button">OFF</div>
+    <div id="ringerSnooze" class="button">SNOOZE</div>
+    <div id="rSnzCountdown"></div>
+  </div>
+  <div id="lowerRightButs">
+    <span id="addAlarmBut" class="roundButton" title="Add alarm">➕</span>
+    <div id="wakeLockEnable" class="button squareButton rightButton" title="Wake Lock">🔒</div>
+  </div>
+</div>
+
+
+<div id="jwmOverlay">
+  <div id="jwmModal" class="jw-modal-item">
+    <span id="jwmCloseBut" class="roundButton">❌</span>
+    <div id="jwmContent">
+      <div id="jwmDescription"></div>
+      <input id="jwmInput"/>
+      <textarea id="jwmTextarea"></textarea>
+      <button id="jwmOkBut">OK</button>
+      <button id="jwmNoBut">No</button>
+      <button id="jwmCancelBut">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+var audioClips= {
+  beep: new Audio("https://cdn.freesound.org/previews/426/426892_7913959-lq.mp3"),
+  buzz: new Audio("https://cdn.freesound.org/previews/696/696600_14786418-lq.mp3"),
+  //oops: new Audio("https://cdn.freesound.org/previews/124/124897_1707984-lq.mp3"),
+  slam: new Audio("https://cdn.freesound.org/previews/421/421472_3387258-lq.mp3"),
+  clik: new Audio("https://cdn.freesound.org/previews/668/668985_14100561-lq.mp3"),
+  rngr: new Audio("https://cdn.freesound.org/previews/246/246332_4486188-lq.mp3")
+};
+
+
+//orig: https://codepen.io/opheliafl/pen/RaYbvL/
+
+function drawClock() {
+  var clockFace_el= document.querySelector("DIV#clockFace");
+  var rotate_n= 0;
+
+  for (var i=0; i<30; i++) {
+    let span_el= document.createElement("span");
+    if (!(i%5)) span_el.className= "fives";
+    span_el.style.transform= "translate(-50%,-50%) rotate(" +rotate_n +"deg)";
+    clockFace_el.appendChild(span_el);
+    rotate_n+= 6;
+  }
+
+  //createHourNumbers
+  rotate_n= 0;
+  var hr_n= 12;
+  var ul_el= document.querySelector("UL#hourNumbers");
+  for (i=0; i<12; i++) {
+    let li_el= document.createElement("li");
+    if (rotate_n) li_el.style.transform= "rotate(" +rotate_n +"deg)";
+    ul_el.appendChild(li_el);
+
+    let i_el= document.createElement("i");
+    i_el.textContent= hr_n;
+    if (rotate_n) i_el.style.transform= "translateX(-50%) rotate(-" +rotate_n +"deg)";
+    li_el.appendChild(i_el);
+
+    rotate_n+= 30;
+    hr_n++;
+    if (hr_n > 12) hr_n= 1;
+  }
+} //drawClock()
+
+drawClock(); //init
+
+
+var hand_els= {
+  hourH: document.querySelector("div#hourHand"),
+  minuteH: document.querySelector("div#minuteHand")
+};
+var dtDisplay_el= document.getElementById("dtDisplay");
+
+var degO= {};
+var h_inc= 360 /720;
+var m_inc= 360 /60;
+
+var clock_elapse_ms; //what we want the time to be, when compared to Date.now() we get sync_diff_ms
+var clock_hr24;
+var clock_ctdn_m;
+var inc_ms; //variable increment
+
+function drawHands() {
+  hand_els.hourH.style.transform= "rotate(" +degO.hours + "deg)";
+  hand_els.minuteH.style.transform= "rotate(" +degO.minutes +"deg)";
+} //drawHands()
+
+function startClock() {
+  start_dtO= new Date();
+  console.log("startClock", start_dtO.toLocaleTimeString());
+  play_sound("clik");
+
+  clock_hr24= start_dtO.getHours();
+  var minutes= start_dtO.getMinutes(); //0-59
+  clock_ctdn_m= 60 -minutes; //60-1
+
+  degO.hours= 30 *clock_hr24 +0.5 *minutes;
+  degO.minutes= 6 *minutes;
+  drawHands();
+
+  var minute_ms= start_dtO.getSeconds()*1000 +start_dtO.getMilliseconds();
+  var topOfMinute_ms= 60000 -minute_ms;
+  setTimeout(() => {
+    inc_ms= 60000; //default 1 minute (flex)
+    clock_elapse_ms= start_dtO.getTime() +topOfMinute_ms;
+    advancedClock(); //1st
+    mainloop(); //kickoff
+
+    function mainloop() { //self-recursing
+      setTimeout(() => {
+        clock_elapse_ms+= 60000; //inc (fixed)
+        if (advancedClock()) mainloop(); //recurse-->
+      }, inc_ms); //inc (flex)
+    } //mainloop()
+
+  }, topOfMinute_ms);
+
+  drawMonthDay(start_dtO, clock_hr24);
+} //startClock()
+
+function drawMonthDay(dtO, h24) {
+  dtDisplay_el.textContent= (dtO.getMonth()+1) +"/" +dtO.getDate(); //0-11, 1-31
+  dtDisplay_el.classList[h24>=12?"add":"remove"]("pm");
+} //drawMonthDay()
+
+
+var sync_diff_ms; //can debug in console
+var throttle_flag;
+//var _throttle_str; //debug
+
+function advancedClock() { //+1 clock minute
+  degO.hours+= h_inc;
+  degO.minutes+= m_inc;
+  drawHands();
+
+  if (alarm_flag) {
+    alarm_ctdn_m--; //inc-
+    checkAlarm();
+  } else if (snooze_ctdn_m) {
+    snooze_ctdn_m--; //inc-
+    checkSnooze();
+  }
+
+  var sync_dtO= new Date();
+  sync_diff_ms= clock_elapse_ms -sync_dtO.getTime();
+
+  //slept
+  if (sync_diff_ms <= -120000 ) { //extremely slow, 2 or more minutes (prob from sleep)
+    var diff_m= Math.floor(sync_diff_ms /60000);
+    //.. note: Math.floor returns lower integer, with negative number, the absolute is the higher integer
+    if (alarm_flag) {
+      alarm_ctdn_m+= diff_m; //subtract (sync_diff_ms is negative)
+      checkAlarm();
+      if (alarm_flag && !wakeLockObj && !document.hidden) setWakeLock(); //on
+    } else if (snooze_ctdn_m) {
+      snooze_ctdn_m+= diff_m; //subtract (sync_diff_ms is negative)
+      if (snooze_ctdn_m < 0) snooze_ctdn_m= 0;
+      checkSnooze();
+    }
+    console.log("SLEPT", g_fmatTime(sync_dtO), g_fmatSDM())
+    startClock(); //restart
+    return false; //abort //-->
+    //.. and no mainloop, like clearTimeout for a self-cursing fn
+  }
+
+
+  clock_ctdn_m--; //inc-
+  //.. simpler than.. (.getMinutes, then compensate if clock lil slow)
+  if (clock_ctdn_m < 1) { //top of hr
+    //.. uneffected if clock lil slow
+    clock_ctdn_m= 60; //wrap (reset)
+
+    //dst
+    clock_hr24= (clock_hr24+1) %24; //inc wrap
+    let hrs24= sync_dtO.getHours();
+    if (sync_diff_ms > 0) hrs24= (hrs24+1) %24; //inc wrap
+    //.. if clock lil fast (before the actual minute), compensate actual +1hr
+
+    //https://www.timeanddate.com/time/dst/transition.html
+    if (clock_hr24 != hrs24) { //DST change?
+      let diff_hr= hrs24- clock_hr24; // +- 1
+      console.log("DST change", diff_hr, g_fmatTime(sync_dtO), g_fmatSDM(), hrs24, clock_hr24)
+      play_sound("clik");
+      degO.hours+= diff_hr *h_inc *60;
+      drawHands();
+      clock_hr24= hrs24; //reset
+      //.. 2am bacomes 3am (forward) or 1am (back)
+    } //DST change
+
+    //am/pm, monthday
+    if (hrs24 %12 == 0) drawMonthDay(sync_dtO, hrs24); //noon or midnite
+    //.. uneffected by DST change (which happens at '2am')
+
+//console.log("TOP OF HR", g_fmatTime(sync_dtO))
+  } //top of hr
+
+
+  //inc_ms adjust
+  if (sync_diff_ms) { //not 0
+
+    if (sync_diff_ms <= -60000 ) { //very slow, 1-2 minute (prob from throttling)
+      //.. prob doesnt happen, hope not
+      console.log("JUMP clock ahead 1 minute", g_fmatTime(sync_dtO), g_fmatSDM())
+      play_sound("clik");
+      clock_elapse_ms+= 60000; //big adjust
+      advancedClock(); //add clock minute
+      //.. orig mainloop fires
+
+    } else if (sync_diff_ms>100 || throttle_flag) { //unthrottle or unthrottle+1min
+      inc_ms= 60000 +sync_diff_ms; //moderate adjust+, then small adjust-
+      if (!throttle_flag) {
+        play_sound("clik", 2, 500);
+//_throttle_str= "THROTTLED " +g_fmatTime(sync_dtO) +" " +g_fmatSDM() +" " +inc_ms;
+      } else {
+//console.log(_throttle_str, "adjusted", g_fmatTime(sync_dtO), g_fmatSDM(), inc_ms )
+      }
+      throttle_flag= !throttle_flag; //toggle
+      if (alarm_flag && !wakeLockObj && !document.hidden) setWakeLock(); //on
+
+    } else { //tweak inc_ms
+      inc_ms+= sync_diff_ms; //small adjust //swerving, but dont go off the road
+      if (inc_ms < 30000) inc_ms= 30000; //not too small
+    }
+
+    //when browser throttled, mainloop 'minute' can be slow (over 7 secs seen), also screen rendering paused
+    //https://developer.mozilla.org/en-US/docs/Web/API/Window/setTimeout#reasons_for_delays_longer_than_specified
+
+    //when system sleeps, everything stops
+
+//console.log("advanced Clock",  g_fmatTime(sync_dtO), g_fmatSDM(), inc_ms )
+  } //sync_diff_ms
+
+  return true; //advanced, yes
+} //advancedClock()
+
+function g_fmatTime(dtO= new Date()) { //formatted time string, eg. "@11:48:22.005" //shows ms
+  return "@" +(dtO.getHours()%12||12) +":" +dtO.toISOString().substring(14, 23);
+  //.. toISOString(), eg. "2011-10-05T14:48:22.005Z"
+} //g_fmatTime()
+function g_fmatSDM() { //formatted sync_diff_ms string, eg. "dif+12"
+  var str= "dif";
+  if (sync_diff_ms > 0) str+= "+";
+  return str +sync_diff_ms;
+} //g_fmatSDM()
+
+
+var body_el= document.querySelector("body");
+
+//div#alarm
+var editStgs_el= document.querySelector("div#editSettings");
+var alarmInfo_el= document.querySelector("div#alarmInfo");
+
+var alarmsCont_el= document.querySelector("div#alarmsContainer");
+var alarmInst_el= alarmsCont_el.querySelector("div.alarmInstance");
+var active_aI_el;
+
+var wlEnable_el= document.querySelector("div#wakeLockEnable");
+
+var alarmCountdown_el= document.querySelector("div#alarmCountdown");
+
+var alarm_flag;
+var alarms_arr= (localStorage.getItem("alarms") || "12:00 AM").split("|"); //w empty default
+
+function add_instanceShortcuts(aI_el) { //.dataset only stores strings
+  //breaks html/js laws, but as far as js only goes, an element is just an object
+  aI_el.ELO= {
+    aTime: aI_el.querySelector("div.alarmTime"),
+    aEnable: aI_el.querySelector("div.alarmEnable")
+  };
+} //add_instanceShortcuts()
+
+function startAlarms() {
+  var aInst_el= alarmInst_el;
+  var init_aInst_el;
+  alarms_arr.forEach((a_str, i) => {
+    if (i) {
+      aInst_el= alarmInst_el.cloneNode(true); //clone
+      alarmsCont_el.appendChild(aInst_el); //add
+    }
+    add_instanceShortcuts(aInst_el);
+
+    if (a_str.includes("!")) { //active
+      a_str= a_str.replace("!", "");
+      init_aInst_el= aInst_el;
+    }
+    aInst_el.ELO["aTime"].textContent= a_str;
+  });
+
+  if (init_aInst_el) setAlarm(init_aInst_el);
+} //startAlarms()
+
+var snooze_def_num= (localStorage.getItem("snooze_num") || 5) *1; //default 5
+
+alarmInfo_el.textContent= localStorage.getItem("alarm_info");
+
+
+document.addEventListener("keyup", evt => { //capture any keyup
+  if (!document.body.classList.contains("jw-modal-active")) { //modal inactive
+    if (evt.key == "-") {
+      alarmInst_el= alarmsCont_el.querySelector("div.alarmInstance"); //always the standard (1st) alarm
+      editAlarmTime();
+    } else if (ringerButs_el.style.display == "block") {
+      if (evt.key == " ") stopRinger("snooze");
+      else if (evt.key.search(/Enter|Escape/) > -1) stopRinger();
+    }
+  }
+});
+
+editStgs_el.addEventListener("click", editSettings);
+
+alarmInfo_el.addEventListener("click", () => editAlarmInfo()); //edit alarm info
+
+alarmsCont_el.addEventListener("click", evt => {
+  var targ_el= evt.target;
+  alarmInst_el= targ_el.closest("div.alarmInstance");
+
+  if (targ_el.classList.contains("alarmEnable")) {
+    stopRinger(); //if needed
+    setAlarm(alarmInst_el==active_aI_el?false:alarmInst_el); //toggle
+
+  } else if (targ_el.classList.contains("alarmTime")) {
+    editAlarmTime();
+
+  } else if (targ_el.classList.contains("delAlarmBut")) {
+    deleteAlarm();
+  }
+});
+
+document.querySelector("span#addAlarmBut").addEventListener("click", addnewAlarm);
+
+
+//https://developer.chrome.com/blog/new-in-chrome-79/#wake-lock
+var wakeLockObj;
+async function requestWakeLock() {
+	try {
+		wakeLockObj= await navigator.wakeLock.request();
+      wlEnable_el.classList.add("on");
+      //localStorage.setItem("wake_lock", true);
+
+  		wakeLockObj.addEventListener("release", () => {
+  			wakeLockObj= undefined; //clear global
+        wlEnable_el.classList.remove("on");
+        //localStorage.setItem("wake_lock", false);
+  		});
+	} catch (err) {console.log(err.message); }
+} //requestWakeLock()
+
+async function releaseWakeLock() { //note: minimizing of browser, or unfocus of browser tab, will automatically release wakeLock
+	if (!wakeLockObj) return; //-->
+  try {await wakeLockObj.release(); }
+	catch (err) {console.log(err.message); }
+} //releaseWakeLock()
+
+//if (localStorage.getItem("wake_lock")) setWakeLock(); //turn on by default
+
+async function setWakeLock() {
+	if (wakeLockObj) await releaseWakeLock(); //off
+	else await requestWakeLock(); //on
+} //setWakeLock()
+
+
+function editSettings() { //just snooze duration
+  jm.prompt("Snooze duration (minutes, 1-30)", snooze_def_num, resp => {
+    if (resp == null) return; //-->
+    var v_num= resp *1;
+    if (v_num == snooze_def_num) return; //same, do nothing //-->
+    if (isNaN(v_num) || v_num<1 || v_num>30) {
+      jm.error("Snooze must be 1-30 minutes<br><br>Your input:<b>" +resp +"</b>", () => {
+        editSettings(); //try again
+      });
+    } else {
+      snooze_def_num= v_num;
+      localStorage.setItem("snooze_num", snooze_def_num);
+    }
+  });
+} //editSettings()
+
+function editAlarmInfo(info_str= alarmInfo_el.textContent) {
+  jm.prompt_textarea("Alarm Info", info_str, resp => {
+    if (resp==null || resp==info_str) return; //-->
+    info_str= resp.trim();
+    if (info_str.length > 80) {
+      jm.error("Info length is up to 80 chars. Your text is " +info_str.length +" chars", () => {
+        editAlarmInfo(info_str); //try again
+      });
+    } else {
+      alarmInfo_el.textContent= info_str;
+      localStorage.setItem("alarm_info", info_str);
+    }
+  });
+} //editAlarmInfo()
+
+function editAlarmTime() {
+  stopRinger(); //if needed
+  var alarm_str= alarmInst_el.ELO["aTime"].textContent;
+  jm.prompt('Alarm time: <span class="emph">' +alarm_str +'</span>', alarm_str, {
+    //jm custom hooks object
+
+    begin_cb: () => {
+      var emph_el= jm._els.Description.querySelector(".emph");
+      if (emph_el) jm._els.Description.emph_el= emph_el;
+    },
+
+    Input_keyup: evt => { //or "aliasIO_keyup" would work also
+      var emph_el= jm._els.Description.emph_el;
+      //if (!emph_el) return;
+
+      var new_alarm_obj= proc_alarmTimeText(jm._els.Input.value, "formatOnly");
+      emph_el.innerHTML= new_alarm_obj ? (new_alarm_obj.time +"<br>" +new_alarm_obj.ahead) : "";
+    },
+
+    end_cb: resp => {
+      delete jm._els.Description.emph_el; //cleanup after yourself
+
+      if (resp == null) return; //-->
+      var new_alarm_str= resp;
+      if (new_alarm_str == alarm_str) return; //same, do nothing //-->
+
+      //proc input str
+      var new_alarm_obj;
+      if (new_alarm_obj= proc_alarmTimeText(new_alarm_str, undefined, editAlarmTime)) {
+        //.. passed editAlarmTime() as err_cb, try again
+        alarmInst_el.ELO["aTime"].textContent= new_alarm_obj.time;
+        if (alarmInst_el==active_aI_el || !active_aI_el) setAlarm(alarmInst_el);
+        else saveAlarms();
+      }
+    }
+  });
+} //editAlarmTime()
+
+function deleteAlarm() {
+  jm.prompt_boolean("Delete alarm?", 0, resp => {
+    if (resp != true) return; //null or false //-->
+    alarmInst_el.remove();
+    if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
+    else saveAlarms();
+  });
+} //deleteAlarm()
+
+function addnewAlarm() {
+  var clAlrmInst_el= alarmInst_el.cloneNode(true); //clone //any alarmInst_el will do
+  add_instanceShortcuts(clAlrmInst_el);
+  clAlrmInst_el.ELO["aEnable"].classList.remove("down");
+
+  var el= clAlrmInst_el.ELO["aTime"];
+  el.textContent= "12:00 AM"; //default
+  el.classList.add("faded");
+
+  alarmsCont_el.appendChild(clAlrmInst_el); //add
+  saveAlarms();
+} //addnewAlarm()
+
+var ringerButs_el= document.querySelector("div#ringerButs");
+ringerButs_el.style.display= "none";
+
+var ringerOff_el= document.querySelector("div#ringerOff")
+ringerOff_el.addEventListener("click", () => stopRinger());
+
+var ringerSnooze_el= document.querySelector("div#ringerSnooze")
+ringerSnooze_el.addEventListener("click", () => stopRinger("snooze"));
+
+var rSnzCountdown_el= document.querySelector("div#rSnzCountdown");
+
+
+var hr_num, mn_num, pm_flag; //alarm
+var alarm_dtO;
+var alarm_ctdn_m;
+var ring_intimerId;
+var snooze_ctdn_m;
+
+function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if raw_str is good
+  //.. geared toward keypad input, with some shortcuts baked in
+  raw_str= raw_str.trim();
+  if (!raw_str) return err("no data"); //-->
+
+  var time_str;
+  var offset_str, offsetMod_str;
+
+  [time_str, offset_str]= raw_str.split(/\+|-/);
+  if (offset_str) offsetMod_str= raw_str[time_str.length]; // = -
+
+  var time_dtO= new Date();
+
+  var timO;
+  if (time_str) {
+    timO= g_procReqTime(time_str);
+
+    if (timO.h > 12) return err("bad hour:<b>" +timO.h +"</b>max is 12"); //-->
+    if (timO.m > 59) return err("bad minute:<b>" +timO.m +"</b>max is 59"); //-->
+
+    timO.p= time_str.search(/P|p|\*|\//) > -1; //chars: P p * /
+    let reqAmPm_flag= timO.p || time_str.search(/A|a/) > -1; //chars: A a
+
+    if (timO.h == 0) { //auto-derive hr from now
+        let h= time_dtO.getHours();
+        if (!reqAmPm_flag) timO.p= (h >= 12);
+        let m= time_dtO.getMinutes();
+        if (timO.m <= m) { //if reqminutes less than nowminutes, goto next hour
+          h++; //inc
+          if (!reqAmPm_flag && (h==12 || h==24)) timO.p= !timO.p; //toggle am/pm
+          if (h == 24) h= 0; //wrap
+        }
+        timO.h= proc_24to12hrNum(h);
+    }
+
+    time_dtO= g_fromhuman_dateObj(timO.h, timO.m, timO.p);
+  }
+
+  var ahead_str= "";
+
+  var ofstO;
+  if (offset_str) {
+    ofstO= g_procReqTime(offset_str);
+    if (ofstO.h +ofstO.m < 1) return err("0 hour+minute (offset mode)"); //-->
+
+    var time_ms= time_dtO.getTime();
+    var sgn_num= offsetMod_str=="+" ? 1 : -1;
+
+    if (ofstO.m) {
+      if (ofstO.m > 59) return err("ahead minutes:<b>" +ofstO.m +"</b>max is 59"); //-->
+      time_ms+= sgn_num *ofstO.m *60000; //60*1000 //add mns
+    }
+    if (ofstO.h) {
+      let max_h= ofstO.m ? 23 :24; //max 24 hrs ahead because year/month/day not stored (not a calendar)
+      if (ofstO.h > max_h) return err("ahead hours:<b>" +ofstO.h +"</b>max is " +max_h); //-->
+      time_ms+= sgn_num *ofstO.h *3600000; //60*60*1000 //add hrs
+    }
+
+    ahead_str= "(OFFSET: ";
+    if (timO) ahead_str+= get_formattedTime_str(timO.h, timO.m, timO.p) + " ";
+    ahead_str+= offsetMod_str +g_untilStr(ofstO.m, ofstO.h) +")";
+
+    time_dtO= new Date(time_ms); //is DST handled here by js date ?
+
+  } else { //no offset given, derive for ahead_str
+    let ahead_ms= time_dtO -new Date();
+    if (ahead_ms < 0) { //if reqTime less than nowTime, goto next day
+      let ahead_dtO= new Date(time_dtO.getTime());
+      ahead_dtO.setDate(ahead_dtO.getDate() +1); //+1 day //is DST handled here by js date ?
+      ahead_ms= ahead_dtO -new Date();
+    }
+    ahead_str= "(in: " +g_untilStr(Math.round(ahead_ms /60000)) +")";
+  }
+
+  function g_procReqTime(str) {
+    var h, m= 0;
+    var split_arr= str.split(/:|\./);
+    if (split_arr.length > 1) { //contains ":" or ".", explicit hrs and mns
+      h= get_nstr(split_arr[0]) *1;
+      m= get_nstr(split_arr[1]) *1;
+
+    } else { //special shorthand
+      var hm_str= get_nstr(str);
+      var L= hm_str.length;
+      if (hm_str[0]=="0" || L<=2) { //1-2 digits, or starts with "0"
+        if (hm_str[0] == "0") { //starts with "0"
+          //minutes mode, eg. "01" is 1 mn, "012" is 12 mns
+          //just mns, hr 0
+          m= hm_str *1;
+        } else { //1-2 digits
+          let n= hm_str *1;
+          if (n <= 12) h= n; //just hr, mn 0
+          else m= n; //just mn, hr 0
+        }
+      } else { //3-4 digits
+        //.. w "*" for 'pm', eg. 1220 .. 12:20am, or 420* .. 4:20pm
+        h= hm_str.substring(0, L -2) *1; //begining, up to last 2 digits
+        m= hm_str.substring(L -2) *1; //last 2 digits
+      }
+    }
+    return {h:h, m:m};
+  } //g_procReqTime()
+
+  var _hr_num= time_dtO.getHours();
+  var _pm_flag= _hr_num >= 12;
+  _hr_num= proc_24to12hrNum(_hr_num);
+  var _mn_num= time_dtO.getMinutes();
+
+  if (!preview_flag) {
+    hr_num= _hr_num;
+    mn_num= _mn_num;
+    pm_flag= _pm_flag;
+  }
+
+  //success
+  return {
+    time: get_formattedTime_str(_hr_num, _mn_num, _pm_flag),
+    ahead: ahead_str
+  };
+
+
+  function get_nstr(str) {
+    return (str.match(/\d+/) || ["0"])[0]; //gets 'first' number, ignores rest //if none, will return "0"
+    //note: "0" is truth-y
+  }
+
+  function get_formattedTime_str(h, m, p) {
+    return h +":" +String(m).padStart(2, "0")  +(p?" PM":" AM"); //human time
+  } //get_formattedTime_str()
+
+  function proc_24to12hrNum(h) {
+    if (h > 12) h-= 12;
+    else if (h == 0) h= 12;
+    return h;
+  }
+
+  function err(err_str) {
+    if (preview_flag) return; //-->
+    jm.error("Alarm time error caused by<br>" +err_str +"<br><br>Your raw input:<b>" +raw_str +"</b>", err_cb);
+    //multiple errors are not returned, only the first error encountered
+  }
+
+} //proc_alarmTimeText()
+
+
+function setAlarm(aI_el) {
+  var flag= !!aI_el;
+  if (flag) {
+    var alarm_str= aI_el.ELO["aTime"].textContent;
+    if (!proc_alarmTimeText(alarm_str)) flag= false;
+
+    if (flag) {
+      alarm_dtO= g_fromhuman_dateObj(hr_num, mn_num, pm_flag);
+
+      var alm_ctdn_ms= alarm_dtO -new Date(); //is DST handled here by js date ?
+      if (alm_ctdn_ms < 1) { //if reqTime less than nowTime, goto next day
+        alarm_dtO.setDate(alarm_dtO.getDate() +1); //+1 day //is DST handled here by js date ?
+        alm_ctdn_ms= alarm_dtO -new Date(); //redo alarm_ctdn_ms
+      }
+
+      alarm_ctdn_m= Math.ceil(alm_ctdn_ms /60000); //.ceil makes this at least 1
+      checkAlarm();
+    } //flag w good proc_alarmTimeText
+  } //flag
+
+  if (active_aI_el) { //prev alarm off
+    active_aI_el.ELO["aEnable"].classList.remove("down");
+    active_aI_el.ELO["aTime"].classList.add("faded");
+  }
+
+  if (flag) { //alarm on
+    active_aI_el= aI_el;
+    aI_el.ELO["aEnable"].classList.add("down");
+    aI_el.ELO["aTime"].classList.remove("faded");
+    alarmCountdown_el.style.display= "block";
+    if (!wakeLockObj) setWakeLock(); //on
+    alarm_flag= true;
+    play_sound("beep");
+
+  } else { //alarm off
+    active_aI_el= undefined;
+    alarm_ctdn_m= 0;
+    alarmCountdown_el.style.display= "none";
+    alarm_flag= false;
+    play_sound("slam");
+  }
+
+  saveAlarms();
+} //setAlarm()
+
+function saveAlarms() {
+  alarms_arr= [];
+  var a_str;
+  alarmsCont_el.querySelectorAll("div.alarmInstance").forEach(alrmInst_el => {
+    a_str= alrmInst_el.ELO["aTime"].textContent;
+    if (alrmInst_el.ELO["aEnable"].classList.contains("down")) a_str+= "!";
+    alarms_arr.push(a_str);
+  });
+  localStorage.setItem("alarms", alarms_arr.join("|"));
+} //saveAlarms()
+
+function checkAlarm() {
+  if (alarm_ctdn_m < 1) { //end Alarm
+      setAlarm(false);
+      startRinger();
+  } else {
+    alarmCountdown_el.textContent= g_untilStr(alarm_ctdn_m);
+  }
+} //checkAlarm()
+
+function g_fromhuman_dateObj(h, m, p) { //from human time 12:59am/pm, to computer time 23:59
+  var dtO= new Date(); //dateobj, using the date, but will reset the time
+
+  dtO.setSeconds(0);
+  dtO.setMinutes(m);
+
+  if (h == 12) h= 0;
+  if (p) h+= 12;
+  dtO.setHours(h);
+
+  return dtO;
+} //g_fromhuman_dateObj()
+
+
+var ring_flag;
+
+function startRinger() {
+  ring_flag= true;
+  play_sound("rngr");
+  ringerButs_el.style.display= "block";
+  body_el.classList.add("ringing", "ringingFlash");
+  ring_intimerId= setInterval(() => { //recurse
+    body_el.classList.toggle("ringingFlash");
+    play_sound("rngr");
+  }, 5000);
+} //startRinger()
+
+function stopRinger(snooze_flag) {
+  if (ring_intimerId) {
+    clearInterval(ring_intimerId);
+    ring_intimerId= undefined;
+    body_el.classList.remove("ringing", "ringingFlash");
+  }
+
+  if (snooze_flag) {
+    //note: snooze wont be exact, since it only checks/fires at top of minute
+    //eg. 5 minutes will be 4-5 minutes
+    snooze_ctdn_m= snooze_def_num;
+    ringerSnooze_el.classList.add("down");
+
+  } else { //ringer off
+    if (ring_flag) play_sound("slam"); //ringer-off slam
+    ringerButs_el.style.display= "none";
+    snooze_ctdn_m= 0; //if needed
+    ringerSnooze_el.classList.remove("down"); //if needed
+    ring_flag= false;
+    if (wakeLockObj) setWakeLock(); //off
+  }
+
+  drawSnooze(); //if needed
+} //stopRinger()
+
+function drawSnooze() {
+  rSnzCountdown_el.textContent= snooze_ctdn_m ? g_untilStr(snooze_ctdn_m) : "";
+} //drawSnooze()
+
+function checkSnooze() {
+  drawSnooze();
+  if (!snooze_ctdn_m) { //end snooze
+    ringerSnooze_el.classList.remove("down");
+    startRinger();
+  }
+} //checkSnooze()
+
+function g_untilStr(m, h) {
+  var mnt_flag;
+  if (h == undefined) {
+    mnt_flag= true;
+    if (m > 59) {
+      h= Math.floor(m /60);
+      m= m %60;
+    }
+  }
+  var str= h ? (h +"h") : "";
+  if (mnt_flag || m) str+= " " +m +"m";
+  return str || "0";
+} //g_untilStr()
+
+function play_sound(ac_key, repeat_n= 1, step_ms= 750) {
+  if (repeat_n == 1) {
+    audioClips[ac_key].play();
+    return; //-->
+  }
+
+  var ct= 0;
+  step_play(); //kickoff
+
+  function step_play() {
+    audioClips[ac_key].play();
+    if (ct < repeat_n) setTimeout(step_play, step_ms); //recurse //-->
+    ct++;
+  }
+} //play_sound()
+
+
+//jm (modal)
+var jm= {
+  _els: {},
+  _type: 0,
+  _end_cb: 0,
+
+  init: function() {
+    //pop jm._els (aliasIO is dynamically assigned)
+    "div#jwmOverlay, span#jwmCloseBut, div#jwmDescription, input#jwmInput, textarea#jwmTextarea, button#jwmOkBut, button#jwmNoBut, button#jwmCancelBut".split(", ").forEach(sel_str => {
+      jm._els[sel_str.split("#")[1].replace("jwm", "")]= document.querySelector(sel_str);
+      //note: jid is the element id with the "jwm" removed
+    });
+
+    //modal handlers
+    document.addEventListener("keyup", evt => { //capture any keyup
+      if (document.body.classList.contains("jw-modal-active")) { //modal active
+        if (evt.key=="Escape" || (evt.key=="Enter" && !evt.shiftKey)) jm._respond(evt.key);
+        //since modal can contain textarea, no 'nav' keys should be captured (arrow, tab)
+        //also shift-enter allows linebreak in textarea
+        else if (jm._type == "PROMPT_BOOL") jm._prmBoolProc(evt.key); //however, this does do 'nav' keys
+      }
+    });
+
+    jm._clickHandler("Overlay", evt => {
+      if (evt.target.id == "jwmOverlay") jm._respond("Overlay Click"); //closeModal
+
+    });
+
+    jm._clickHandler("OkBut", evt => {
+      if (jm._type == "PROMPT_BOOL") jm._els.aliasIO.value= "OK";
+      jm._respond();
+    });
+
+    jm._clickHandler("NoBut", evt => {
+      jm._els.aliasIO.value= "NO";
+      jm._respond();
+    });
+
+    jm._clickHandler("CancelBut", evt => {
+      jm._respond("CANCEL");
+    });
+
+    jm._clickHandler("CloseBut", evt => {
+      jm._respond("CLOSE");
+    });
+
+  }, //init()
+
+  dialog: function(type_str, text_str, value_str, cb) { //ck, non blocking modal
+    //all types can have cb (callback)
+
+    if (document.body.classList.contains("jw-modal-active")) { //modal active
+      console.error("Modal occupied");
+      return; //abort //-->
+    }
+
+    jm._displayEls("Input,Textarea,NoBut,CancelBut", "none");
+    jm._classEls("OkBut,NoBut", "hilite", false);
+    jm._els.aliasIO= jm._els.Input; //for .Input or .Textarea
+    jm._els.OkBut.textContent= "OK";
+
+    if (type_str.search(/ALERT|ERROR|CONFIRM|PROMPT_BOOL/) > -1) {
+      jm._els.aliasIO.value= "OK";
+
+      if (type_str == "PROMPT_BOOL") {
+        jm._displayEls("NoBut,CancelBut", "inline");
+        jm._els.OkBut.textContent= "Yes";
+        var state_flag= !!value_str; //to boolean
+        //.. local var
+        if (!state_flag) jm._els.aliasIO.value= "NO";
+        //.. actual value kept in aliasIO.value as string ("OK", "NO")
+        jm._prmBoolProc(); //hilte only
+
+      } else if (type_str == "CONFIRM") { //CONFIRM is just an ALERT with a Cancel button
+        jm._displayEls("CancelBut", "inline");
+
+      } else if (type_str == "ERROR") play_sound("buzz");
+
+    } else if (type_str.search(/PROMPT$|PROMPT_TEXTAREA/) > -1) {
+      if (type_str == "PROMPT_TEXTAREA") jm._els.aliasIO= jm._els.Textarea;
+      jm._els.aliasIO.value= value_str;
+
+      jm._displayEls("aliasIO");
+      jm._displayEls("CancelBut", "inline");
+
+    } else {
+      console.error("jm.dialog, bad type_str:", type_str);
+      return; //-->
+    }
+
+    jm._type= type_str;
+    jm._els.Description.innerHTML= text_str;
+
+    if (cb) {
+      if (typeof(cb) == "object") { //custom hooks object
+        if (cb.begin_cb && typeof(cb.begin_cb)=="function") cb.begin_cb();
+        jm._customHooks(cb, true); //add listeners
+      } else if (typeof(cb) != "function") { //otherwise should a fn (that is the 'end' callback)
+        cb= undefined; //error, no message
+      }
+    }
+    jm._cb= cb;
+
+    jm.openModal("jwmModal");
+    jm._els.aliasIO.select(); //highlight text //if needed
+  },
+
+  alert: function(text_str, cb) {
+    jm.dialog("ALERT", text_str, "", cb); //returns true or null
+  },
+  error: function(text_str, cb) {
+    jm.dialog("ERROR", text_str, "", cb); //returns true or null
+  },
+  confirm: function(text_str, cb) {
+    jm.dialog("CONFIRM", text_str, "", cb); //returns true or null
+  },
+
+  prompt_boolean: function(text_str, value_flag, cb) {
+    jm.dialog("PROMPT_BOOL", text_str, value_flag, cb); //returns true or false or null
+    //param called value_flag here, but jm.dialog will still call it value_str
+  },
+
+  prompt: function(text_str, value_str, cb) {
+    jm.dialog("PROMPT", text_str, value_str, cb); //returns string or null
+  },
+  prompt_textarea: function(text_str, value_str, cb) {
+    jm.dialog("PROMPT_TEXTAREA", text_str, value_str, cb); //returns string or null
+  },
+
+  _prmBoolProc: function(key) {
+    //PROMPT_BOOL is the only dialog that has Yes/No buttons
+    //they are highlightable by nav keys, and submittable by shortcut key (Y/N)
+    var state_flag= jm._els.aliasIO.value == "OK"; //local var
+    var submit_flag;
+
+    if (key) { //key capture
+      key= key.toUpperCase();
+      if (key.search(/Y$|N$/) == 0) { //exact match "Y" or "N"
+        state_flag= value= key != "N";
+        submit_flag= true;
+      } else if (key.indexOf("ARROW") == 0) {
+        state_flag= !state_flag; //toggle
+      }
+      jm._els.aliasIO.value= state_flag ? "OK" : "NO";
+    }
+
+    //highlight Y/N Button
+    liteBut("OkBut", state_flag);
+    liteBut("NoBut", !state_flag);
+    function liteBut(jid, flag) {
+      jm._els[jid].classList[flag?"add":"remove"]("hilite");
+    }
+
+    if (submit_flag) jm._respond(); //btw, closes modal
+  },
+
+  _respond: function(act_code= "") {
+    if (jm._type=="ALERT" && act_code=="Escape") return; //-->
+    //hacky - but dont allow esc key for ALERT, because it wont satisfy browser restriction for sound to play
+
+    jm.closeModal();
+
+    var cb= jm._cb;
+    if (!cb) return; //-->
+
+    var resp= true;
+
+    if (act_code.search(/Overlay Click|Escape|CANCEL|CLOSE/) > -1) {
+      resp= null;
+    } else if (jm._type.includes("PROM")) {
+      resp= jm._els.aliasIO.value;
+      if (jm._type == "PROMPT_BOOL") resp= (resp == "OK"); //to boolean
+    }
+
+    if (typeof(cb) == "object") {
+      jm._customHooks(cb, false); //remove listeners
+      if (cb.end_cb) cb.end_cb(resp);
+    } else {
+      cb(resp);
+    }
+
+  }, //_respond
+
+  _customHooks: function(cbO, add_flag) {
+    var el_jid, el, evt_key;
+    Object.keys(cbO).forEach(ce_code => {
+      [el_jid, evt_key]= ce_code.split("_");
+      if (evt_key) {
+        if (el= jm._els[el_jid]) {
+          if (add_flag) el.addEventListener(evt_key, cbO[ce_code]);
+          else el.removeEventListener(evt_key, cbO[ce_code]);
+        }
+      }
+    });
+
+    //possible 'e_codes':
+      //begin_cb, returns nothing
+      //end_cb, returns resp
+      //(handler on any event on any jm._els item, returns event)
+        //eg. "Input_keyup" is 'keyup' event on input#jwmInput
+        //eg. "OkBut_mouseover" is 'mouseover' event on button#jwmOkBut
+
+  }, //_customHooks
+
+  //utils
+  _clickHandler: function(el, clk_cb) {
+    if (typeof(el) == "string") el= jm._els[el];
+    if (el) el.addEventListener("click", clk_cb);
+  },
+
+  _displayEls: function(jids, display_str= "block") {
+    jm._iterEls(jids, el => el.style.display= display_str );
+  },
+  _classEls: function(jids, class_str, flag= true) {
+    jm._iterEls(jids, el => el.classList[flag?"add":"remove"](class_str) );
+  },
+
+  _iterEls: function(jids, itr_cb) {
+    var el;
+    jids.split(",").forEach(jid => {
+      if (el= jm._els[jid]) itr_cb(el);
+    });
+  },
+
+  //orig: https://jasonwatmore.com/post/2023/01/04/vanilla-js-css-modal-popup-dialog-tutorial-with-example
+  openModal: function(id) { //open modal by id
+    document.body.classList.add("jw-modal-active");
+    var el;
+    if (el= document.getElementById(id)) el.classList.add("open");
+  },
+  closeModal: function() { //close currently open modal
+    document.body.classList.remove("jw-modal-active");
+    jm._els.Overlay.querySelector(".open").classList.remove("open");
+  }
+}; //jm
+jm.init();
+
+
+//INIT
+var init_dtO= new Date();
+console.log("INIT", init_dtO.toLocaleString());
+jm.alert("Click to start", () => {
+  startClock();
+  startAlarms();
+});
+</script>
+
+</body>
+</html>
