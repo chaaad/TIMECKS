@@ -251,7 +251,7 @@ div#alarm {
       overflow: auto;
       font-size: medium;
       background: #eee;
-      padding: 6px;
+      padding: 8px;
       border-radius: 8px;
       margin-bottom: 8px;
     }
@@ -262,10 +262,6 @@ div#alarm {
       margin-right:8px;
       width: 20px;
       float: left;
-
-      &.down {
-        color: chartreuse;
-      }
     }
 
     span.alarmTime {
@@ -276,12 +272,23 @@ div#alarm {
       background: black;
       padding: 4px;
       border-radius: 2px;
+      opacity: 25%;
 
       &::before {
         content: "🕭 ";
       }
-      &.faded {
-        opacity: 25%;
+    }
+
+    &.alarm-active {
+      div.alarmInfo {
+          background: black;
+          color:white;
+      }
+      span.alarmEnable {
+        color: chartreuse;
+      }
+      span.alarmTime {
+        opacity: 100%;
       }
     }
 
@@ -314,7 +321,7 @@ div#alarm {
     div#ringerSnooze {
       background: dimgray;
 
-      &.down {
+      &.but-active {
         color: chartreuse;
       }
     }
@@ -412,7 +419,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     <div class="alarmInstance">
       <div class="alarmInfo" title="Alarm info"></div>
       <span class="alarmEnable button" title="On/Off">⏹</span>
-      <span class="alarmTime faded" title="Edit time"></span>
+      <span class="alarmTime" title="Edit time"></span>
       <span class="roundButton delAlarmBut" title="Delete alarm">❌</span>
     </div>
   </div>
@@ -664,6 +671,7 @@ function advancedClock() { //+1 clock minute
   return true; //advanced, yes
 } //advancedClock()
 
+//console.log utils
 function g_fmatTime(dtO= new Date()) { //formatted time string, eg. "@11:48:22.005" //shows ms
   return "@" +(dtO.getHours()%12||12) +":" +dtO.toISOString().substring(14, 23);
   //.. toISOString(), eg. "2011-10-05T14:48:22.005Z"
@@ -690,22 +698,13 @@ var alarmCountdown_el= document.querySelector("div#alarmCountdown");
 
 var alarm_flag;
 
-function add_instanceShortcuts(aI_el) { //.dataset only stores strings
-  //breaks html/js laws, but as far as js only goes, an element is just an object
-  aI_el.ELO= {
-    aInfo: aI_el.querySelector("div.alarmInfo"),
-    aEnable: aI_el.querySelector("span.alarmEnable"),
-    aTime: aI_el.querySelector("span.alarmTime")
-  };
-} //add_instanceShortcuts()
-
 function startAlarms() {
   var alarms_json= localStorage.getItem("alarms");
   var alarms_arr= [{t:"12:00 AM"}]; //empty default
   if (alarms_json) try {alarms_arr= JSON.parse(alarms_json); } catch (err) {}
 
   var aInst_el= alarmInst_el;
-  var init_aInst_el;
+  var act_aInst_el;
   alarms_arr.forEach((a_obj, i) => {
     if (i) {
       aInst_el= alarmInst_el.cloneNode(true); //clone
@@ -715,10 +714,22 @@ function startAlarms() {
     add_instanceShortcuts(aInst_el);
     aInst_el.ELO["aInfo"].textContent= a_obj.i;
     aInst_el.ELO["aTime"].textContent= a_obj.t;
-    if (a_obj.a) setAlarm(aInst_el); //active
+    if (a_obj.a) act_aInst_el= aInst_el; //active
   });
 
+  if (act_aInst_el) setAlarm(act_aInst_el); //active on init
+
 } //startAlarms()
+
+function add_instanceShortcuts(aI_el) { //.dataset only stores strings
+  //breaks html/js laws, but as far as js only goes, an element is just an object
+  aI_el.ELO= {
+    aInfo: aI_el.querySelector("div.alarmInfo"),
+    aEnable: aI_el.querySelector("span.alarmEnable"),
+    aTime: aI_el.querySelector("span.alarmTime")
+  };
+} //add_instanceShortcuts()
+
 
 var snooze_def_num= (localStorage.getItem("snooze_num") || 5) *1; //default 5
 
@@ -869,12 +880,9 @@ function deleteAlarm() {
 function addnewAlarm() {
   var clAlrmInst_el= alarmInst_el.cloneNode(true); //clone //any alarmInst_el will do
   add_instanceShortcuts(clAlrmInst_el);
+  clAlrmInst_el.classList.remove("alarm-active");
   clAlrmInst_el.ELO["aInfo"].textContent= "";
-  clAlrmInst_el.ELO["aEnable"].classList.remove("down");
-
-  var el= clAlrmInst_el.ELO["aTime"];
-  el.textContent= "12:00 AM"; //default
-  el.classList.add("faded");
+  clAlrmInst_el.ELO["aTime"].textContent= "12:00 AM"; //default
 
   alarmsCont_el.appendChild(clAlrmInst_el); //add
   saveAlarms();
@@ -1064,14 +1072,13 @@ function setAlarm(aI_el, wakelockoff_flag) {
   } //flag
 
   if (active_aI_el) { //prev alarm off
-    active_aI_el.ELO["aEnable"].classList.remove("down");
-    active_aI_el.ELO["aTime"].classList.add("faded");
+    active_aI_el.classList.remove("alarm-active");
   }
 
   if (flag) { //alarm on
     active_aI_el= aI_el;
-    aI_el.ELO["aEnable"].classList.add("down");
-    aI_el.ELO["aTime"].classList.remove("faded");
+    aI_el.classList.add("alarm-active");
+
     alarmCountdown_el.style.display= "block";
     if (!wakeLockObj) setWakeLock(); //on
     alarm_flag= true;
@@ -1096,7 +1103,7 @@ function saveAlarms() {
   alarmsCont_el.querySelectorAll("div.alarmInstance").forEach(alrmInst_el => {
     a_obj= {t: alrmInst_el.ELO["aTime"].textContent};
     if (info_str= alrmInst_el.ELO["aInfo"].textContent) a_obj.i= info_str;
-    if (alrmInst_el.ELO["aEnable"].classList.contains("down")) a_obj.a= 1;
+    if (alrmInst_el.classList.contains("alarm-active")) a_obj.a= 1;
     alarms_arr.push(a_obj);
   });
   localStorage.setItem("alarms", JSON.stringify(alarms_arr));
@@ -1149,13 +1156,13 @@ function stopRinger(snooze_flag) {
     //note: snooze wont be exact, since it only checks/fires at top of minute
     //eg. 5 minutes will be 4-5 minutes
     snooze_ctdn_m= snooze_def_num;
-    ringerSnooze_el.classList.add("down");
+    ringerSnooze_el.classList.add("but-active");
 
   } else { //ringer off
     if (ring_flag) play_sound("slam"); //ringer-off slam
     ringerButs_el.style.display= "none";
     snooze_ctdn_m= 0; //if needed
-    ringerSnooze_el.classList.remove("down"); //if needed
+    ringerSnooze_el.classList.remove("but-active"); //if needed
     ring_flag= false;
     if (wakeLockObj) setWakeLock(); //off
   }
@@ -1170,7 +1177,7 @@ function drawSnooze() {
 function checkSnooze() {
   drawSnooze();
   if (!snooze_ctdn_m) { //end snooze
-    ringerSnooze_el.classList.remove("down");
+    ringerSnooze_el.classList.remove("but-active");
     startRinger();
   }
 } //checkSnooze()
