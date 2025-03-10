@@ -327,12 +327,10 @@ div#clockFace {
   }
 
   h2, h3 {
-    font-size: 7px;
     letter-spacing: 1px;
     font-variant: small-caps;
     position: absolute;
     left: 50%;
-    top: 32%;
     transform: translateX(-50%);
   }
   h2 {
@@ -340,6 +338,11 @@ div#clockFace {
     top: 29%;
     letter-spacing: 3px;
     font-weight: bold;
+  }
+  h3 {
+    color: darkgray;
+    top: 25%;
+    font-size: x-large;
   }
 
   div#dtDisplay {
@@ -462,7 +465,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <div id="clockFace">
   <h2>TIMECKS</h2>
-  <h3>alarm clock</h3>
+  <h3></h3>
 
   <div id="dtDisplay"></div>
 
@@ -472,6 +475,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   <div id="hourHand" class="hands"></div>
   <div id="spindle"></div>
 </div>
+
 
 <div id="jwmOverlay">
   <div id="jwmModal" class="jw-modal-item">
@@ -545,7 +549,8 @@ var hand_els= {
   hourH: document.querySelector("div#hourHand"),
   minuteH: document.querySelector("div#minuteHand")
 };
-var dtDisplay_el= document.getElementById("dtDisplay");
+var dayOfWeek_el= document.querySelector("h3");
+var monthDay_el= document.getElementById("dtDisplay");
 
 var degO= {};
 var h_inc= 360 /720;
@@ -591,13 +596,15 @@ function startClock() {
 
   }, topOfMinute_ms);
 
-  drawMonthDay(start_dtO, clock_hr24);
+  drawDay(start_dtO, clock_hr24);
 } //startClock()
 
-function drawMonthDay(dtO, h24) {
-  dtDisplay_el.textContent= (dtO.getMonth()+1) +"/" +dtO.getDate(); //0-11, 1-31
-  dtDisplay_el.classList[h24>=12?"add":"remove"]("pm");
-} //drawMonthDay()
+function drawDay(dtO, h24) {
+  dayOfWeek_el.textContent= dtO.toLocaleDateString("en-US", {weekday:"short"}).toUpperCase(); //eg. "Tue" .. "TUE"
+
+  monthDay_el.textContent= (dtO.getMonth()+1) +"/" +dtO.getDate(); //0-11, 1-31
+  monthDay_el.classList[h24>=12?"add":"remove"]("pm");
+} //drawDay()
 
 
 var sync_diff_ms; //can debug in console
@@ -667,7 +674,7 @@ function advancedClock() { //+1 clock minute
     } //DST change
 
     //am/pm, monthday
-    if (hrs24 %12 == 0) drawMonthDay(sync_dtO, hrs24); //noon or midnite
+    if (hrs24 %12 == 0) drawDay(sync_dtO, hrs24); //noon or midnite
     //.. uneffected by DST change (which happens at '2am')
 
 //console.log("TOP OF HR", g_fmatTime(sync_dtO))
@@ -862,7 +869,7 @@ function add_instanceShortcutEls(aI_el) { //.dataset only stores strings
 
 function editAlarmInfo() {
   var info_str= alarmInst_el.ELO["aInfo"].innerHTML;
-  jm.prompt_textarea("Alarm info", info_str, resp => {
+  jm.prompt_textarea("Alarm info (html allowed)", info_str, resp => {
     if (resp==null || resp==info_str) return; //-->
     info_str= resp.trim();
     if (info_str.length > 80) {
