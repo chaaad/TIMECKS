@@ -406,13 +406,17 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 <div id="editSettings" class="button squareButton leftButton" title="Settings">︙</div>
 
 <div id="alarm">
-  <div id="alarmsContainer">
+
+  <div id="alarmTemplates">
     <div class="alarmInstance">
       <div class="alarmInfo" title="Alarm info"></div>
       <span class="alarmEnable button" title="On/Off">⏹</span>
       <span class="alarmTime" title="Edit time"></span>
       <span class="roundButton delAlarmBut" title="Delete alarm">❌</span>
     </div>
+  </div>
+
+  <div id="alarmsContainer">
     <div id="alarmStatus">
       <div id="alarmCountdown">&nbsp;</div>
       <div id="ringerButs">
@@ -693,8 +697,13 @@ var body_el= document.querySelector("body");
 //div#alarm
 var editStgs_el= document.querySelector("div#editSettings");
 
+var alarmTemplates_el= document.querySelector("div#alarmTemplates");
+alarmTemplates_el.style.display= "none";
+
 var alarmsCont_el= document.querySelector("div#alarmsContainer");
-var alarmInst_el= alarmsCont_el.querySelector("div.alarmInstance");
+
+var template_alarmInst_el= alarmTemplates_el.querySelector("div.alarmInstance");
+var alarmInst_el;
 var active_aI_el;
 
 var alarmStatus_el= document.querySelector("div#alarmStatus");
@@ -711,32 +720,27 @@ function startAlarms() {
   var alarms_arr= [{t:"12:00 AM"}]; //empty default
   if (alarms_json) try {alarms_arr= JSON.parse(alarms_json); } catch (err) {}
 
-  var aInst_el= alarmInst_el;
-  var act_aInst_el;
   alarms_arr.forEach((a_obj, i) => {
-    if (i) {
-      aInst_el= alarmInst_el.cloneNode(true); //clone
-      alarmsCont_el.appendChild(aInst_el); //add
-    }
-
-    add_instanceShortcuts(aInst_el);
+    aInst_el= template_alarmInst_el.cloneNode(true); //clone
+    alarmsCont_el.appendChild(aInst_el); //add
+    add_instanceShortcutEls(aInst_el);
     aInst_el.ELO["aInfo"].textContent= a_obj.i;
     aInst_el.ELO["aTime"].textContent= a_obj.t;
-    if (a_obj.a) act_aInst_el= aInst_el; //active
+    if (a_obj.a) alarmInst_el= aInst_el; //active
   });
 
-  if (act_aInst_el) setAlarm(act_aInst_el); //active on init
+  if (alarmInst_el) setAlarm(alarmInst_el); //active on init
 
 } //startAlarms()
 
-function add_instanceShortcuts(aI_el) { //.dataset only stores strings
+function add_instanceShortcutEls(aI_el) { //.dataset only stores strings
   //breaks html/js laws, but as far as js only goes, an element is just an object
   aI_el.ELO= {
     aInfo: aI_el.querySelector("div.alarmInfo"),
     aEnable: aI_el.querySelector("span.alarmEnable"),
     aTime: aI_el.querySelector("span.alarmTime")
   };
-} //add_instanceShortcuts()
+} //add_instanceShortcutEls()
 
 
 var snooze_def_num= (localStorage.getItem("snooze_num") || 5) *1; //default 5
@@ -761,7 +765,7 @@ alarmsCont_el.addEventListener("click", evt => {
 
   if (targ_el.classList.contains("alarmEnable")) {
     stopRinger(); //if needed
-    setAlarm(alarmInst_el==active_aI_el?false:alarmInst_el, "turnoff"); //toggle
+    setAlarm(alarmInst_el==active_aI_el?false:alarmInst_el); //toggle
 
   } else if (targ_el.classList.contains("alarmInfo")) {
     editAlarmInfo();
@@ -842,16 +846,23 @@ function editAlarmInfo() {
 function editAlarmTime() {
   var alarm_str= alarmInst_el.ELO["aTime"].textContent;
   var emph_el;
-  jm.prompt('Alarm time: <span class="emph">' +alarm_str +'</span>', alarm_str, {
+
+  function pop_prompt(a_str) {
+    var new_alarm_obj= proc_alarmTimeText(jm._els.Input.value, "formatOnly");
+    emph_el.innerHTML= new_alarm_obj ? (new_alarm_obj.time +"<br>" +new_alarm_obj.ahead) : "";
+  }
+
+  jm.prompt('Alarm time: <span class="emph"></span>', alarm_str, {
     //jm custom hooks object
 
     begin_cb: () => {
       emph_el= jm._els.Description.querySelector(".emph");
+      pop_prompt();
     },
 
     Input_keyup: evt => { //or "aliasIO_keyup" would work also
-      var new_alarm_obj= proc_alarmTimeText(jm._els.Input.value, "formatOnly");
-      emph_el.innerHTML= new_alarm_obj ? (new_alarm_obj.time +"<br>" +new_alarm_obj.ahead) : "";
+      pop_prompt();
+//      emph_el.innerHTML= get_emph_str(jm._els.Input.value);
     },
 
     end_cb: resp => {
@@ -863,7 +874,7 @@ function editAlarmTime() {
       if (new_alarm_obj= proc_alarmTimeText(new_alarm_str, undefined, editAlarmTime)) {
         //.. passed editAlarmTime() as err_cb, try again
         alarmInst_el.ELO["aTime"].textContent= new_alarm_obj.time;
-        if (alarmInst_el==active_aI_el || g_alarmInsts().length==1) {
+        if (alarmInst_el==active_aI_el || !active_aI_el) {
           stopRinger(); //if needed
           setAlarm(alarmInst_el);
         } else {
@@ -878,14 +889,14 @@ function deleteAlarm() {
   jm.prompt_boolean("Delete alarm?", 0, resp => {
     if (resp != true) return; //null or false //-->
     alarmInst_el.remove();
-    if (alarmInst_el == active_aI_el) setAlarm(false, "turnoff"); //if alarm was on, turn off
+    if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
     else saveAlarms();
   });
 } //deleteAlarm()
 
 function addnewAlarm() {
-  var clAlrmInst_el= alarmInst_el.cloneNode(true); //clone //any alarmInst_el will do
-  add_instanceShortcuts(clAlrmInst_el);
+  var clAlrmInst_el= template_alarmInst_el.cloneNode(true); //clone //any alarmInst_el will do
+  add_instanceShortcutEls(clAlrmInst_el);
   clAlrmInst_el.classList.remove("alarm-active");
   clAlrmInst_el.ELO["aInfo"].textContent= "";
   clAlrmInst_el.ELO["aTime"].textContent= "12:00 AM"; //default
@@ -987,7 +998,8 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
   }
 
   function g_procReqTime(str) {
-    var h, m= 0;
+    var h= m= 0;
+
     var split_arr= str.split(/:|\./);
     if (split_arr.length > 1) { //contains ":" or ".", explicit hrs and mns
       h= get_nstr(split_arr[0]) *1;
@@ -1057,8 +1069,8 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
 } //proc_alarmTimeText()
 
 
-function setAlarm(aI_el, turnoff_flag) {
-  var flag= !!aI_el;
+function setAlarm(aI_el) {
+  var flag= !!aI_el; //to boolean
   if (flag) {
     var alarm_str= aI_el.ELO["aTime"].textContent;
     if (!proc_alarmTimeText(alarm_str)) flag= false;
@@ -1095,27 +1107,31 @@ function setAlarm(aI_el, turnoff_flag) {
   } else { //alarm off
     active_aI_el= undefined;
     alarm_ctdn_m= 0;
-    alarmCountdown_el.style.display= "none";
     alarm_flag= false;
     play_sound("slam");
-    if (turnoff_flag) {
-      alarmStatus_el.style.display= "none";
-      if (wakeLockObj) setWakeLock(); //off
-    }
+    stopRinger(); //if needed
+    alarmStatus_el.style.display= "none";
+    if (wakeLockObj) setWakeLock(); //off
   }
 
   saveAlarms();
 } //setAlarm()
 
-function g_alarmInsts() {
-  return alarmsCont_el.querySelectorAll("div.alarmInstance");
-} //g_alarmInsts()
+function checkAlarm() {
+  if (alarm_ctdn_m < 1) { //end alarm countdown
+    alarm_flag= false;
+    alarmCountdown_el.style.display= "none";
+    startRinger();
+  } else {
+    alarmCountdown_el.textContent= g_untilStr(alarm_ctdn_m);
+  }
+} //checkAlarm()
 
 function saveAlarms() {
   var alarms_arr= [];
   var a_obj;
   var info_str;
-  g_alarmInsts().forEach(alrmInst_el => {
+  alarmsCont_el.querySelectorAll("div.alarmInstance").forEach(alrmInst_el => {
     a_obj= {t: alrmInst_el.ELO["aTime"].textContent};
     if (info_str= alrmInst_el.ELO["aInfo"].textContent) a_obj.i= info_str;
     if (alrmInst_el.classList.contains("alarm-active")) a_obj.a= 1;
@@ -1123,15 +1139,6 @@ function saveAlarms() {
   });
   localStorage.setItem("alarms", JSON.stringify(alarms_arr));
 } //saveAlarms()
-
-function checkAlarm() {
-  if (alarm_ctdn_m < 1) { //end Alarm
-      setAlarm(false);
-      startRinger();
-  } else {
-    alarmCountdown_el.textContent= g_untilStr(alarm_ctdn_m);
-  }
-} //checkAlarm()
 
 function g_fromhuman_dateObj(h, m, p) { //from human time 12:59am/pm, to computer time 23:59
   var dtO= new Date(); //dateobj, using the date, but will reset the time
@@ -1161,6 +1168,8 @@ function startRinger() {
 } //startRinger()
 
 function stopRinger(snooze_flag) {
+  if (!ring_flag) return;
+
   if (ring_intimerId) {
     clearInterval(ring_intimerId);
     ring_intimerId= undefined;
@@ -1180,7 +1189,7 @@ function stopRinger(snooze_flag) {
     snooze_ctdn_m= 0; //if needed
     ringerSnooze_el.classList.remove("but-active"); //if needed
     ring_flag= false;
-    if (wakeLockObj) setWakeLock(); //off
+    setAlarm(false);
   }
 
   drawSnooze(); //if needed
