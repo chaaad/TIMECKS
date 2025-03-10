@@ -184,6 +184,22 @@ div#alarm {
 
 } /*alarm*/
 
+
+/*drag n drop*/
+.dragging {
+  opacity: 0.5;
+}
+
+.dropAbove {
+  border-top: 100px solid lightcyan; /*8px solid blue;*/
+  border-bottom: "";
+}
+.dropBelow {
+  border-top: "";
+  border-bottom: 100px solid lightcyan; /*8px solid blue;*/
+}
+
+
 div#clockFace {
   width: 272px;
   height: 272px;
@@ -340,7 +356,8 @@ div#clockFace {
 
 
 /* MODAL
-orig: https://jasonwatmore.com/post/2023/01/04/vanilla-js-css-modal-popup-dialog-tutorial-with-example#styles-css
+modded off of:
+https://jasonwatmore.com/post/2023/01/04/vanilla-js-css-modal-popup-dialog-tutorial-with-example#styles-css
 -------------------------------*/
 body.jw-modal-active { /*dont edit this css*/
   overflow: hidden; /* to hide main scrollbar when modal is active */
@@ -408,7 +425,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 <div id="alarm">
 
   <div id="alarmTemplates">
-    <div class="alarmInstance">
+    <div class="alarmInstance" draggable="true">
       <div class="alarmInfo" title="Alarm info"></div>
       <span class="alarmEnable button" title="On/Off">⏹</span>
       <span class="alarmTime" title="Edit time"></span>
@@ -461,7 +478,8 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 
 <script>
-//orig clock app: https://codepen.io/opheliafl/pen/RaYbvL/
+//clock, modded off of:
+//https://codepen.io/opheliafl/pen/RaYbvL/
 
 //favicon
 //<a href="https://www.freepik.com/icon/alarm-clock_15092469#fromView=keyword&page=1&position=21&uuid=6aee3d4d-c58a-453e-8681-22457f5c0a34">Icon by sonnycandra</a>
@@ -730,7 +748,7 @@ function startAlarms() {
   });
 
   if (alarmInst_el) setAlarm(alarmInst_el); //active on init
-
+  reorderable();
 } //startAlarms()
 
 function add_instanceShortcutEls(aI_el) { //.dataset only stores strings
@@ -845,24 +863,23 @@ function editAlarmInfo() {
 
 function editAlarmTime() {
   var alarm_str= alarmInst_el.ELO["aTime"].textContent;
-  var emph_el;
+  var livePreview_el;
 
   function pop_prompt(a_str) {
     var new_alarm_obj= proc_alarmTimeText(jm._els.Input.value, "formatOnly");
-    emph_el.innerHTML= new_alarm_obj ? (new_alarm_obj.time +"<br>" +new_alarm_obj.ahead) : "";
+    livePreview_el.innerHTML= new_alarm_obj ? (new_alarm_obj.time +"<br>" +new_alarm_obj.ahead) : "";
   }
 
-  jm.prompt('Alarm time: <span class="emph"></span>', alarm_str, {
+  jm.prompt('Alarm time: <span class="livePreview emph"></span>', alarm_str, {
     //jm custom hooks object
 
     begin_cb: () => {
-      emph_el= jm._els.Description.querySelector(".emph");
+      livePreview_el= jm._els.Description.querySelector(".livePreview");
       pop_prompt();
     },
 
     Input_keyup: evt => { //or "aliasIO_keyup" would work also
       pop_prompt();
-//      emph_el.innerHTML= get_emph_str(jm._els.Input.value);
     },
 
     end_cb: resp => {
@@ -1127,14 +1144,19 @@ function checkAlarm() {
   }
 } //checkAlarm()
 
+
+function get_aIList() {
+  return alarmsCont_el.querySelectorAll("div.alarmInstance");
+} //get_aIList()
+
 function saveAlarms() {
   var alarms_arr= [];
   var a_obj;
   var info_str;
-  alarmsCont_el.querySelectorAll("div.alarmInstance").forEach(alrmInst_el => {
-    a_obj= {t: alrmInst_el.ELO["aTime"].textContent};
-    if (info_str= alrmInst_el.ELO["aInfo"].textContent) a_obj.i= info_str;
-    if (alrmInst_el.classList.contains("alarm-active")) a_obj.a= 1;
+  get_aIList().forEach(aI_el => {
+    a_obj= {t: aI_el.ELO["aTime"].textContent};
+    if (info_str= aI_el.ELO["aInfo"].textContent) a_obj.i= info_str;
+    if (aI_el.classList.contains("alarm-active")) a_obj.a= 1;
     alarms_arr.push(a_obj);
   });
   localStorage.setItem("alarms", JSON.stringify(alarms_arr));
@@ -1220,6 +1242,80 @@ function g_untilStr(m, h) {
   if (mnt_flag || m) str+= " " +m +"m";
   return str || "0";
 } //g_untilStr()
+
+
+function reorderable() {
+  //dragndrop, modded off of:
+  //https://www.w3resource.com/javascript-exercises/event/javascript-event-handling-exercise-6.php
+
+  var drag_el;
+  var prev_dragOver_el;
+
+  // Add event listeners for drag and drop events
+  alarmsCont_el.addEventListener("dragstart", dragStart);
+  document.addEventListener("dragover", dragOver);
+  document.addEventListener("drop", drop); //user can drop anywhere, listening only on dragList only doesnt cut it
+  document.addEventListener("click", evt => {if (drag_el) reset(); }); //recover after a failed drop
+
+  function dragStart(evt) {
+    if (drag_el) reset(); //recover after a failed drop
+
+    drag_el= evt.target;
+    drag_el.classList.add("dragging");
+    //evt.dataTransfer.effectAllowed= "move"; //what does this even do? seems unneeded for reorder
+
+    get_aIList().forEach((aI_el, i) => aI_el.d_index= i); //current order
+  } //dragStart()
+
+  function dragOver(evt) {
+    if (!drag_el) return; //-->
+
+    evt.preventDefault();
+    var dragOver_el;
+    if (dragOver_el= evt.target.closest("div.alarmInstance")) {
+      if (prev_dragOver_el) prev_dragOver_el.classList.remove("dropAbove", "dropBelow");
+      prev_dragOver_el= dragOver_el;
+
+      if (dragOver_el == drag_el) return; //-->
+      //evt.dataTransfer.dropEffect= "move"; //what does this do? seems unneeded for reorder
+
+      const boundingRect= dragOver_el.getBoundingClientRect();
+      const offset_y= boundingRect.y +(boundingRect.height /2);
+      if (evt.clientY-offset_y < 0) {
+        if (dragOver_el.d_index-1 != drag_el.d_index) dragOver_el.classList.add("dropAbove");
+      } else {
+        if (dragOver_el.d_index+1 != drag_el.d_index) dragOver_el.classList.add("dropBelow");
+      }
+    }
+  } //dragOver()
+
+  function drop(evt) {
+    if (!drag_el) return; //-->
+
+    evt.preventDefault();
+    var dropOn_el= prev_dragOver_el; //not actual the dropOn_el, but this allows user to make drop even when imprecise
+    //.. if user drops outside of window, no drop event at all
+    if (dropOn_el && (dropOn_el.classList.contains("dropAbove") || dropOn_el.classList.contains("dropBelow"))) {
+      if (dropOn_el.classList.contains("dropAbove")) dropOn_el.before(drag_el);
+      else dropOn_el.after(drag_el);
+
+      dropOn_el.classList.remove("dropAbove", "dropBelow");
+
+      if (active_aI_el) active_aI_el.after(alarmStatus_el);
+
+      saveAlarms();
+    }
+
+    reset();
+  }
+
+  function reset() {
+    drag_el.classList.remove("dragging");
+    drag_el= undefined;
+  }
+  //dragndrop
+} //reorderable()
+
 
 function play_sound(ac_key, repeat_n= 1, step_ms= 750) {
   if (repeat_n == 1) {
