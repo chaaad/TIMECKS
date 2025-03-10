@@ -59,7 +59,7 @@ i {
     margin-right: 0;
   }
   &.on {
-    background-color: aquamarine;
+    background-color: lightskyblue;
   }
 }
 
@@ -139,11 +139,7 @@ div#alarm {
 
   }
 
-  div#alarmCountdown {
-    text-align: right;
-    color:gray;
-    margin-top: 8px;
-  }
+  div#alarmCountdown {}
 
   span#addAlarmBut {
     margin-top: 8px;
@@ -175,13 +171,17 @@ div#alarm {
       }
     }
 
-    div#rSnzCountdown {
-      text-align: right;
-      color:gray;
-      margin-top: 8px;
-    }
+    div#rSnzCountdown {}
   }
 
+  .countdown {
+    text-align: right;
+    color:gray;
+    margin-top: 8px;
+    font-size: larger;
+    font-weight: 800;
+    color: cornflowerblue;
+  }
 } /*alarm*/
 
 
@@ -435,11 +435,11 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
   <div id="alarmsContainer">
     <div id="alarmStatus">
-      <div id="alarmCountdown">&nbsp;</div>
+      <div id="alarmCountdown" class="countdown"></div>
       <div id="ringerButs">
         <div id="ringerOff" class="button">OFF</div>
         <div id="ringerSnooze" class="button">SNOOZE</div>
-        <div id="rSnzCountdown"></div>
+        <div id="rSnzCountdown" class="countdown"></div>
       </div>
     </div>
   </div>
