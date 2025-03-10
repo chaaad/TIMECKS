@@ -56,12 +56,21 @@ i {
   }
   &.rightButton {
     float: right;
-    margin-right: 0;
   }
+
+}
+
+div#wakeLockEnable {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;;
+
   &.on {
     background-color: lightskyblue;
   }
 }
+
+
 
 .roundButton {
   border-radius: 100%;
@@ -445,9 +454,11 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   </div>
   <div id="lowerRightButs">
     <span id="addAlarmBut" class="roundButton" title="Add alarm">➕</span>
-    <div id="wakeLockEnable" class="button squareButton rightButton" title="Wake Lock">🔒</div>
   </div>
 </div>
+
+<div id="wakeLockEnable" class="button squareButton" title="Wake Lock">🔒</div>
+
 
 <div id="clockFace">
   <h2>TIMECKS</h2>
@@ -862,7 +873,7 @@ function editAlarmInfo() {
   });
 } //editAlarmInfo()
 
-function editAlarmTime() {
+function editAlarmTime(new_str) {
   var alarm_str= alarmInst_el.ELO["aTime"].textContent;
   var livePreview_el;
 
@@ -870,37 +881,43 @@ function editAlarmTime() {
     var new_alarm_obj= proc_alarmTimeText(jm._els.Input.value, "formatOnly");
     livePreview_el.innerHTML= new_alarm_obj ? (new_alarm_obj.time +"<br>" +new_alarm_obj.ahead) : "";
   }
+  var inf_str= new_str;
+  if (!inf_str) inf_str= alarmInst_el.ELO["aInfo"].textContent.substring(0, 20);
+  time_prompt();
 
-  jm.prompt('Alarm time: <span class="livePreview emph"></span>', alarm_str, {
-    //jm custom hooks object
+  function time_prompt() {
+    jm.prompt('Alarm: ' +inf_str +'<br>Time: <span class="livePreview emph"></span>', alarm_str, {
+      //jm custom hooks object
 
-    begin_cb: () => {
-      livePreview_el= jm._els.Description.querySelector(".livePreview");
-      pop_prompt();
-    },
+      begin_cb: () => {
+        livePreview_el= jm._els.Description.querySelector(".livePreview");
+        pop_prompt();
+      },
 
-    Input_keyup: evt => { //or "aliasIO_keyup" would work also
-      pop_prompt();
-    },
+      Input_keyup: evt => { //or "aliasIO_keyup" would work also
+        pop_prompt();
+      },
 
-    end_cb: resp => {
-      if (resp==null || resp==alarm_str) return; //-->
-      var new_alarm_str= resp;
+      end_cb: resp => {
+        if (resp==null || (resp==alarm_str && !new_str)) return; //-->
+        var mod_alarm_str= resp;
 
-      //proc input str
-      var new_alarm_obj;
-      if (new_alarm_obj= proc_alarmTimeText(new_alarm_str, undefined, editAlarmTime)) {
-        //.. passed editAlarmTime() as err_cb, try again
-        alarmInst_el.ELO["aTime"].textContent= new_alarm_obj.time;
-        if (alarmInst_el==active_aI_el || !active_aI_el) {
-          stopRinger(); //if needed
-          setAlarm(alarmInst_el);
-        } else {
-          saveAlarms();
+        //proc input str
+        var mod_alarm_obj;
+        if (mod_alarm_obj= proc_alarmTimeText(mod_alarm_str, undefined, time_prompt)) {
+          //.. passed time_prompt() as err_cb, try again
+          alarmInst_el.ELO["aTime"].textContent= mod_alarm_obj.time;
+          if (alarmInst_el==active_aI_el || !active_aI_el) {
+            stopRinger(); //if needed
+            setAlarm(alarmInst_el);
+          } else {
+            saveAlarms();
+          }
         }
       }
-    }
-  });
+    });
+  } //time_prompt()
+
 } //editAlarmTime()
 
 function deleteAlarm() {
@@ -923,6 +940,10 @@ function addnewAlarm() {
   alarmsCont_el.appendChild(clAlrmInst_el); //add
   saveAlarms();
   play_sound("beep", 2);
+
+  alarmInst_el= clAlrmInst_el;
+  editAlarmTime("NEW");
+
 } //addnewAlarm()
 
 var ringerButs_el= document.querySelector("div#ringerButs");
