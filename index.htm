@@ -946,20 +946,22 @@ function addnewAlarm(noDialog_flag) {
   clAlrmInst_el.classList.remove("alarm-active");
   clAlrmInst_el.ELO["aInfo"].textContent= "";
   clAlrmInst_el.ELO["aTime"].textContent= "12:00 AM"; //default
-
   alarmsCont_el.appendChild(clAlrmInst_el); //add
-  saveAlarms();
+
   play_sound("beep", 2);
 
-  alarmInst_el= clAlrmInst_el;
-  if (!noDialog_flag) editAlarmTime("NEW");
-
+  if (!noDialog_flag) {
+    alarmInst_el= clAlrmInst_el;
+    saveAlarms();
+    editAlarmTime("NEW");
+  }
 } //addnewAlarm()
 
 function importAlarm() {
   localStorage.removeItem("importedAlarm");
   var spl_ar;
   var pc_alarm_obj;
+  var ct= 0;
   pcDraft_str.split("\n").forEach(pcTm_str => {
     spl_ar= pcTm_str.split("|");
     if (spl_ar.length == 5) { //cursory test
@@ -967,6 +969,7 @@ function importAlarm() {
 // ?pc_draft=Schenectady%20Mohawk%20Giants|508-11|WED|3/12|6:53pm
 //      0                                   1     2     3   4
       if (pc_alarm_obj= proc_alarmTimeText(spl_ar[4] +"-20")) { // -20 minutes
+        ct++;
         addnewAlarm("noDialog"); //also saves
 
         //tid= spl_ar[1]
@@ -976,6 +979,7 @@ function importAlarm() {
         alarmInst_el.ELO["aTime"].textContent= pc_alarm_obj.time;
       }
     }
+    if (ct) saveAlarms();
   });
 } //importAlarm()
 
