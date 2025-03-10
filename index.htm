@@ -908,6 +908,7 @@ function deleteAlarm() {
     alarmInst_el.remove();
     if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
     else saveAlarms();
+    play_sound("slam", 2);
   });
 } //deleteAlarm()
 
@@ -920,6 +921,7 @@ function addnewAlarm() {
 
   alarmsCont_el.appendChild(clAlrmInst_el); //add
   saveAlarms();
+  play_sound("beep", 2);
 } //addnewAlarm()
 
 var ringerButs_el= document.querySelector("div#ringerButs");
@@ -1328,8 +1330,8 @@ function play_sound(ac_key, repeat_n= 1, step_ms= 750) {
 
   function step_play() {
     audioClips[ac_key].play();
-    if (ct < repeat_n) setTimeout(step_play, step_ms); //recurse //-->
     ct++;
+    if (ct < repeat_n) setTimeout(step_play, step_ms); //recurse //-->
   }
 } //play_sound()
 
