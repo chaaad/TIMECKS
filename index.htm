@@ -951,16 +951,25 @@ function addnewAlarm(noDialog_flag) {
 
 function importAlarm() {
   localStorage.removeItem("importedAlarm");
-  var spl_ar= pcDraft_str.split("|");
-  if (spl_ar.length == 5) {
-console.log("pcDraft_str, split",spl_ar);
-    var pc_alarm_obj;
-    if (pc_alarm_obj= proc_alarmTimeText(spl_ar[4] +"-20")) { // -20 minutes
-      addnewAlarm("noDialog"); //also saves
-      alarmInst_el.ELO["aInfo"].textContent= spl_ar[3] +" " +spl_ar[0];
-      alarmInst_el.ELO["aTime"].textContent= pc_alarm_obj.time;
+  var spl_ar;
+  var pc_alarm_obj;
+  pcDraft_str.split("\n").forEach(pcTm_str => {
+    spl_ar= pcTm_str.split("|");
+    if (spl_ar.length == 5) { //cursory test
+//console.log("pcTm_str, split",spl_ar);
+// ?pc_draft=Schenectady%20Mohawk%20Giants|508-11|WED|3/12|6:53pm
+//      0                                   1     2     3   4
+      if (pc_alarm_obj= proc_alarmTimeText(spl_ar[4] +"-20")) { // -20 minutes
+        addnewAlarm("noDialog"); //also saves
+
+        //tid= spl_ar[1]
+        var html_str= spl_ar[2] +' ' +spl_ar[3] +' <br>' +spl_ar[0];
+        alarmInst_el.ELO["aInfo"].innerHTML= html_str;
+
+        alarmInst_el.ELO["aTime"].textContent= pc_alarm_obj.time;
+      }
     }
-  }
+  });
 } //importAlarm()
 
 var ringerButs_el= document.querySelector("div#ringerButs");
@@ -1627,12 +1636,28 @@ if (fClick_flag) { //satisfy browser requirement to allow play-sound
 
 
 function urlImportALarm(q_str) { //import from pc via url querystring
+
+/*
+/////////////////
+pcDrft_str= decodeURI(pcDrft_str);
+localStorage.setItem("importedAlarm", "Schenectady Mohawk Giants|508-11|WED|3/12|6:53pm"); //////////////////
+return; //////////////////////// stub
+*/
+
   if (!q_str) return; //-->
   var usp= new URLSearchParams(q_str);
-  let pcDraft_str= usp.get("pc_draft"); //TIMECKS/index.htm?pc_draft=New%20York%20Yankees|123|WED|5/5|12:34pm
-  if (pcDraft_str && pcDraft_str.split("|").length==5) {
+  var pcDrft_str= usp.get("pc_draft"); // ?pc_draft=New%20York%20Yankees|123|WED|5/5|12:34pm
+  if (pcDrft_str && pcDrft_str.split("|").length==5) { //cursory test
+//    pcDrft_str= decodeURI(pcDrft_str);
     fClick_flag= false;
-    localStorage.setItem("importedAlarm", pcDraft_str);
+
+    var prev_pcDrft_str= localStorage.getItem("importedAlarm"); //allow multiple
+    if (prev_pcDrft_str) {
+      if (prev_pcDrft_str.includes(pcDrft_str)) pcDrft_str= "";
+      else pcDrft_str= prev_pcDrft_str +"\n" +pcDrft_str;
+    }
+
+    if (pcDrft_str) localStorage.setItem("importedAlarm", pcDrft_str);
     window.close();
   }
 } //urlImportALarm()
