@@ -745,36 +745,6 @@ var alarmCountdown_el= alarmStatus_el.querySelector("div#alarmCountdown");
 var wlEnable_el= document.querySelector("div#wakeLockEnable");
 
 
-var alarm_flag;
-
-function startAlarms() {
-  var alarms_json= localStorage.getItem("alarms");
-  var alarms_arr= [{t:"12:00 AM"}]; //empty default
-  if (alarms_json) try {alarms_arr= JSON.parse(alarms_json); } catch (err) {}
-
-  alarms_arr.forEach((a_obj, i) => {
-    aInst_el= template_alarmInst_el.cloneNode(true); //clone
-    alarmsCont_el.appendChild(aInst_el); //add
-    add_instanceShortcutEls(aInst_el);
-    aInst_el.ELO["aInfo"].textContent= a_obj.i;
-    aInst_el.ELO["aTime"].textContent= a_obj.t;
-    if (a_obj.a) alarmInst_el= aInst_el; //active
-  });
-
-  if (alarmInst_el) setAlarm(alarmInst_el); //active on init
-  reorderable();
-} //startAlarms()
-
-function add_instanceShortcutEls(aI_el) { //.dataset only stores strings
-  //breaks html/js laws, but as far as js only goes, an element is just an object
-  aI_el.ELO= {
-    aInfo: aI_el.querySelector("div.alarmInfo"),
-    aEnable: aI_el.querySelector("span.alarmEnable"),
-    aTime: aI_el.querySelector("span.alarmTime")
-  };
-} //add_instanceShortcutEls()
-
-
 var snooze_def_num= (localStorage.getItem("snooze_num") || 5) *1; //default 5
 
 document.addEventListener("keyup", evt => { //capture any keyup
@@ -860,8 +830,38 @@ function editSettings() { //just snooze duration
   });
 } //editSettings()
 
+
+var alarm_flag;
+
+function startAlarms() {
+  var alarms_json= localStorage.getItem("alarms");
+  var alarms_arr= [{t:"12:00 AM"}]; //empty default
+  if (alarms_json) try {alarms_arr= JSON.parse(alarms_json); } catch (err) {}
+
+  alarms_arr.forEach((a_obj, i) => {
+    aInst_el= template_alarmInst_el.cloneNode(true); //clone
+    alarmsCont_el.appendChild(aInst_el); //add
+    add_instanceShortcutEls(aInst_el);
+    aInst_el.ELO["aInfo"].innerHTML= a_obj.i;
+    aInst_el.ELO["aTime"].textContent= a_obj.t;
+    if (a_obj.a) alarmInst_el= aInst_el; //active
+  });
+
+  if (alarmInst_el) setAlarm(alarmInst_el); //active on init
+  reorderable();
+} //startAlarms()
+
+function add_instanceShortcutEls(aI_el) { //.dataset only stores strings
+  //breaks html/js laws, but as far as js only goes, an element is just an object
+  aI_el.ELO= {
+    aInfo: aI_el.querySelector("div.alarmInfo"),
+    aEnable: aI_el.querySelector("span.alarmEnable"),
+    aTime: aI_el.querySelector("span.alarmTime")
+  };
+} //add_instanceShortcutEls()
+
 function editAlarmInfo() {
-  var info_str= alarmInst_el.ELO["aInfo"].textContent;
+  var info_str= alarmInst_el.ELO["aInfo"].innerHTML;
   jm.prompt_textarea("Alarm info", info_str, resp => {
     if (resp==null || resp==info_str) return; //-->
     info_str= resp.trim();
@@ -870,7 +870,7 @@ function editAlarmInfo() {
         editAlarmInfo(info_str); //try again (and we dont throw away what you typed in)
       });
     } else {
-      alarmInst_el.ELO["aInfo"].textContent= info_str;
+      alarmInst_el.ELO["aInfo"].innerHTML= info_str;
       saveAlarms();
     }
   });
@@ -1205,7 +1205,7 @@ function saveAlarms() {
   var info_str;
   get_aIList().forEach(aI_el => {
     a_obj= {t: aI_el.ELO["aTime"].textContent};
-    if (info_str= aI_el.ELO["aInfo"].textContent) a_obj.i= info_str;
+    if (info_str= aI_el.ELO["aInfo"].innerHTML) a_obj.i= info_str;
     if (aI_el.classList.contains("alarm-active")) a_obj.a= 1;
     alarms_arr.push(a_obj);
   });
@@ -1636,25 +1636,16 @@ if (fClick_flag) { //satisfy browser requirement to allow play-sound
 
 
 function urlImportALarm(q_str) { //import from pc via url querystring
-
-/*
-/////////////////
-pcDrft_str= decodeURI(pcDrft_str);
-localStorage.setItem("importedAlarm", "Schenectady Mohawk Giants|508-11|WED|3/12|6:53pm"); //////////////////
-return; //////////////////////// stub
-*/
-
   if (!q_str) return; //-->
   var usp= new URLSearchParams(q_str);
   var pcDrft_str= usp.get("pc_draft"); // ?pc_draft=New%20York%20Yankees|123|WED|5/5|12:34pm
   if (pcDrft_str && pcDrft_str.split("|").length==5) { //cursory test
-//    pcDrft_str= decodeURI(pcDrft_str);
     fClick_flag= false;
 
     var prev_pcDrft_str= localStorage.getItem("importedAlarm"); //allow multiple
     if (prev_pcDrft_str) {
-      if (prev_pcDrft_str.includes(pcDrft_str)) pcDrft_str= "";
-      else pcDrft_str= prev_pcDrft_str +"\n" +pcDrft_str;
+      if (prev_pcDrft_str.includes(pcDrft_str)) pcDrft_str= ""; //dupe, ignore
+      else pcDrft_str= prev_pcDrft_str +"\n" +pcDrft_str; //append
     }
 
     if (pcDrft_str) localStorage.setItem("importedAlarm", pcDrft_str);
