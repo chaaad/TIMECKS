@@ -603,6 +603,7 @@ function drawMonthDay(dtO, h24) {
 var sync_diff_ms; //can debug in console
 var throttle_flag;
 //var _throttle_str; //debug
+var pcDraft_str;
 
 function advancedClock() { //+1 clock minute
   degO.hours+= h_inc;
@@ -616,6 +617,8 @@ function advancedClock() { //+1 clock minute
     snooze_ctdn_m--; //inc-
     checkSnooze();
   }
+
+  if (pcDraft_str= localStorage.getItem("importedAlarm")) importAlarm();
 
   var sync_dtO= new Date();
   sync_diff_ms= clock_elapse_ms -sync_dtO.getTime();
@@ -878,7 +881,7 @@ function editAlarmTime(new_str) {
   var livePreview_el;
 
   function pop_prompt(a_str) {
-    var new_alarm_obj= proc_alarmTimeText(jm._els.Input.value, "formatOnly");
+    var new_alarm_obj= proc_alarmTimeText(jm._els.Input.value, "preview");
     livePreview_el.innerHTML= new_alarm_obj ? (new_alarm_obj.time +"<br>" +new_alarm_obj.ahead) : "";
   }
   var inf_str= new_str;
@@ -930,7 +933,7 @@ function deleteAlarm() {
   });
 } //deleteAlarm()
 
-function addnewAlarm() {
+function addnewAlarm(noDialog_flag) {
   var clAlrmInst_el= template_alarmInst_el.cloneNode(true); //clone //any alarmInst_el will do
   add_instanceShortcutEls(clAlrmInst_el);
   clAlrmInst_el.classList.remove("alarm-active");
@@ -942,9 +945,23 @@ function addnewAlarm() {
   play_sound("beep", 2);
 
   alarmInst_el= clAlrmInst_el;
-  editAlarmTime("NEW");
+  if (!noDialog_flag) editAlarmTime("NEW");
 
 } //addnewAlarm()
+
+function importAlarm() {
+  localStorage.removeItem("importedAlarm");
+  var spl_ar= pcDraft_str.split("|");
+  if (spl_ar.length == 5) {
+console.log("pcDraft_str, split",spl_ar);
+    var pc_alarm_obj;
+    if (pc_alarm_obj= proc_alarmTimeText(spl_ar[4] +"-20")) { // -20 minutes
+      addnewAlarm("noDialog"); //also saves
+      alarmInst_el.ELO["aInfo"].textContent= spl_ar[3] +" " +spl_ar[0];
+      alarmInst_el.ELO["aTime"].textContent= pc_alarm_obj.time;
+    }
+  }
+} //importAlarm()
 
 var ringerButs_el= document.querySelector("div#ringerButs");
 ringerButs_el.style.display= "none";
@@ -1600,10 +1617,26 @@ jm.init();
 var init_dtO= new Date();
 console.log("INIT", init_dtO.toLocaleString());
 
-jm.alert("Click to start", () => {
-  startClock();
-  startAlarms();
-});
+var fClick_flag= true;
+urlImportALarm(window.location.search);
+if (fClick_flag) { //satisfy browser requirement to allow play-sound
+  jm.alert("Click to start", () => {
+    startClock(); startAlarms();
+  });
+}
+
+
+function urlImportALarm(q_str) { //import from pc via url querystring
+  if (!q_str) return; //-->
+  var usp= new URLSearchParams(q_str);
+  let pcDraft_str= usp.get("pc_draft"); //TIMECKS/index.htm?pc_draft=New%20York%20Yankees|123|WED|5/5|12:34pm
+  if (pcDraft_str && pcDraft_str.split("|").length==5) {
+    fClick_flag= false;
+    localStorage.setItem("importedAlarm", pcDraft_str);
+    window.close();
+  }
+} //urlImportALarm()
+
 </script>
 
 </body>
