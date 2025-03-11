@@ -71,6 +71,13 @@ i {
   user-select: none;
 }
 
+div#trashCan {
+  font-size: xx-large;
+  line-height: 20px;
+  border-color: lightgray;
+  cursor: default;
+}
+
 div#alarm {
   float: right;
   font-size: larger;
@@ -188,6 +195,7 @@ div#alarm {
   div#wakeLockEnable {
     float: right;
     margin-right: 0;
+    line-height: 24px;
 
     &.on {
       background-color: lightskyblue;
@@ -210,7 +218,9 @@ div#alarm {
   border-top: "";
   border-bottom: 100px solid lightcyan; /*8px solid blue;*/
 }
-
+.dropTrash {
+  background: cyan;
+}
 
 div#clockFace {
   width: 272px;
@@ -435,6 +445,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 <body>
 
 <div id="editSettings" class="button squareButton leftButton" title="Settings">︙</div>
+<div id="trashCan" class="button squareButton leftButton" title="Trash (drop unwanted Alarm here)">🗑</div>
 
 <div id="alarm">
 
@@ -857,7 +868,7 @@ function startAlarms() {
   });
 
   if (alarmInst_el) setAlarm(alarmInst_el); //active on init
-  reorderable();
+  alarmDragger();
 } //startAlarms()
 
 function add_instanceShortcutEls(aI_el) { //.dataset only stores strings
@@ -944,12 +955,16 @@ function deleteAlarm() {
 
   jm.prompt_boolean('Delete?<br>' +prom_str, 0, resp => {
     if (resp != true) return; //null or false //-->
-    alarmInst_el.remove();
-    if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
-    else saveAlarms();
-    play_sound("slam", 2);
+    _deleteAlarm();
   });
 } //deleteAlarm()
+
+function _deleteAlarm() {
+  alarmInst_el.remove();
+  if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
+  else saveAlarms();
+  play_sound("slam", 2);
+} //_deleteAlarm()
 
 function addnewAlarm(noDialog_flag) {
   noDialog_flag= noDialog_flag == "noDialog"; //'evt' is also passed as param
@@ -1318,81 +1333,102 @@ function g_untilStr(m, h) {
 } //g_untilStr()
 
 
-function reorderable() {
+function alarmDragger() {
   //dragndrop, modded off of:
   //https://www.w3resource.com/javascript-exercises/event/javascript-event-handling-exercise-6.php
 
-  var drag_el;
+  var dragAl_el;
   var prev_dragOver_el;
 
   // Add event listeners for drag and drop events
   alarmsCont_el.addEventListener("dragstart", dragStart);
   document.addEventListener("dragover", dragOver);
   document.addEventListener("drop", drop); //user can drop anywhere, listening only on dragList only doesnt cut it
-  document.addEventListener("click", evt => {if (drag_el) reset(); }); //recover after a failed drop
+  document.addEventListener("click", evt => {if (dragAl_el) clear("fully"); }); //recover after a failed drop
 
   function dragStart(evt) {
-    if (drag_el) reset(); //recover after a failed drop
+    if (dragAl_el) clear("fully"); //recover after a failed drop
 
-    drag_el= evt.target;
-    drag_el.classList.add("dragging");
+    dragAl_el= evt.target;
+    dragAl_el.classList.add("dragging");
     //evt.dataTransfer.effectAllowed= "move"; //what does this even do? seems unneeded for reorder
 
     get_aIList().forEach((aI_el, i) => aI_el.d_index= i); //current order
   } //dragStart()
 
   function dragOver(evt) {
-    if (!drag_el) return; //-->
+    if (!dragAl_el) return; //-->
 
     evt.preventDefault();
-    var dragOver_el;
-    if (dragOver_el= evt.target.closest("div.alarmInstance")) {
-      if (prev_dragOver_el) prev_dragOver_el.classList.remove("dropAbove", "dropBelow");
+    var dragOver_el= evt.target;
+    var dragOvAl_el;
+
+    if (dragOver_el.id == "trashCan") { //trash can
+      if (dragOver_el == prev_dragOver_el) return; //-->
+      if (prev_dragOver_el) clear();
+      dragOver_el.classList.add("dropTrash");
+
       prev_dragOver_el= dragOver_el;
 
-      if (dragOver_el == drag_el) return; //-->
-      //evt.dataTransfer.dropEffect= "move"; //what does this do? seems unneeded for reorder
+    } else { //not trashcan
+      if (prev_dragOver_el && prev_dragOver_el.id == "trashCan") { //trash can
+        clear();
+        prev_dragOver_el= undefined;
+      }
 
-      const boundingRect= dragOver_el.getBoundingClientRect();
-      const offset_y= boundingRect.y +(boundingRect.height /2);
-      if (evt.clientY-offset_y < 0) {
-        if (dragOver_el.d_index-1 != drag_el.d_index) dragOver_el.classList.add("dropAbove");
-      } else {
-        if (dragOver_el.d_index+1 != drag_el.d_index) dragOver_el.classList.add("dropBelow");
+      if (dragOvAl_el= dragOver_el.closest("div.alarmInstance")) { //alarm instance (reorder)
+        if (prev_dragOver_el) clear();
+        if (dragOvAl_el == dragAl_el) return; //-->
+        //evt.dataTransfer.dropEffect= "move"; //what does this do? seems unneeded for reorder
+
+        const boundingRect= dragOvAl_el.getBoundingClientRect();
+        const offset_y= boundingRect.y +(boundingRect.height /2);
+        if (evt.clientY-offset_y < 0) {
+          if (dragOvAl_el.d_index-1 != dragAl_el.d_index) dragOvAl_el.classList.add("dropAbove");
+        } else {
+          if (dragOvAl_el.d_index+1 != dragAl_el.d_index) dragOvAl_el.classList.add("dropBelow");
+        }
+
+        prev_dragOver_el= dragOvAl_el;
       }
     }
   } //dragOver()
 
   function drop(evt) {
-    if (!drag_el) return; //-->
+    if (!dragAl_el) return; //-->
 
     evt.preventDefault();
     var dropOn_el= prev_dragOver_el; //not actual the dropOn_el, but this allows user to make drop even with imprecise drop
     //.. if user drops outside of window, no drop event at all
-    if (dropOn_el && (dropOn_el.classList.contains("dropAbove") || dropOn_el.classList.contains("dropBelow"))) {
-      if (dropOn_el.classList.contains("dropAbove")) dropOn_el.before(drag_el);
-      else dropOn_el.after(drag_el);
+    if (dropOn_el) {
+      if (dropOn_el.id == "trashCan") {
+        alarmInst_el= dragAl_el;
+        _deleteAlarm();
 
-      if (active_aI_el) active_aI_el.after(alarmStatus_el);
+      } else if (dropOn_el.classList.contains("dropAbove") || dropOn_el.classList.contains("dropBelow")) {
+        if (dropOn_el.classList.contains("dropAbove")) dropOn_el.before(dragAl_el);
+        else dropOn_el.after(dragAl_el);
 
-      saveAlarms();
+        if (active_aI_el) active_aI_el.after(alarmStatus_el);
+
+        saveAlarms();
+      }
     }
 
-    reset();
-  }
+    clear("fully");
+  } //drop()
 
-  function reset() {
-    if (drag_el) {
-      drag_el.classList.remove("dragging");
-      drag_el= undefined;
-    }
-    if (prev_dragOver_el) {
-      prev_dragOver_el.classList.remove("dropAbove", "dropBelow");
+  function clear(fully_flag) { //if not fully, just clear dragOver's class
+    if (prev_dragOver_el) prev_dragOver_el.classList.remove("dropAbove", "dropBelow", "dropTrash");
+    if (fully_flag) {
+      if (dragAl_el) dragAl_el.classList.remove("dragging");
+      dragAl_el= undefined;
       prev_dragOver_el= undefined;
     }
-  }
+  } //clear()
+
   //dragndrop
-} //reorderable()
+} //alarmDragger()
 
 
 function play_sound(ac_key, repeat_n= 1, step_ms= 750) {
