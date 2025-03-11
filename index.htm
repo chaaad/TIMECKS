@@ -886,20 +886,26 @@ function editAlarmInfo() {
   });
 } //editAlarmInfo()
 
+function g_promStr(str, t_str) {
+  if (!str) str= alarmInst_el.ELO["aInfo"].textContent.substring(0, 40);
+  if (!t_str) t_str= alarmInst_el.ELO["aTime"].textContent;
+  return 'Alarm info:<b>' +str +'</b><br>Time:<b class="livePreview">' +t_str +'</b>';
+} //g_promStr()
+
 function editAlarmTime(new_str) {
   var alarm_str= alarmInst_el.ELO["aTime"].textContent;
   var livePreview_el;
 
-  function pop_prompt(a_str) {
+  function pop_prompt() {
     var new_alarm_obj= proc_alarmTimeText(jm._els.Input.value, "preview");
     livePreview_el.innerHTML= new_alarm_obj ? (new_alarm_obj.time +"<br>" +new_alarm_obj.ahead) : "";
   }
-  var inf_str= new_str;
-  if (!inf_str) inf_str= alarmInst_el.ELO["aInfo"].textContent.substring(0, 40);
+
+  var prom_str= g_promStr(new_str, alarm_str);
   time_prompt();
 
   function time_prompt() {
-    jm.prompt('Alarm info:<b>' +inf_str +'</b><br>Time:<b class="livePreview"></b>', alarm_str, {
+    jm.prompt(prom_str, alarm_str, {
       //jm custom hooks object
 
       begin_cb: () => {
@@ -934,7 +940,9 @@ function editAlarmTime(new_str) {
 } //editAlarmTime()
 
 function deleteAlarm() {
-  jm.prompt_boolean("Delete alarm?", 0, resp => {
+  var prom_str= g_promStr();
+
+  jm.prompt_boolean('Delete?<br>' +prom_str, 0, resp => {
     if (resp != true) return; //null or false //-->
     alarmInst_el.remove();
     if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
