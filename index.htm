@@ -129,9 +129,10 @@ div#alarm {
 
     &.alarm-active {
       div.alarmInfo {
-          background: black;
-          color:white;
-          opacity: 100%;
+        font-weight: 600;
+        background: black;
+        color:white;
+        opacity: 100%;
       }
       span.alarmEnable {
         color: chartreuse;
@@ -444,17 +445,17 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <body>
 
-<div id="editSettings" class="button squareButton leftButton" title="Settings">︙</div>
-<div id="trashCan" class="button squareButton leftButton" title="Trash (drop unwanted Alarm here)">🗑</div>
+<div id="editSettings" class="button squareButton leftButton" title="Settings (snooze duration)">︙</div>
+<div id="trashCan" class="button squareButton leftButton" title="Trash (drop unwanted alarm here)">🗑</div>
 
 <div id="alarm">
 
   <div id="alarmTemplates">
     <div class="alarmInstance" draggable="true">
-      <div class="alarmInfo" title="Alarm info"></div>
+      <div class="alarmInfo" title="Edit info"></div>
       <span class="alarmEnable button" title="On/Off">⏹</span>
       <span class="alarmTime" title="Edit time"></span>
-      <span class="roundButton delAlarmBut" title="Delete alarm">❌</span>
+      <span class="roundButton delAlarmBut" title="Delete">❌</span>
     </div>
   </div>
 
@@ -955,16 +956,16 @@ function deleteAlarm() {
 
   jm.prompt_boolean('Delete?<br>' +prom_str, 0, resp => {
     if (resp != true) return; //null or false //-->
-    _deleteAlarm();
+    exec_deleteAlarm();
   });
 } //deleteAlarm()
 
-function _deleteAlarm() {
+function exec_deleteAlarm() {
   alarmInst_el.remove();
   if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
   else saveAlarms();
   play_sound("slam", 2);
-} //_deleteAlarm()
+} //exec_deleteAlarm()
 
 function addnewAlarm(noDialog_flag) {
   noDialog_flag= noDialog_flag == "noDialog"; //'evt' is also passed as param
@@ -1403,7 +1404,7 @@ function alarmDragger() {
     if (dropOn_el) {
       if (dropOn_el.id == "trashCan") {
         alarmInst_el= dragAl_el;
-        _deleteAlarm();
+        exec_deleteAlarm();
 
       } else if (dropOn_el.classList.contains("dropAbove") || dropOn_el.classList.contains("dropBelow")) {
         if (dropOn_el.classList.contains("dropAbove")) dropOn_el.before(dragAl_el);
