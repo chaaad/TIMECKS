@@ -113,7 +113,7 @@ div#alarm {
     }
 
     span.alarmTime {
-      width: 140px;
+      width: 170px;
       display: inline-block;
       font: bold 28px "Seven Segment", sans-serif;
       color: greenyellow;
@@ -121,10 +121,12 @@ div#alarm {
       padding: 4px;
       border-radius: 2px;
       opacity: 25%;
-
+      text-align: right;
+/*
       &::before {
         content: "🕭 ";
       }
+*/
     }
 
     &.alarm-active {
@@ -395,7 +397,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   overflow: auto; /* enables scrolling for tall modals */
 
   .jw-modal-item { /*modal instance*/
-    width: 270px;
+    width: 400px;
     padding: 4px 8px;
     background: #fff;
     margin: 0px auto; /*center horiz*/
@@ -419,11 +421,11 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       }
     }
     input#jwmInput {
-      width: 230px;
+      width: 360px;
       font-size: xxx-large;
     }
     textarea#jwmTextarea {
-      width: 230px;
+      width: 360px;
       height: 100px;
       font-size: large;
     }
@@ -611,10 +613,12 @@ function startClock() {
   drawDay(start_dtO, clock_hr24);
 } //startClock()
 
+var monthDay_str;
 function drawDay(dtO, h24) {
   dayOfWeek_el.textContent= dtO.toLocaleDateString("en-US", {weekday:"short"}).toUpperCase(); //eg. "Tue" .. "TUE"
 
-  monthDay_el.textContent= (dtO.getMonth()+1) +"/" +dtO.getDate(); //0-11, 1-31
+  monthDay_str= (dtO.getMonth()+1) +"/" +dtO.getDate(); //0-11 (+1), 1-31
+  monthDay_el.textContent= monthDay_str;
   monthDay_el.classList[h24>=12?"add":"remove"]("pm");
 } //drawDay()
 
@@ -995,12 +999,12 @@ function importAlarm() {
 //console.log("pcTm_str, split",spl_ar);
 // ?pc_draft=Schenectady%20Mohawk%20Giants|508-11|WED|3/12|6:53pm
 //      0                                   1     2     3   4
-      if (pc_alarm_obj= proc_alarmTimeText(spl_ar[4] +"-20")) { // -20 minutes
+      if (pc_alarm_obj= proc_alarmTimeText(spl_ar[3] +" " +spl_ar[4] +"-20")) { // -20 minutes
         ct++;
         addnewAlarm("noDialog"); //dont save
 
         //tid= spl_ar[1]
-        var html_str= spl_ar[2] +' ' +spl_ar[3] +' <br>' +spl_ar[0];
+        var html_str= spl_ar[2] +'<br>' +spl_ar[0];
         alarmInst_el.ELO["aInfo"].innerHTML= html_str;
 
         alarmInst_el.ELO["aTime"].textContent= pc_alarm_obj.time;
@@ -1022,7 +1026,7 @@ ringerSnooze_el.addEventListener("click", () => stopRinger("snooze"));
 var rSnzCountdown_el= document.querySelector("div#rSnzCountdown");
 
 
-var hr_num, mn_num, pm_flag; //alarm
+var hr_num, mn_num, pm_flag, mdO; //alarm
 var alarm_dtO;
 var alarm_ctdn_m;
 var ring_intimerId;
@@ -1031,15 +1035,30 @@ var snooze_ctdn_m;
 function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if raw_str is good
   //.. geared toward keypad input, with some shortcuts baked in
   raw_str= raw_str.trim();
-  if (!raw_str) return err("no data"); //-->
+
+  var _mdO;
+  if (raw_str.includes("/")) {
+    let index= raw_str.indexOf(" ");
+    let mD_str= raw_str.substring(0, index);
+    raw_str= raw_str.substring(index +1);
+
+    _mdO= valid_mdO(mD_str); if (!_mdO) return err("bad month/day"); //-->
+  }
+
+  if (!raw_str) raw_str= "12"; //default midnite
+
+  [time_str, offset_str]= raw_str.split(/\+|-/);
 
   var time_str;
   var offset_str, offsetMod_str;
-
   [time_str, offset_str]= raw_str.split(/\+|-/);
   if (offset_str) offsetMod_str= raw_str[time_str.length]; // = -
 
   var time_dtO= new Date();
+  if (_mdO) {
+    time_dtO.setMonth(_mdO.m -1);
+    time_dtO.setDate(_mdO.d);
+  }
 
   var timO;
   if (time_str) {
@@ -1048,7 +1067,7 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
     if (timO.h > 12) return err('bad hour:<b class="E">' +timO.h +'"</b>max is 12'); //-->
     if (timO.m > 59) return err('bad minute:<b class="E">' +timO.m +'</b>max is 59'); //-->
 
-    timO.p= time_str.search(/P|p|\*|\//) > -1; //chars: P p * /
+    timO.p= time_str.search(/P|p|\*/) > -1; //chars: P p *
     let reqAmPm_flag= timO.p || time_str.search(/A|a/) > -1; //chars: A a
 
     if (timO.h == 0) { //auto-derive hr from now
@@ -1063,7 +1082,7 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
         timO.h= proc_24to12hrNum(h);
     }
 
-    time_dtO= g_fromhuman_dateObj(timO.h, timO.m, timO.p);
+    time_dtO= g_fromhuman_dateObj(timO.h, timO.m, timO.p, _mdO);
   }
 
   var ahead_str= "";
@@ -1141,11 +1160,12 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
     hr_num= _hr_num;
     mn_num= _mn_num;
     pm_flag= _pm_flag;
+    mdO= _mdO;
   }
 
   //success
   return {
-    time: get_formattedTime_str(_hr_num, _mn_num, _pm_flag),
+    time: get_formattedTime_str(_hr_num, _mn_num, _pm_flag, _mdO),
     ahead: ahead_str
   };
 
@@ -1155,8 +1175,8 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
     //note: "0" is truth-y
   }
 
-  function get_formattedTime_str(h, m, p) {
-    return h +":" +String(m).padStart(2, "0")  +(p?" PM":" AM"); //human time
+  function get_formattedTime_str(h, m, p, md) {
+    return (md?(md.str+" "):"") +h +":" +String(m).padStart(2, "0")  +(p?" PM":" AM"); //human time
   } //get_formattedTime_str()
 
   function proc_24to12hrNum(h) {
@@ -1171,6 +1191,19 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
     //multiple errors are not returned, only the first error encountered
   }
 
+  function valid_mdO(mD_str) {
+    if (!mD_str.includes("/")) return;
+    var month, day;
+    [month, day]= mD_str.split("/");
+    month*= 1; if (isNaN(month) || month<1 || month>12) month= 1;
+    day*= 1; if (isNaN(day) || day<1 || day>31) day= 1; //not verifying against number of days in month
+    return {
+      m: month,
+      d: day,
+      str: month +"/" +day
+    };
+  } //valid_mdO()
+
 } //proc_alarmTimeText()
 
 
@@ -1181,7 +1214,7 @@ function setAlarm(aI_el) {
     if (!proc_alarmTimeText(alarm_str)) flag= false;
 
     if (flag) {
-      alarm_dtO= g_fromhuman_dateObj(hr_num, mn_num, pm_flag);
+      alarm_dtO= g_fromhuman_dateObj(hr_num, mn_num, pm_flag, mdO);
 
       var alm_ctdn_ms= alarm_dtO -new Date(); //is DST handled here by js date ?
       if (alm_ctdn_ms < 1) { //if reqTime less than nowTime, goto next day
@@ -1199,34 +1232,40 @@ function setAlarm(aI_el) {
   }
 
   if (flag) { //alarm on
+    alarm_flag= true;
     active_aI_el= aI_el;
     aI_el.classList.add("alarm-active");
-
     aI_el.after(alarmStatus_el);
     alarmStatus_el.style.display= "block";
     alarmCountdown_el.style.display= "block";
-    if (!wakeLockObj) setWakeLock(); //on
-    alarm_flag= true;
+    if (alarm_ctdn_m < 1440) drawMarker();
     play_sound("beep");
-
-    clockMarker_el.style.transform= "translate(-50%, -50%) rotate(" +(30*hr_num +0.5*mn_num) +"deg)";
-    clockMarker_el.style.display= "block";
-    clockMarker_el.classList[(alarm_ctdn_m<720?"add":"remove")]("on");
+    if (!wakeLockObj) setWakeLock(); //on
 
   } else { //alarm off
-    active_aI_el= undefined;
     alarm_ctdn_m= 0;
+
     alarm_flag= false;
-    play_sound("slam");
+    active_aI_el= undefined;
     stopRinger(); //if needed
     alarmStatus_el.style.display= "none";
+    drawMarker(false);
+    play_sound("slam");
     if (wakeLockObj) setWakeLock(); //off
-
-    clockMarker_el.style.display= "none";
   }
 
   saveAlarms();
 } //setAlarm()
+
+function drawMarker(flag) {
+  if (flag == false) {
+    clockMarker_el.style.display= "none";
+  } else {
+    clockMarker_el.style.display= "block";
+    clockMarker_el.style.transform= "translate(-50%, -50%) rotate(" +(30*hr_num +0.5*mn_num) +"deg)";
+    clockMarker_el.classList[(alarm_ctdn_m<720?"add":"remove")]("on");
+  }
+} //drawMarker()
 
 function checkAlarm() {
   if (alarm_ctdn_m < 1) { //end alarm countdown
@@ -1235,7 +1274,7 @@ function checkAlarm() {
     startRinger();
   } else {
     alarmCountdown_el.textContent= g_untilStr(alarm_ctdn_m);
-    if (alarm_ctdn_m == 719) clockMarker_el.classList.add("on");
+    if (alarm_ctdn_m==719 || alarm_ctdn_m==1439) drawMarker();
   }
 } //checkAlarm()
 
@@ -1257,8 +1296,17 @@ function saveAlarms() {
   localStorage.setItem("alarms", JSON.stringify(alarms_arr));
 } //saveAlarms()
 
-function g_fromhuman_dateObj(h, m, p) { //from human time 12:59am/pm, to computer time 23:59
+function g_fromhuman_dateObj(h, m, p, md) { //from human time 12:59am/pm, to computer time 23:59
   var dtO= new Date(); //dateobj, using the date, but will reset the time
+
+  if (md) {
+    dtO.setMonth(md.m -1);
+    dtO.setDate(md.d);
+    let diff_ms= dtO -new Date();
+    if (diff_ms < 1) { //if reqTime less than nowTime, goto next year
+      dtO.setFullYear(dtO.getFullYear() +1); //+1 year
+    }
+  }
 
   dtO.setSeconds(0);
   dtO.setMinutes(m);
@@ -1325,16 +1373,22 @@ function checkSnooze() {
 } //checkSnooze()
 
 function g_untilStr(m, h) {
-  var mnt_flag;
-  if (h == undefined) {
-    mnt_flag= true;
-    if (m > 59) {
-      h= Math.floor(m /60);
-      m= m %60;
+  if (m >= 1440) {
+   str= Math.floor(m /1440) +"d";
+
+  } else {
+    var mnt_flag;
+    if (h == undefined) {
+      mnt_flag= true;
+      if (m > 59) {
+        h= Math.floor(m /60);
+        m= m %60;
+      }
     }
+    var str= h ? (h +"h") : "";
+    if (mnt_flag || m) str+= " " +m +"m";
   }
-  var str= h ? (h +"h") : "";
-  if (mnt_flag || m) str+= " " +m +"m";
+
   return str || "0";
 } //g_untilStr()
 
