@@ -60,18 +60,6 @@ i {
 
 }
 
-div#wakeLockEnable {
-  position: absolute;
-  bottom: 16px;
-  right: 16px;;
-
-  &.on {
-    background-color: lightskyblue;
-  }
-}
-
-
-
 .roundButton {
   border-radius: 100%;
   border: 8px solid lightgray;
@@ -191,6 +179,21 @@ div#alarm {
     font-weight: 800;
     color: cornflowerblue;
   }
+
+
+  div#lowerAlarmButs {
+    height:50px;
+  }
+
+  div#wakeLockEnable {
+    float: right;
+    margin-right: 0;
+
+    &.on {
+      background-color: lightskyblue;
+    }
+  }
+
 } /*alarm*/
 
 
@@ -455,12 +458,12 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       </div>
     </div>
   </div>
-  <div id="lowerRightButs">
+  <div id="lowerAlarmButs">
     <span id="addAlarmBut" class="roundButton" title="Add alarm">➕</span>
   </div>
+  <div id="wakeLockEnable" class="button squareButton" title="Wake Lock">🔒</div>
 </div>
 
-<div id="wakeLockEnable" class="button squareButton" title="Wake Lock">🔒</div>
 
 
 <div id="clockFace">
@@ -941,6 +944,8 @@ function deleteAlarm() {
 } //deleteAlarm()
 
 function addnewAlarm(noDialog_flag) {
+  noDialog_flag= noDialog_flag == "noDialog"; //'evt' is also passed as param
+
   var clAlrmInst_el= template_alarmInst_el.cloneNode(true); //clone //any alarmInst_el will do
   add_instanceShortcutEls(clAlrmInst_el);
   clAlrmInst_el.classList.remove("alarm-active");
@@ -970,7 +975,7 @@ function importAlarm() {
 //      0                                   1     2     3   4
       if (pc_alarm_obj= proc_alarmTimeText(spl_ar[4] +"-20")) { // -20 minutes
         ct++;
-        addnewAlarm("noDialog"); //doesnt save
+        addnewAlarm("noDialog"); //dont save
 
         //tid= spl_ar[1]
         var html_str= spl_ar[2] +' ' +spl_ar[3] +' <br>' +spl_ar[0];
