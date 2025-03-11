@@ -235,13 +235,9 @@ div#clockFace {
   transform: translate(-50%, -50%);
   user-select: none;
 
-  div.hands  {
-    width: 1px;
-    height: 1px;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform-origin: 50% 0;
+  div.hands, div.marker {
+    position: absolute; top: 50%; left: 50%;
+    transform-origin: 50% 50%;
     transform: translate(-50%, -50%);
   }
 
@@ -249,26 +245,32 @@ div#clockFace {
     content: "";
     position: absolute;
     bottom: 50%;
-    left: 50%;
-    transform-origin: 50% 0;
-    transform: translateX(-50%);
-  }
-
-  div#minuteHand {transition: transform 1s linear}
-  div#minuteHand::before {
-    width: 6px;
-    height: 110px;
     background: black;
     opacity: 33%;
     border-radius: 3px;
+    transform: translateX(-50%);
+  }
+
+  div#minuteHand {
+    transition: transform 1s linear
+  }
+  div#minuteHand::before {
+    width: 6px;
+    height: 110px;
   }
 
   div#hourHand::before {
     width: 10px;
     height: 70px;
-    background: black;
-    opacity: 33%;
-    border-radius: 3px;
+  }
+
+  div.marker {
+    height: 118%;
+    font-size: xx-large;
+    color: white;
+    &.on {
+      color: black;
+    }
   }
 
   div#spindle {
@@ -277,9 +279,7 @@ div#clockFace {
     background: #FDFAF7;
     border: 2px solid darkgray;
     border-radius: 100%;
-    position: absolute;
-    top: 50%;
-    left: 50%;
+    position: absolute; top: 50%; left: 50%;
     transform: translate(-50%, -50%);
   }
 
@@ -287,39 +287,33 @@ div#clockFace {
     display: block;
     width: 1px;
     height: 95%;
-    position: absolute;
-    top: 50%;
-    left: 50%;
+    position: absolute; top: 50%; left: 50%;
 
-    &::after {
+    &::before, &::after {
       content: "";
       background: #A0A1A4;
       position: absolute;
+      left: 0;
       width: 100%;
       height: 10px;
-      top: 0;
-      left: 0;
     }
     &::before {
-      content: "";
-      background: #A0A1A4;
-      position: absolute;
-      width: 100%;
-      height: 10px;
       bottom: 0;
-      left: 0;
+    }
+    &::after {
+      top: 0;
     }
 
     &.fives {
-      &::after,
-      &::before {height: 20px}
+      &::after, &::before {
+        height: 20px
+      }
     }
   }
 
 
   ul#hourNumbers {
     height: 38%;
-    width: 0;
     position: absolute;
     bottom: 44%; /*changed (eyeballed) from 50%*/
     left: 50%;
@@ -333,7 +327,6 @@ div#clockFace {
 
       i {
         position: absolute;
-        top: 0;
         left: 50%;
         transform: translateX(-50%);
       }
@@ -488,6 +481,8 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   <div id="minuteHand" class="hands"></div>
   <div id="hourHand" class="hands"></div>
   <div id="spindle"></div>
+
+  <div id="alarmMarker" class="marker">•</div>
 </div>
 
 
@@ -524,10 +519,10 @@ var audioClips= {
 };
 
 
-function drawClock() {
-  var clockFace_el= document.querySelector("DIV#clockFace");
-  var rotate_n= 0;
+var clockFace_el= document.querySelector("DIV#clockFace");
 
+function drawClock() {
+  var rotate_n= 0;
   for (var i=0; i<30; i++) {
     let span_el= document.createElement("span");
     if (!(i%5)) span_el.className= "fives";
@@ -560,11 +555,14 @@ drawClock(); //init
 
 
 var hand_els= {
-  hourH: document.querySelector("div#hourHand"),
-  minuteH: document.querySelector("div#minuteHand")
+  hourH: clockFace_el.querySelector("div#hourHand"),
+  minuteH: clockFace_el.querySelector("div#minuteHand")
 };
-var dayOfWeek_el= document.querySelector("h3");
+var dayOfWeek_el= clockFace_el.querySelector("h3");
 var monthDay_el= document.getElementById("dtDisplay");
+
+var clockMarker_el= clockFace_el.querySelector("div.marker");
+clockMarker_el.style.display= "none";
 
 var degO= {};
 var h_inc= 360 /720;
@@ -1211,6 +1209,10 @@ function setAlarm(aI_el) {
     alarm_flag= true;
     play_sound("beep");
 
+    clockMarker_el.style.transform= "translate(-50%, -50%) rotate(" +(30*hr_num +0.5*mn_num) +"deg)";
+    clockMarker_el.style.display= "block";
+    clockMarker_el.classList[(alarm_ctdn_m<720?"add":"remove")]("on");
+
   } else { //alarm off
     active_aI_el= undefined;
     alarm_ctdn_m= 0;
@@ -1219,6 +1221,8 @@ function setAlarm(aI_el) {
     stopRinger(); //if needed
     alarmStatus_el.style.display= "none";
     if (wakeLockObj) setWakeLock(); //off
+
+    clockMarker_el.style.display= "none";
   }
 
   saveAlarms();
@@ -1231,6 +1235,7 @@ function checkAlarm() {
     startRinger();
   } else {
     alarmCountdown_el.textContent= g_untilStr(alarm_ctdn_m);
+    if (alarm_ctdn_m == 719) clockMarker_el.classList.add("on");
   }
 } //checkAlarm()
 
