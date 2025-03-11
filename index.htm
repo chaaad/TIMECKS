@@ -1367,13 +1367,11 @@ function reorderable() {
     if (!drag_el) return; //-->
 
     evt.preventDefault();
-    var dropOn_el= prev_dragOver_el; //not actual the dropOn_el, but this allows user to make drop even when imprecise
+    var dropOn_el= prev_dragOver_el; //not actual the dropOn_el, but this allows user to make drop even with imprecise drop
     //.. if user drops outside of window, no drop event at all
     if (dropOn_el && (dropOn_el.classList.contains("dropAbove") || dropOn_el.classList.contains("dropBelow"))) {
       if (dropOn_el.classList.contains("dropAbove")) dropOn_el.before(drag_el);
       else dropOn_el.after(drag_el);
-
-      dropOn_el.classList.remove("dropAbove", "dropBelow");
 
       if (active_aI_el) active_aI_el.after(alarmStatus_el);
 
@@ -1384,8 +1382,14 @@ function reorderable() {
   }
 
   function reset() {
-    drag_el.classList.remove("dragging");
-    drag_el= undefined;
+    if (drag_el) {
+      drag_el.classList.remove("dragging");
+      drag_el= undefined;
+    }
+    if (prev_dragOver_el) {
+      prev_dragOver_el.classList.remove("dropAbove", "dropBelow");
+      prev_dragOver_el= undefined;
+    }
   }
   //dragndrop
 } //reorderable()
