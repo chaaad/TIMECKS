@@ -865,7 +865,7 @@ function startAlarms() {
     aInst_el= template_alarmInst_el.cloneNode(true); //clone
     alarmsCont_el.appendChild(aInst_el); //add
     add_instanceShortcutEls(aInst_el);
-    aInst_el.ELO["aInfo"].innerHTML= a_obj.i;
+    aInst_el.ELO["aInfo"].innerHTML= a_obj.i || "";
     aInst_el.ELO["aTime"].textContent= a_obj.t;
     if (a_obj.a) alarmInst_el= aInst_el; //active
   });
