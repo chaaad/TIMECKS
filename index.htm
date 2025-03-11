@@ -409,7 +409,10 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       margin-top: 50px;
     }
     div#jwmDescription b {
-      color: red;
+      color: blue;
+      &.E {
+        color: red;
+      }
     }
     input#jwmInput {
       width: 230px;
@@ -422,10 +425,6 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     }
     .hilite {
       background: lightblue;
-    }
-    .emph {
-      color: blue;
-      font-weight: bold;
     }
   }
 } /*jwmOverlay*/
@@ -830,7 +829,7 @@ function editSettings() { //just snooze duration
     var v_num= resp *1;
     if (v_num == snooze_def_num) return; //same, do nothing //-->
     if (isNaN(v_num) || v_num<1 || v_num>30) {
-      jm.error("Snooze must be 1-30 minutes<br><br>Your input:<b>" +resp +"</b>", () => {
+      jm.error('Snooze must be 1-30 minutes<br><br>Your input:<b class="E">' +resp +'</b>', () => {
         editSettings(); //try again
       });
     } else {
@@ -871,8 +870,9 @@ function add_instanceShortcutEls(aI_el) { //.dataset only stores strings
 } //add_instanceShortcutEls()
 
 function editAlarmInfo() {
+  var t_str= alarmInst_el.ELO["aTime"].textContent;
   var info_str= alarmInst_el.ELO["aInfo"].innerHTML;
-  jm.prompt_textarea("Alarm info (html allowed)", info_str, resp => {
+  jm.prompt_textarea('Alarm info (html allowed)<br>Time: <b>' +t_str +'</b>', info_str, resp => {
     if (resp==null || resp==info_str) return; //-->
     info_str= resp.trim();
     if (info_str.length > 80) {
@@ -899,7 +899,7 @@ function editAlarmTime(new_str) {
   time_prompt();
 
   function time_prompt() {
-    jm.prompt('Alarm: ' +inf_str +'<br>Time: <span class="livePreview emph"></span>', alarm_str, {
+    jm.prompt('Alarm info: <b>' +inf_str +'</b><br>Time: <b class="livePreview"></b>', alarm_str, {
       //jm custom hooks object
 
       begin_cb: () => {
@@ -1023,8 +1023,8 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
   if (time_str) {
     timO= g_procReqTime(time_str);
 
-    if (timO.h > 12) return err("bad hour:<b>" +timO.h +"</b>max is 12"); //-->
-    if (timO.m > 59) return err("bad minute:<b>" +timO.m +"</b>max is 59"); //-->
+    if (timO.h > 12) return err('bad hour:<b class="E">' +timO.h +'"</b>max is 12'); //-->
+    if (timO.m > 59) return err('bad minute:<b class="E">' +timO.m +'</b>max is 59'); //-->
 
     timO.p= time_str.search(/P|p|\*|\//) > -1; //chars: P p * /
     let reqAmPm_flag= timO.p || time_str.search(/A|a/) > -1; //chars: A a
@@ -1145,7 +1145,7 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
 
   function err(err_str) {
     if (preview_flag) return; //-->
-    jm.error("Alarm time error caused by<br>" +err_str +"<br><br>Your raw input:<b>" +raw_str +"</b>", err_cb);
+    jm.error('Alarm time error caused by<br>' +err_str +'<br><br>Your raw input: <b class="E">' +raw_str +'</b>', err_cb);
     //multiple errors are not returned, only the first error encountered
   }
 
