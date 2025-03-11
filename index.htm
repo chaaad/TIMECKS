@@ -950,8 +950,8 @@ function addnewAlarm(noDialog_flag) {
 
   play_sound("beep", 2);
 
+  alarmInst_el= clAlrmInst_el;
   if (!noDialog_flag) {
-    alarmInst_el= clAlrmInst_el;
     saveAlarms();
     editAlarmTime("NEW");
   }
@@ -970,7 +970,7 @@ function importAlarm() {
 //      0                                   1     2     3   4
       if (pc_alarm_obj= proc_alarmTimeText(spl_ar[4] +"-20")) { // -20 minutes
         ct++;
-        addnewAlarm("noDialog"); //also saves
+        addnewAlarm("noDialog"); //doesnt save
 
         //tid= spl_ar[1]
         var html_str= spl_ar[2] +' ' +spl_ar[3] +' <br>' +spl_ar[0];
