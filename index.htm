@@ -872,7 +872,7 @@ function add_instanceShortcutEls(aI_el) { //.dataset only stores strings
 function editAlarmInfo() {
   var t_str= alarmInst_el.ELO["aTime"].textContent;
   var info_str= alarmInst_el.ELO["aInfo"].innerHTML;
-  jm.prompt_textarea('Alarm info (html allowed)<br>Time: <b>' +t_str +'</b>', info_str, resp => {
+  jm.prompt_textarea('Alarm info (html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
     if (resp==null || resp==info_str) return; //-->
     info_str= resp.trim();
     if (info_str.length > 80) {
@@ -895,11 +895,11 @@ function editAlarmTime(new_str) {
     livePreview_el.innerHTML= new_alarm_obj ? (new_alarm_obj.time +"<br>" +new_alarm_obj.ahead) : "";
   }
   var inf_str= new_str;
-  if (!inf_str) inf_str= alarmInst_el.ELO["aInfo"].textContent.substring(0, 20);
+  if (!inf_str) inf_str= alarmInst_el.ELO["aInfo"].textContent.substring(0, 40);
   time_prompt();
 
   function time_prompt() {
-    jm.prompt('Alarm info: <b>' +inf_str +'</b><br>Time: <b class="livePreview"></b>', alarm_str, {
+    jm.prompt('Alarm info:<b>' +inf_str +'</b><br>Time:<b class="livePreview"></b>', alarm_str, {
       //jm custom hooks object
 
       begin_cb: () => {
