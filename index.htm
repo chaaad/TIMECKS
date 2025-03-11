@@ -83,7 +83,6 @@ div#alarm {
   font-size: larger;
   padding: 8px;
   position: relative;
-  z-index: 1;
 
   div.alarmInstance {
     margin-bottom: 20px;
@@ -232,10 +231,11 @@ div#clockFace {
   border: 12px solid lightgray;
   border-radius: 100%;
   position: absolute;
-  left: 33%;
+  left: 30%;
   top: 50%;
   transform: translate(-50%, -50%);
   user-select: none;
+  z-index: -1;
 
   div.hands, div.marker {
     position: absolute; top: 50%; left: 50%;
