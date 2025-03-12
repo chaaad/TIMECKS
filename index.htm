@@ -403,27 +403,32 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   overflow: auto; /* enables scrolling for tall modals */
 
   .jw-modal-item { /*modal instance*/
-    width: 400px;
+    font-size: larger;
+    width: 420px;
     padding: 4px 8px;
     background: #fff;
     margin: 0px auto; /*center horiz*/
-    border-radius: 8px;
+    border-radius: 16px;
 
     .open { /*dont edit this css*/
       display: block;
     }
 
     * {
-      margin:8px;
+      margin:12px;
     }
 
     div#jwmContent {
       margin-top: 50px;
     }
-    div#jwmDescription b {
-      color: blue;
-      &.E {
-        color: red;
+    div#jwmDescription {
+      line-height: 28px;
+
+      b {
+        color: cornflowerblue;
+        &.E {
+          color: red;
+        }
       }
     }
     input#jwmInput {
@@ -433,12 +438,70 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     textarea#jwmTextarea {
       width: 360px;
       height: 100px;
-      font-size: large;
+      font-size: x-large;
     }
-    .hilite {
-      background: lightblue;
+
+    /*button
+    https://getcssscan.com/css-buttons-examples
+    button-71
+    */
+    button {
+      background-color: #0078d0;
+      border: 0;
+      border-radius: 56px;
+      color: #fff;
+      cursor: pointer;
+      display: inline-block;
+      font-family: system-ui,-apple-system,system-ui,"Segoe UI",Roboto,Ubuntu,"Helvetica Neue",sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      outline: 0;
+      padding: 16px 21px;
+      position: relative;
+      text-align: center;
+      text-decoration: none;
+      transition: all .3s;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
     }
+
+    button:before {
+      background-color: initial;
+      background-image: linear-gradient(#fff 0, rgba(255, 255, 255, 0) 100%);
+      border-radius: 125px;
+      content: "";
+      height: 50%;
+      left: 4%;
+      opacity: .5;
+      position: absolute;
+      top: 0;
+      transition: all .3s;
+      width: 92%;
+    }
+
+    button:hover {
+      box-shadow: rgba(255, 255, 255, .2) 0 3px 15px inset, rgba(0, 0, 0, .1) 0 3px 5px, rgba(0, 0, 0, .1) 0 10px 13px;
+      transform: scale(1.05);
+    }
+
+    @media (min-width: 768px) {
+      button {
+        padding: 16px 48px;
+      }
+    }
+    /*button-71*/
+
+    button.toggleable {
+      background: chocolate;
+      opacity: 40%
+    }
+    button.hilite {
+      opacity: 100%;
+    }
+
   }
+
 } /*jwmOverlay*/
 
 </style>
@@ -503,7 +566,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       <input id="jwmInput"/>
       <textarea id="jwmTextarea"></textarea>
       <button id="jwmOkBut">OK</button>
-      <button id="jwmNoBut">No</button>
+      <button id="jwmNoBut" class="toggleable">No</button>
       <button id="jwmCancelBut">Cancel</button>
     </div>
   </div>
@@ -1596,6 +1659,7 @@ var jm= {
 
     jm._displayEls("Input,Textarea,NoBut,CancelBut", "none");
     jm._classEls("OkBut,NoBut", "hilite", false);
+    jm._classEls("OkBut", "toggleable", false);
     jm._els.aliasIO= jm._els.Input; //for .Input or .Textarea
     jm._els.OkBut.textContent= "OK";
 
@@ -1604,6 +1668,7 @@ var jm= {
 
       if (type_str == "PROMPT_BOOL") {
         jm._displayEls("NoBut,CancelBut", "inline");
+        jm._classEls("OkBut", "toggleable");
         jm._els.OkBut.textContent= "Yes";
         var state_flag= !!value_str; //to boolean
         //.. local var
