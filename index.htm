@@ -1323,6 +1323,7 @@ function sortAlarms() {
     .forEach(aI_el => alarmsCont_el.appendChild(aI_el))
   ;
   saveAlarms();
+  play_sound("clik");
 } //sortAlarms()
 
 function g_fromHuman_dateObj(h, m, p, md) { //from human time 12:59am/pm, to computer time 23:59
