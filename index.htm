@@ -1406,7 +1406,7 @@ function sortAlarms(evt) {
     exec_sortAlarms();
 
   } else {
-    jm.confirm('Sort?', resp => {
+    jm.confirm('Sort alarms by date/time?', resp => {
       if (resp) exec_sortAlarms();
     });
   }
