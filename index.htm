@@ -1044,8 +1044,10 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
   //.. geared toward keypad input, with some shortcuts baked in
   raw_str= raw_str.trim();
 
+  var time_dtO= new Date();
   var _mdO;
   if (raw_str.includes("/")) {
+    raw_str+= " ";
     let index= raw_str.indexOf(" ");
     let mD_str= raw_str.substring(0, index);
     raw_str= raw_str.substring(index +1);
@@ -1062,7 +1064,6 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
   [time_str, offset_str]= raw_str.split(/\+|-/);
   if (offset_str) offsetMod_str= raw_str[time_str.length]; // = -
 
-  var time_dtO= new Date();
   if (_mdO) {
     time_dtO.setMonth(_mdO.m -1);
     time_dtO.setDate(_mdO.d);
@@ -1204,7 +1205,7 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
     if (!mD_str.includes("/")) return;
     var month, day;
     [month, day]= mD_str.split("/");
-    month*= 1; if (isNaN(month) || month<1 || month>12) month= 1;
+    month*= 1; if (isNaN(month) || month<1 || month>12) month= time_dtO.getMonth() +1; //no month? assume this month
     day*= 1; if (isNaN(day) || day<1 || day>31) day= 1; //not verifying against number of days in month
     return {
       m: month,
