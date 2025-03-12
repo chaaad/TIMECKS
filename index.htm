@@ -927,6 +927,9 @@ function editSettings() { //just snooze duration
 
 
 var alarm_flag;
+var alarm_ctdn_m;
+var alarm_dtO;
+var hr_num, mn_num, pm_flag, mdO;
 
 function startAlarms() {
   var alarms_json= localStorage.getItem("alarms");
@@ -1086,37 +1089,24 @@ function importAlarm() {
   });
 } //importAlarm()
 
-var ringerButs_el= document.querySelector("div#ringerButs");
-ringerButs_el.style.display= "none";
 
-var ringerOff_el= document.querySelector("div#ringerOff")
-ringerOff_el.addEventListener("click", () => stopRinger());
+var DoW2_arr= "SU,MO,TU,WE,TH,FR,SA".split(",");
+var DoW_arr= "SUN,MON,TUE,WED,THU,FRI,SAT".split(",");
 
-var ringerSnooze_el= document.querySelector("div#ringerSnooze")
-ringerSnooze_el.addEventListener("click", () => stopRinger("snooze"));
-
-var rSnzCountdown_el= document.querySelector("div#rSnzCountdown");
-
-
-var hr_num, mn_num, pm_flag, mdO; //alarm
-var alarm_dtO;
-var alarm_ctdn_m;
-var ring_intimerId;
-var snooze_ctdn_m;
-
-function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if raw_str is good
+function proc_alarmTimeText(input_str, preview_flag, err_cb) { //returns truthy if raw_str is good
   //.. geared toward keypad input, with some shortcuts baked in
-  raw_str= raw_str.trim();
+  input_str= input_str.trim();
+  var raw_str= input_str.toUpperCase();
 
   var time_dtO= new Date();
   var _mdO;
-  if (raw_str.includes("/")) {
+  if (raw_str.includes("/") || raw_str.search(/^[SMTWF]/)==0) {
     raw_str+= " ";
     let index= raw_str.indexOf(" ");
     let mD_str= raw_str.substring(0, index);
     raw_str= raw_str.substring(index +1);
 
-    _mdO= valid_mdO(mD_str); if (!_mdO) return err("bad month/day"); //-->
+    _mdO= valid_mdO(mD_str); if (!_mdO) return err("bad month/day or DoW"); //-->
   }
 
   if (!raw_str) raw_str= "12"; //default midnite
@@ -1128,10 +1118,6 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
   [time_str, offset_str]= raw_str.split(/\+|-/);
   if (offset_str) offsetMod_str= raw_str[time_str.length]; // = -
 
-  if (_mdO) {
-    time_dtO.setMonth(_mdO.m -1);
-    time_dtO.setDate(_mdO.d);
-  }
 
   var timO;
   if (time_str) {
@@ -1140,7 +1126,7 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
     if (timO.h > 12) return err('bad hour:<b class="E">' +timO.h +'"</b>max is 12'); //-->
     if (timO.m > 59) return err('bad minute:<b class="E">' +timO.m +'</b>max is 59'); //-->
 
-    timO.p= time_str.search(/P|p|\*/) > -1; //chars: P p *
+    timO.p= time_str.search(/P|\*/) > -1; //chars: P *
     let reqAmPm_flag= timO.p || time_str.search(/A|a/) > -1; //chars: A a
 
     if (timO.h == 0) { //auto-derive hr from now
@@ -1154,42 +1140,44 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
         }
         timO.h= proc_24to12hrNum(h);
     }
-
     time_dtO= g_fromHuman_dateObj(timO.h, timO.m, timO.p, _mdO);
+
+  } else if (_mdO) {
+    time_dtO.setMonth(_mdO.m -1);
+    time_dtO.setDate(_mdO.d);
   }
 
   var ahead_str= "";
 
-  var ofstO;
+  var ofsO;
   if (offset_str) {
-    ofstO= g_procReqTime(offset_str);
-    if (ofstO.h +ofstO.m < 1) return err("0 hour+minute (offset mode)"); //-->
+    ofsO= g_procReqTime(offset_str);
+    if (ofsO.h +ofsO.m < 1) return err("0 hour+minute (offset mode)"); //-->
 
     var time_ms= time_dtO.getTime();
     var sgn_num= offsetMod_str=="+" ? 1 : -1;
 
-    if (ofstO.m) {
-      if (ofstO.m > 59) return err("ahead minutes:<b>" +ofstO.m +"</b>max is 59"); //-->
-      time_ms+= sgn_num *ofstO.m *60000; //60*1000 //add mns
+    if (ofsO.m) {
+      if (ofsO.m > 59) return err("ahead minutes:<b>" +ofsO.m +"</b>max is 59"); //-->
+      time_ms+= sgn_num *ofsO.m *60000; //60*1000 //add mns
     }
-    if (ofstO.h) {
-      let max_h= ofstO.m ? 23 :24; //max 24 hrs ahead because year/month/day not stored (not a calendar)
-      if (ofstO.h > max_h) return err("ahead hours:<b>" +ofstO.h +"</b>max is " +max_h); //-->
-      time_ms+= sgn_num *ofstO.h *3600000; //60*60*1000 //add hrs
+    if (ofsO.h) {
+      let max_h= ofsO.m ? 23 : 24; //max 24 hrs ahead
+      if (ofsO.h > max_h) return err("ahead hours:<b>" +ofsO.h +"</b>max is " +max_h); //-->
+      time_ms+= sgn_num *ofsO.h *3600000; //60*60*1000 //add hrs
     }
 
     ahead_str= "(OFFSET: ";
     if (timO) ahead_str+= get_formattedTime_str(timO.h, timO.m, timO.p) + " ";
-    ahead_str+= offsetMod_str +g_untilStr(ofstO.m, ofstO.h) +")";
+    ahead_str+= offsetMod_str +g_untilStr(ofsO.m, ofsO.h) +")";
 
     time_dtO= new Date(time_ms); //is DST handled here by js date ?
 
   } else { //no offset given, derive for ahead_str
     let ahead_ms= time_dtO -new Date();
-    if (ahead_ms < 0) { //if reqTime less than nowTime, goto next day
-      let ahead_dtO= new Date(time_dtO.getTime());
-      ahead_dtO.setDate(ahead_dtO.getDate() +1); //+1 day //is DST handled here by js date ?
-      ahead_ms= ahead_dtO -new Date();
+    if (ahead_ms<0 && !_mdO) { //if reqTime less than nowTime, goto next day
+      time_dtO.setDate(time_dtO.getDate() +1); //+1 day //is DST handled here by js date ?
+      ahead_ms= time_dtO -new Date();
     }
     ahead_str= "(in: " +g_untilStr(Math.round(ahead_ms /60000)) +")";
   }
@@ -1250,7 +1238,9 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
   }
 
   function get_formattedTime_str(h, m, p, md) {
-    return (md?(md.str+" "):"") +h +":" +String(m).padStart(2, "0")  +(p?" PM":" AM"); //human time
+    var str= "";
+    if (md) str= (md.DoW ? md.DoW : ((md.r_m || md.m) +"/" +md.d)) +" ";
+    return str +h +":" +String(m).padStart(2, "0")  +(p?" PM":" AM"); //human time
   } //get_formattedTime_str()
 
   function proc_24to12hrNum(h) {
@@ -1261,25 +1251,56 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
 
   function err(err_str) {
     if (preview_flag) return; //-->
-    jm.error('Alarm time error caused by<br>' +err_str +'<br><br>Your raw input: <b class="E">' +raw_str +'</b>', err_cb);
+    jm.error('Alarm time error caused by<br>' +err_str +'<br><br>Your raw input: <b class="E">' +input_str +'</b>', err_cb);
     //multiple errors are not returned, only the first error encountered
   }
 
   function valid_mdO(mD_str) {
-    if (!mD_str.includes("/")) return;
-    var month, day;
-    [month, day]= mD_str.split("/");
-    month*= 1; if (isNaN(month) || month<1 || month>12) month= time_dtO.getMonth() +1; //no month? assume this month
-    day*= 1; if (isNaN(day) || day<1 || day>31) day= 1; //not verifying against number of days in month
-    return {
+    var raw_month_str;
+    var DoW_str;
+    if (mD_str.includes("/")) {
+      var month, day;
+      [month, day]= mD_str.split("/");
+
+      month*= 1;
+      if (isNaN(month) || month<1 || month>12) {
+        raw_month_str= "?"; //month wildcard
+        month= time_dtO.getMonth() +1; //no month? assume this month
+      }
+
+      day*= 1;
+      if (isNaN(day) || day<1 || day>31) day= 1; //not verifying against number of days in month
+
+    } else if (mD_str.search(/^[SMTWF]/) == 0) { //Day of Week
+      var f2_str= mD_str.substring(0, 2);
+      if (f2_str.length < 2) return; //-->
+      var req_DoW_n= DoW2_arr.indexOf(f2_str);
+      if (req_DoW_n < 0) return; //-->
+      DoW_str= DoW_arr[req_DoW_n];
+      var copy_dtO= new Date(time_dtO); //lets not change time_dtO here
+      var DoW_diff_n= req_DoW_n -copy_dtO.getDay(); //.getDay(), could be called getDoW, returns 0-6 (sun-sat)
+      if (DoW_diff_n) {
+        if (DoW_diff_n < 0) DoW_diff_n+= 7;
+        copy_dtO.setDate(copy_dtO.getDate() +DoW_diff_n); //getDate() will change month/day correctly
+      }
+      month= copy_dtO.getMonth() +1;
+      day= copy_dtO.getDate(); //.getDate(), could be called getDay, returns 1-31
+    } else {
+      return; //--> fail
+    }
+
+    var o= {
       m: month,
       d: day,
-      str: month +"/" +day
+      DoW: DoW_str
     };
+    if (raw_month_str) o.r_m= raw_month_str;
+
+    //success
+    return o;
   } //valid_mdO()
 
 } //proc_alarmTimeText()
-
 
 function setAlarm(aI_el) {
   var flag= !!aI_el; //to boolean
@@ -1489,15 +1510,7 @@ function alarmDragger() {
 
 function g_fromHuman_dateObj(h, m, p, md) { //from human time 12:59am/pm, to computer time 23:59
   var dtO= new Date(); //dateobj, using the date, but will reset the time
-
-  if (md) {
-    dtO.setMonth(md.m -1);
-    dtO.setDate(md.d);
-    let diff_ms= dtO -new Date();
-    if (diff_ms < 1) { //if reqTime less than nowTime, goto next year
-      dtO.setFullYear(dtO.getFullYear() +1); //+1 year
-    }
-  }
+  var copy_dtO= new Date(dtO);
 
   dtO.setSeconds(0);
   dtO.setMinutes(m);
@@ -1506,11 +1519,33 @@ function g_fromHuman_dateObj(h, m, p, md) { //from human time 12:59am/pm, to com
   if (p) h+= 12;
   dtO.setHours(h);
 
+  if (md) {
+    dtO.setMonth(md.m -1);
+    dtO.setDate(md.d);
+    var diff_ms= dtO -copy_dtO;
+    if (diff_ms < 0) { //if reqTime less than nowTime, goto next year
+      dtO.setFullYear(dtO.getFullYear() +1); //+1 year
+    }
+  }
+
   return dtO;
 } //g_fromHuman_dateObj()
 
 
+var ringerButs_el= document.querySelector("div#ringerButs");
+ringerButs_el.style.display= "none";
+
+var ringerOff_el= document.querySelector("div#ringerOff")
+ringerOff_el.addEventListener("click", () => stopRinger());
+
+var ringerSnooze_el= document.querySelector("div#ringerSnooze")
+ringerSnooze_el.addEventListener("click", () => stopRinger("snooze"));
+
+var rSnzCountdown_el= document.querySelector("div#rSnzCountdown");
+
 var ring_flag;
+var ring_intimerId;
+var snooze_ctdn_m;
 
 function startRinger() {
   ring_flag= true;
