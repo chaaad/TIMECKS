@@ -520,7 +520,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 <body>
 
 <div id="editStgsBut" class="button squareButton leftButton" title="Settings (snooze duration)">︙</div>
-<div id="sortBut" class="button squareButton leftButton" title="Sort alarms">➤</div>
+<div id="sortBut" class="button squareButton leftButton" title="Sort alarms (ctrl-click to skip confirm)">➤</div>
 <div id="trashCan" class="button squareButton leftButton" title="Trash (drop unwanted alarm here)">🗑</div>
 
 <div id="alarm">
@@ -970,7 +970,7 @@ function add_instanceShortcutEls(aI_el) { //.dataset only stores strings
 
 function editAlarmInfo() {
   var t_str= alarmInst_el.ELO["aTime"].textContent;
-  var info_str= alarmInst_el.ELO["aInfo"].innerHTML;
+  var info_str= alarmInst_el.ELO["aInfo"].innerHTML.replaceAll("<br>", "\n");
   jm.prompt_textarea('Alarm info (html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
     if (resp==null || resp==info_str) return; //-->
     info_str= resp.trim();
@@ -979,7 +979,7 @@ function editAlarmInfo() {
         editAlarmInfo(info_str); //try again (and we dont throw away what you typed in)
       });
     } else {
-      alarmInst_el.ELO["aInfo"].innerHTML= info_str;
+      alarmInst_el.ELO["aInfo"].innerHTML= info_str.replaceAll("\n", "<br>");
       saveAlarms();
     }
   });
@@ -1398,24 +1398,35 @@ function saveAlarms() {
   localStorage.setItem("alarms", JSON.stringify(alarms_arr));
 } //saveAlarms()
 
-function sortAlarms() {
-  var aI_nL= get_aIList();
-  var t_str, alarm_obj, ms;
-  aI_nL.forEach(aI_el => { //pop .tmp_ms for each alarm
-    ms= 0;
-    if (t_str= aI_el.ELO["aTime"].textContent) {
-      if (alarm_obj= proc_alarmTimeText(aI_el.ELO["aTime"].textContent, "preview")) ms= alarm_obj.ms;
-    }
-    aI_el.tmp_ms= ms; //breakin the law, unsanctioned attribute
-  });
+function sortAlarms(evt) {
+  if (evt.ctrlKey) {
+    exec_sortAlarms();
 
-  [...aI_nL] //to plain js array
-    .sort((a, b) => a.tmp_ms > b.tmp_ms ? 1 : -1)
-    .forEach(aI_el => alarmsCont_el.appendChild(aI_el))
-  ;
-  if (active_aI_el) active_aI_el.after(alarmStatus_el);
-  saveAlarms();
-  play_sound("clik");
+  } else {
+    jm.confirm('Sort?', resp => {
+      if (resp) exec_sortAlarms();
+    });
+  }
+
+  function exec_sortAlarms() {
+    var aI_nL= get_aIList();
+    var t_str, alarm_obj, ms;
+    aI_nL.forEach(aI_el => { //pop .tmp_ms for each alarm
+      ms= 0;
+      if (t_str= aI_el.ELO["aTime"].textContent) {
+        if (alarm_obj= proc_alarmTimeText(aI_el.ELO["aTime"].textContent, "preview")) ms= alarm_obj.ms;
+      }
+      aI_el.tmp_ms= ms; //breakin the law, unsanctioned attribute
+    });
+
+    [...aI_nL] //to plain js array
+      .sort((a, b) => a.tmp_ms > b.tmp_ms ? 1 : -1)
+      .forEach(aI_el => alarmsCont_el.appendChild(aI_el))
+    ;
+    if (active_aI_el) active_aI_el.after(alarmStatus_el);
+    saveAlarms();
+    play_sound("clik");
+  } //exec_sortAlarms()
 } //sortAlarms()
 
 function alarmDragger() {
@@ -1666,26 +1677,26 @@ var jm= {
       }
     });
 
-    jm._clickHandler("Overlay", evt => {
+    jm._mouseHandler("Overlay_mousedown", evt => { //"click" can get accidental "click"
       if (evt.target.id == "jwmOverlay") jm._respond("Overlay Click"); //closeModal
 
     });
 
-    jm._clickHandler("OkBut", evt => {
+    jm._mouseHandler("OkBut", evt => {
       if (jm._type == "PROMPT_BOOL") jm._els.aliasIO.value= "OK";
       jm._respond();
     });
 
-    jm._clickHandler("NoBut", evt => {
+    jm._mouseHandler("NoBut", evt => {
       jm._els.aliasIO.value= "NO";
       jm._respond();
     });
 
-    jm._clickHandler("CancelBut", evt => {
+    jm._mouseHandler("CancelBut", evt => {
       jm._respond("CANCEL");
     });
 
-    jm._clickHandler("CloseBut", evt => {
+    jm._mouseHandler("CloseBut", evt => {
       jm._respond("CLOSE");
     });
 
@@ -1850,9 +1861,13 @@ var jm= {
   }, //_customHooks
 
   //utils
-  _clickHandler: function(el, clk_cb) {
-    if (typeof(el) == "string") el= jm._els[el];
-    if (el) el.addEventListener("click", clk_cb);
+  _mouseHandler: function(el, clk_cb) { //default is "click", but can cutomize, eg. "Overlay_mousedown"
+    var act_str;
+    if (typeof(el) == "string") {
+      [el, act_str]= el.split("_"); //eg. "Overlay" and "mousedown"
+      el= jm._els[el];
+    }
+    if (el) el.addEventListener(act_str || "click", clk_cb);
   },
 
   _displayEls: function(jids, display_str= "block") {
