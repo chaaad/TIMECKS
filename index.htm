@@ -78,6 +78,11 @@ div#trashCan {
   cursor: default;
 }
 
+div#sortBut {
+  line-height: 20px;
+  transform: rotate(-90deg);
+}
+
 div#alarm {
   float: right;
   font-size: larger;
@@ -440,7 +445,8 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <body>
 
-<div id="editSettings" class="button squareButton leftButton" title="Settings (snooze duration)">︙</div>
+<div id="editStgsBut" class="button squareButton leftButton" title="Settings (snooze duration)">︙</div>
+<div id="sortBut" class="button squareButton leftButton" title="Sort alarms">➤</div>
 <div id="trashCan" class="button squareButton leftButton" title="Trash (drop unwanted alarm here)">🗑</div>
 
 <div id="alarm">
@@ -750,7 +756,8 @@ function g_fmatSDM() { //formatted sync_diff_ms string, eg. "dif+12"
 var body_el= document.querySelector("body");
 
 //div#alarm
-var editStgs_el= document.querySelector("div#editSettings");
+var editStgs_el= document.querySelector("div#editStgsBut");
+var sort_el= document.querySelector("div#sortBut");
 
 var alarmTemplates_el= document.querySelector("div#alarmTemplates");
 alarmTemplates_el.style.display= "none";
@@ -783,6 +790,7 @@ document.addEventListener("keyup", evt => { //capture any keyup
 });
 
 editStgs_el.addEventListener("click", editSettings);
+sort_el.addEventListener("click", sortAlarms);
 
 alarmsCont_el.addEventListener("click", evt => {
   var targ_el= evt.target;
@@ -1082,7 +1090,7 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
         timO.h= proc_24to12hrNum(h);
     }
 
-    time_dtO= g_fromhuman_dateObj(timO.h, timO.m, timO.p, _mdO);
+    time_dtO= g_fromHuman_dateObj(timO.h, timO.m, timO.p, _mdO);
   }
 
   var ahead_str= "";
@@ -1166,7 +1174,8 @@ function proc_alarmTimeText(raw_str, preview_flag, err_cb) { //returns truthy if
   //success
   return {
     time: get_formattedTime_str(_hr_num, _mn_num, _pm_flag, _mdO),
-    ahead: ahead_str
+    ahead: ahead_str,
+    ms: time_dtO.getTime()
   };
 
 
@@ -1214,7 +1223,7 @@ function setAlarm(aI_el) {
     if (!proc_alarmTimeText(alarm_str)) flag= false;
 
     if (flag) {
-      alarm_dtO= g_fromhuman_dateObj(hr_num, mn_num, pm_flag, mdO);
+      alarm_dtO= g_fromHuman_dateObj(hr_num, mn_num, pm_flag, mdO);
 
       var alm_ctdn_ms= alarm_dtO -new Date(); //is DST handled here by js date ?
       if (alm_ctdn_ms < 1) { //if reqTime less than nowTime, goto next day
@@ -1296,7 +1305,25 @@ function saveAlarms() {
   localStorage.setItem("alarms", JSON.stringify(alarms_arr));
 } //saveAlarms()
 
-function g_fromhuman_dateObj(h, m, p, md) { //from human time 12:59am/pm, to computer time 23:59
+function sortAlarms() {
+  var aI_nL= get_aIList();
+  var t_str, alarm_obj, ms;
+  aI_nL.forEach(aI_el => { //pop .tmp_ms for each alarm
+    ms= 0;
+    if (t_str= aI_el.ELO["aTime"].textContent) {
+      if (alarm_obj= proc_alarmTimeText(aI_el.ELO["aTime"].textContent, "preview")) ms= alarm_obj.ms;
+    }
+    aI_el.tmp_ms= ms; //breakin the law, unsanctioned attribute
+  });
+
+  [...aI_nL] //to plain js array
+    .sort((a, b) => a.tmp_ms > b.tmp_ms ? 1 : -1)
+    .forEach(aI_el => alarmsCont_el.appendChild(aI_el))
+  ;
+  saveAlarms();
+} //sortAlarms()
+
+function g_fromHuman_dateObj(h, m, p, md) { //from human time 12:59am/pm, to computer time 23:59
   var dtO= new Date(); //dateobj, using the date, but will reset the time
 
   if (md) {
@@ -1316,7 +1343,7 @@ function g_fromhuman_dateObj(h, m, p, md) { //from human time 12:59am/pm, to com
   dtO.setHours(h);
 
   return dtO;
-} //g_fromhuman_dateObj()
+} //g_fromHuman_dateObj()
 
 
 var ring_flag;
