@@ -83,6 +83,11 @@ div#trashCan {
   line-height: 20px;
   border-color: lightgray;
   cursor: default;
+  background: white;
+
+  &.dropTrash {
+    background: cyan;
+  }
 }
 
 div#sortBut {
@@ -156,6 +161,20 @@ div#alarm {
       }
     }
 
+    /*drag n drop*/
+    &.dragging {
+      opacity: 0.5;
+    }
+
+    &.dropAbove {
+      border-top: 100px solid lightcyan; /*8px solid blue;*/
+      border-bottom: "";
+    }
+    &.dropBelow {
+      border-top: "";
+      border-bottom: 100px solid lightcyan; /*8px solid blue;*/
+    }
+
   }
 
   div#alarmCountdown {}
@@ -220,22 +239,6 @@ div#alarm {
 } /*alarm*/
 
 
-/*drag n drop*/
-.dragging {
-  opacity: 0.5;
-}
-
-.dropAbove {
-  border-top: 100px solid lightcyan; /*8px solid blue;*/
-  border-bottom: "";
-}
-.dropBelow {
-  border-top: "";
-  border-bottom: 100px solid lightcyan; /*8px solid blue;*/
-}
-.dropTrash {
-  background: cyan;
-}
 
 div#clockFace {
   width: 272px;
