@@ -1363,7 +1363,6 @@ function drawMarker(flag) {
   if (flag == false) {
     clockMarker_el.style.display= "none";
   } else {
-console.log(hr_num, mn_num)
     clockMarker_el.style.display= "block";
     clockMarker_el.style.transform= "translate(-50%, -50%) rotate(" +(30*hr_num +0.5*mn_num) +"deg)";
     clockMarker_el.classList[(alarm_ctdn_m<720?"add":"remove")]("on");
