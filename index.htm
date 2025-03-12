@@ -1322,106 +1322,10 @@ function sortAlarms() {
     .sort((a, b) => a.tmp_ms > b.tmp_ms ? 1 : -1)
     .forEach(aI_el => alarmsCont_el.appendChild(aI_el))
   ;
+  if (active_aI_el) active_aI_el.after(alarmStatus_el);
   saveAlarms();
   play_sound("clik");
 } //sortAlarms()
-
-function g_fromHuman_dateObj(h, m, p, md) { //from human time 12:59am/pm, to computer time 23:59
-  var dtO= new Date(); //dateobj, using the date, but will reset the time
-
-  if (md) {
-    dtO.setMonth(md.m -1);
-    dtO.setDate(md.d);
-    let diff_ms= dtO -new Date();
-    if (diff_ms < 1) { //if reqTime less than nowTime, goto next year
-      dtO.setFullYear(dtO.getFullYear() +1); //+1 year
-    }
-  }
-
-  dtO.setSeconds(0);
-  dtO.setMinutes(m);
-
-  if (h == 12) h= 0;
-  if (p) h+= 12;
-  dtO.setHours(h);
-
-  return dtO;
-} //g_fromHuman_dateObj()
-
-
-var ring_flag;
-
-function startRinger() {
-  ring_flag= true;
-  play_sound("rngr");
-  ringerButs_el.style.display= "block";
-  body_el.classList.add("ringing", "ringingFlash");
-  ring_intimerId= setInterval(() => { //recurse
-    body_el.classList.toggle("ringingFlash");
-    play_sound("rngr");
-  }, 5000);
-} //startRinger()
-
-function stopRinger(snooze_flag) {
-  if (!ring_flag) return;
-
-  if (ring_intimerId) {
-    clearInterval(ring_intimerId);
-    ring_intimerId= undefined;
-    body_el.classList.remove("ringing", "ringingFlash");
-  }
-
-  if (snooze_flag) {
-    //note: snooze wont be exact, since it only checks/fires at top of minute
-    //eg. 5 minutes will be 4-5 minutes
-    snooze_ctdn_m= snooze_def_num;
-    ringerSnooze_el.classList.add("but-active");
-
-  } else { //ringer off
-    if (ring_flag) play_sound("slam"); //ringer-off slam
-    alarmStatus_el.style.display= "none";
-    ringerButs_el.style.display= "none";
-    snooze_ctdn_m= 0; //if needed
-    ringerSnooze_el.classList.remove("but-active"); //if needed
-    ring_flag= false;
-    setAlarm(false);
-  }
-
-  drawSnooze(); //if needed
-} //stopRinger()
-
-function drawSnooze() {
-  rSnzCountdown_el.textContent= snooze_ctdn_m ? g_untilStr(snooze_ctdn_m) : "";
-} //drawSnooze()
-
-function checkSnooze() {
-  drawSnooze();
-  if (!snooze_ctdn_m) { //end snooze
-    ringerSnooze_el.classList.remove("but-active");
-    startRinger();
-  }
-} //checkSnooze()
-
-function g_untilStr(m, h) {
-  if (m >= 1440) {
-   str= Math.floor(m /1440) +"d";
-
-  } else {
-    var mnt_flag;
-    if (h == undefined) {
-      mnt_flag= true;
-      if (m > 59) {
-        h= Math.floor(m /60);
-        m= m %60;
-      }
-    }
-    var str= h ? (h +"h") : "";
-    if (mnt_flag || m) str+= " " +m +"m";
-  }
-
-  return str || "0";
-} //g_untilStr()
-
 
 function alarmDragger() {
   //dragndrop, modded off of:
@@ -1519,6 +1423,102 @@ function alarmDragger() {
 
   //dragndrop
 } //alarmDragger()
+
+function g_fromHuman_dateObj(h, m, p, md) { //from human time 12:59am/pm, to computer time 23:59
+  var dtO= new Date(); //dateobj, using the date, but will reset the time
+
+  if (md) {
+    dtO.setMonth(md.m -1);
+    dtO.setDate(md.d);
+    let diff_ms= dtO -new Date();
+    if (diff_ms < 1) { //if reqTime less than nowTime, goto next year
+      dtO.setFullYear(dtO.getFullYear() +1); //+1 year
+    }
+  }
+
+  dtO.setSeconds(0);
+  dtO.setMinutes(m);
+
+  if (h == 12) h= 0;
+  if (p) h+= 12;
+  dtO.setHours(h);
+
+  return dtO;
+} //g_fromHuman_dateObj()
+
+
+var ring_flag;
+
+function startRinger() {
+  ring_flag= true;
+  play_sound("rngr");
+  ringerButs_el.style.display= "block";
+  body_el.classList.add("ringing", "ringingFlash");
+  ring_intimerId= setInterval(() => { //recurse
+    body_el.classList.toggle("ringingFlash");
+    play_sound("rngr");
+  }, 5000);
+} //startRinger()
+
+function stopRinger(snooze_flag) {
+  if (!ring_flag) return;
+
+  if (ring_intimerId) {
+    clearInterval(ring_intimerId);
+    ring_intimerId= undefined;
+    body_el.classList.remove("ringing", "ringingFlash");
+  }
+
+  if (snooze_flag) {
+    //note: snooze wont be exact, since it only checks/fires at top of minute
+    //eg. 5 minutes will be 4-5 minutes
+    snooze_ctdn_m= snooze_def_num;
+    ringerSnooze_el.classList.add("but-active");
+
+  } else { //ringer off
+    if (ring_flag) play_sound("slam"); //ringer-off slam
+    alarmStatus_el.style.display= "none";
+    ringerButs_el.style.display= "none";
+    snooze_ctdn_m= 0; //if needed
+    ringerSnooze_el.classList.remove("but-active"); //if needed
+    ring_flag= false;
+    setAlarm(false);
+  }
+
+  drawSnooze(); //if needed
+} //stopRinger()
+
+function drawSnooze() {
+  rSnzCountdown_el.textContent= snooze_ctdn_m ? g_untilStr(snooze_ctdn_m) : "";
+} //drawSnooze()
+
+function checkSnooze() {
+  drawSnooze();
+  if (!snooze_ctdn_m) { //end snooze
+    ringerSnooze_el.classList.remove("but-active");
+    startRinger();
+  }
+} //checkSnooze()
+
+function g_untilStr(m, h) {
+  if (m >= 1440) {
+   str= Math.floor(m /1440) +"d";
+
+  } else {
+    var mnt_flag;
+    if (h == undefined) {
+      mnt_flag= true;
+      if (m > 59) {
+        h= Math.floor(m /60);
+        m= m %60;
+      }
+    }
+    var str= h ? (h +"h") : "";
+    if (mnt_flag || m) str+= " " +m +"m";
+  }
+
+  return str || "0";
+} //g_untilStr()
 
 
 function play_sound(ac_key, repeat_n= 1, step_ms= 750) {
