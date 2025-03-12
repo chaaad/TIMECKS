@@ -885,7 +885,7 @@ alarmsCont_el.addEventListener("click", evt => {
   }
 });
 
-document.querySelector("span#addAlarmBut").addEventListener("click", addnewAlarm);
+document.querySelector("span#addAlarmBut").addEventListener("click", addAlarm);
 
 wlEnable_el.addEventListener("click", setWakeLock);
 
@@ -985,14 +985,9 @@ function editAlarmInfo() {
   });
 } //editAlarmInfo()
 
-function g_promStr(str, t_str) {
-  if (!str) str= alarmInst_el.ELO["aInfo"].textContent.substring(0, 40);
-  if (!t_str) t_str= alarmInst_el.ELO["aTime"].textContent;
-  return 'Alarm info:<b>' +str +'</b><br>Time:<b class="livePreview">' +t_str +'</b>';
-} //g_promStr()
 
-function editAlarmTime(new_str) {
-  var alarm_str= alarmInst_el.ELO["aTime"].textContent;
+function editAlarmTime(NEW_str) {
+  var alarm_str= NEW_str ? "12:00" : alarmInst_el.ELO["aTime"].textContent;
   var livePreview_el;
 
   function pop_prompt() {
@@ -1000,7 +995,7 @@ function editAlarmTime(new_str) {
     livePreview_el.innerHTML= new_alarm_obj ? (new_alarm_obj.time +"<br>" +new_alarm_obj.ahead) : "";
   }
 
-  var prom_str= g_promStr(new_str, alarm_str);
+  var prom_str= g_promStr(NEW_str, alarm_str);
   time_prompt();
 
   function time_prompt() {
@@ -1017,13 +1012,15 @@ function editAlarmTime(new_str) {
       },
 
       end_cb: resp => {
-        if (resp==null || (resp==alarm_str && !new_str)) return; //-->
+        if (resp==null || (resp==alarm_str && !NEW_str)) return; //-->
         var mod_alarm_str= resp;
 
         //proc input str
         var mod_alarm_obj;
         if (mod_alarm_obj= proc_alarmTimeText(mod_alarm_str, undefined, time_prompt)) {
           //.. passed time_prompt() as err_cb, try again
+
+          if (NEW_str) exec_addAlarm();
           alarmInst_el.ELO["aTime"].textContent= mod_alarm_obj.time;
           if (alarmInst_el==active_aI_el || !active_aI_el) {
             stopRinger(); //if needed
@@ -1031,12 +1028,51 @@ function editAlarmTime(new_str) {
           } else {
             saveAlarms();
           }
+          if (NEW_str) editAlarmInfo();
         }
       }
     });
   } //time_prompt()
 
 } //editAlarmTime()
+
+function addAlarm() {
+  editAlarmTime("NEW");
+} //addAlarm()
+
+function exec_addAlarm() {
+  var clAlrmInst_el= template_alarmInst_el.cloneNode(true); //clone
+  add_instanceShortcutEls(clAlrmInst_el);
+  alarmsCont_el.appendChild(clAlrmInst_el); //add
+  play_sound("beep", 2);
+  alarmInst_el= clAlrmInst_el;
+} //exec_addAlarm()
+
+function importAlarm() {
+  localStorage.removeItem("importedAlarm");
+  var spl_ar;
+  var pc_alarm_obj;
+  var ct= 0;
+  pcDraft_str.split("\n").forEach(pcTm_str => {
+    spl_ar= pcTm_str.split("|");
+    if (spl_ar.length == 5) { //cursory test
+//console.log("pcTm_str, split",spl_ar);
+// ?pc_draft=Schenectady%20Mohawk%20Giants|508-11|WED|3/12|6:53pm
+//      0                                   1     2     3   4
+      if (pc_alarm_obj= proc_alarmTimeText(spl_ar[3] +" " +spl_ar[4] +"-20")) { // -20 minutes
+        ct++;
+        exec_addAlarm();
+
+        //tid= spl_ar[1]
+        var html_str= spl_ar[2] +' <br>' +spl_ar[0];
+        alarmInst_el.ELO["aInfo"].innerHTML= html_str;
+
+        alarmInst_el.ELO["aTime"].textContent= pc_alarm_obj.time;
+      }
+    }
+    if (ct) saveAlarms();
+  });
+} //importAlarm()
 
 function deleteAlarm() {
   var prom_str= g_promStr();
@@ -1054,51 +1090,12 @@ function exec_deleteAlarm() {
   play_sound("slam", 2);
 } //exec_deleteAlarm()
 
-function addnewAlarm(noDialog_flag) {
-  noDialog_flag= noDialog_flag == "noDialog"; //'evt' is also passed as param
 
-  var clAlrmInst_el= template_alarmInst_el.cloneNode(true); //clone //any alarmInst_el will do
-  add_instanceShortcutEls(clAlrmInst_el);
-  clAlrmInst_el.classList.remove("alarm-active");
-  clAlrmInst_el.ELO["aInfo"].textContent= "";
-  clAlrmInst_el.ELO["aTime"].textContent= "12:00 AM"; //default
-  alarmsCont_el.appendChild(clAlrmInst_el); //add
-
-  play_sound("beep", 2);
-
-  alarmInst_el= clAlrmInst_el;
-  if (!noDialog_flag) {
-    saveAlarms();
-    editAlarmTime("NEW");
-  }
-} //addnewAlarm()
-
-function importAlarm() {
-  localStorage.removeItem("importedAlarm");
-  var spl_ar;
-  var pc_alarm_obj;
-  var ct= 0;
-  pcDraft_str.split("\n").forEach(pcTm_str => {
-    spl_ar= pcTm_str.split("|");
-    if (spl_ar.length == 5) { //cursory test
-//console.log("pcTm_str, split",spl_ar);
-// ?pc_draft=Schenectady%20Mohawk%20Giants|508-11|WED|3/12|6:53pm
-//      0                                   1     2     3   4
-      if (pc_alarm_obj= proc_alarmTimeText(spl_ar[3] +" " +spl_ar[4] +"-20")) { // -20 minutes
-        ct++;
-        addnewAlarm("noDialog"); //dont save
-
-        //tid= spl_ar[1]
-        var html_str= spl_ar[2] +' <br>' +spl_ar[0];
-        alarmInst_el.ELO["aInfo"].innerHTML= html_str;
-
-        alarmInst_el.ELO["aTime"].textContent= pc_alarm_obj.time;
-      }
-    }
-    if (ct) saveAlarms();
-  });
-} //importAlarm()
-
+function g_promStr(str, t_str) {
+  if (!str) str= alarmInst_el.ELO["aInfo"].textContent.substring(0, 40);
+  if (!t_str) t_str= alarmInst_el.ELO["aTime"].textContent;
+  return 'Alarm info:<b>' +str +'</b><br>Time:<b class="livePreview">' +t_str +'</b>';
+} //g_promStr()
 
 var DoW2_arr= "SU,MO,TU,WE,TH,FR,SA".split(",");
 var DoW_arr= "SUN,MON,TUE,WED,THU,FRI,SAT".split(",");
@@ -1343,7 +1340,7 @@ function setAlarm(aI_el) {
     aI_el.after(alarmStatus_el);
     alarmStatus_el.style.display= "block";
     alarmCountdown_el.style.display= "block";
-    if (alarm_ctdn_m < 1440) drawMarker();
+    drawMarker(alarm_ctdn_m < 1440);
     play_sound("beep");
     if (!wakeLockObj) setWakeLock(); //on
 
@@ -1366,6 +1363,7 @@ function drawMarker(flag) {
   if (flag == false) {
     clockMarker_el.style.display= "none";
   } else {
+console.log(hr_num, mn_num)
     clockMarker_el.style.display= "block";
     clockMarker_el.style.transform= "translate(-50%, -50%) rotate(" +(30*hr_num +0.5*mn_num) +"deg)";
     clockMarker_el.classList[(alarm_ctdn_m<720?"add":"remove")]("on");
