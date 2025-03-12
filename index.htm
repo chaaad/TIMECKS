@@ -64,12 +64,19 @@ i {
   border-radius: 100%;
   border: 8px solid lightgray;
   background:lightgray;
+  color: lightseagreen;
   margin-left: 8px;
   float: right;
-  font-size: x-small;
+  font-size: small;
   cursor: pointer;
   user-select: none;
+
+  &#jwmCloseBut, &.delAlarmBut {
+    color: red;
+  }
 }
+
+
 
 div#trashCan {
   font-size: xx-large;
@@ -523,7 +530,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       <div class="alarmInfo" title="Edit info"></div>
       <span class="alarmEnable button" title="On/Off">⏹</span>
       <span class="alarmTime" title="Edit time"></span>
-      <span class="roundButton delAlarmBut" title="Delete">❌</span>
+      <span class="roundButton delAlarmBut" title="Delete">✖</span>
     </div>
   </div>
 
@@ -538,7 +545,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     </div>
   </div>
   <div id="lowerAlarmButs">
-    <span id="addAlarmBut" class="roundButton" title="Add alarm">➕</span>
+    <span id="addAlarmBut" class="roundButton" title="Add alarm">✚</span>
   </div>
   <div id="wakeLockEnable" class="button squareButton" title="Wake Lock">🔒</div>
 </div>
@@ -563,7 +570,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <div id="jwmOverlay">
   <div id="jwmModal" class="jw-modal-item">
-    <span id="jwmCloseBut" class="roundButton">❌</span>
+    <span id="jwmCloseBut" class="roundButton">✖</span>
     <div id="jwmContent">
       <div id="jwmDescription"></div>
       <input id="jwmInput"/>
