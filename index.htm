@@ -1325,30 +1325,25 @@ function proc_alarmTimeText(input_str, preview_flag, err_cb) { //returns truthy 
   }
 
   function g_fromHTimeToDateObj(tO) { //from human time 12:59am/pm, to computer time 23:59
-    var dtO= new Date(); //dateobj, using the date, but will reset the time
-    var copy_dtO= new Date(dtO);
-    var diff_ms;
+    var dtO= new Date(); //dateobj, start as now, but most items will be re-set
 
     if (tO.MD) {
       dtO.setMonth(tO.MD.mo -1);
       dtO.setDate(tO.MD.da);
-      diff_ms= dtO -copy_dtO;
-      if (diff_ms < 0) { //if reqTime less than nowTime, goto next year
-        dtO.setFullYear(dtO.getFullYear() +1); //+1 year
-      }
     }
-
-    dtO.setSeconds(0);
-    dtO.setMinutes(tO.m);
 
     var h= tO.h;
     if (h == 12) h= 0;
     if (tO.p) h+= 12;
     dtO.setHours(h);
 
-    diff_ms= dtO -copy_dtO;
-    if (diff_ms < 1) { //if reqTime less than nowTime, goto next day
-      dtO.setDate(dtO.getDate() +1); //+1 day //is DST handled here by js date ?
+    dtO.setMinutes(tO.m);
+    dtO.setSeconds(0);
+
+    var diff_ms= dtO -new Date();
+    if (diff_ms < 1) { //if reqTime less than nowTime
+      if (tO.MD) dtO.setFullYear(dtO.getFullYear() +1); //+1 year
+      else dtO.setDate(dtO.getDate() +1); //+1 day //is DST handled here by js date ?
     }
 
     return dtO;
