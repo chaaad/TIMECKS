@@ -73,23 +73,26 @@ i {
 
 div#topButtons {
   position: fixed;
-}
 
-div#trashCan {
-  font-size: xx-large;
-  line-height: 20px;
-  border-color: lightgray;
-  cursor: default;
-  background: white;
-
-  &.dropTrash {
-    background: cyan;
+  div {
+    line-height: 22px;
   }
-}
 
-div#autoModeBut,
-div#sortBut {
-  line-height: 22px;
+  .on {
+    color: chartreuse;
+  }
+
+  div#trashCan {
+    font-size: xx-large;
+    line-height: 20px;
+    border-color: lightgray;
+    cursor: default;
+    background: white;
+
+    &.dropTrash {
+      background: cyan;
+    }
+  }
 }
 
 div#alarm {
@@ -522,9 +525,9 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <div id="topButtons">
   <div id="editStgsBut" class="button squareButton" title="Settings (snooze duration)">︙</div>
-  <div id="autoModeBut" class="button squareButton" title="Auto Mode">⮙</div>
+  <div id="autoModeBut" class="button squareButton" title="Auto Mode">A</div>
   <div id="sortBut" class="button squareButton" title="Sort alarms (ctrl-click to skip confirm)">⮝</div>
-  <div id="addAlarmBut" class="button squareButton" title="Add new alarm">+</div>
+  <div id="addAlarmBut" class="button squareButton" title="Add new alarm">✚</div>
   <div id="trashCan" class="button squareButton" title="Trash (drop unwanted alarm here)">🗑</div>
 </div>
 
@@ -702,7 +705,7 @@ function drawDay(dtO, h24) {
 
   monthDay_str= (dtO.getMonth()+1) +"/" +dtO.getDate(); //0-11 (+1), 1-31
   monthDay_el.textContent= monthDay_str;
-  monthDay_el.classList[h24>=12?"add":"remove"]("pm");
+  classEl(monthDay_el, "pm", h24>=12);
 } //drawDay()
 
 
@@ -969,10 +972,7 @@ function setAutoMode() {
 function exec_setAutoMode() { //on or off
   var displ_str= auto_mode ? "none" : "";
   showEl(sort_el, displ_str);
-  //showEl(trash_el, displ_str);
-
-  //get_aIList().forEach(aI_el => aI_el.draggable= !auto_mode );
-
+  classEl(auto_el, "on", auto_mode);
   if (auto_mode) auto_procAlarms();
 } //exec_setAutoMode()
 
@@ -1464,7 +1464,7 @@ function drawMarker(flag) {
   } else {
     clockMarker_el.style.display= "block";
     clockMarker_el.style.transform= "translate(-50%, -50%) rotate(" +(30*hTimO.h +0.5*hTimO.m) +"deg)";
-    clockMarker_el.classList[(alarm_ctdn_m<720?"add":"remove")]("on");
+    classEl(clockMarker_el, "on", alarm_ctdn_m<720);
   }
 } //drawMarker()
 
@@ -1736,6 +1736,9 @@ function play_sound(ac_key, repeat_n= 1, step_ms= 750) {
 function showEl(el, display_str= "block") {
   el.style.display= display_str;
 }
+function classEl(el, class_str, flag= true) {
+  el.classList[flag?"add":"remove"](class_str);
+}
 
 
 //jm (modal)
@@ -1890,7 +1893,7 @@ var jm= {
     liteBut("OkBut", state_flag);
     liteBut("NoBut", !state_flag);
     function liteBut(jid, flag) {
-      jm._els[jid].classList[flag?"add":"remove"]("hilite");
+      classEl(jm._els[jid], "hilite", flag);
     }
 
     if (submit_flag) jm._respond(); //btw, closes modal
@@ -1959,7 +1962,7 @@ var jm= {
   },
 
   _classEls: function(jids, class_str, flag= true) {
-    jm._iterEls(jids, el => el.classList[flag?"add":"remove"](class_str) );
+    jm._iterEls(jids, el => classEl(el, class_str, flag) );
   },
 
   _iterEls: function(jids, itr_cb) {
