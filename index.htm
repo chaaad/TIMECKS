@@ -742,7 +742,7 @@ function advancedClock() { //+1 clock minute
     }
   }
 
-  if (pcDraft_str= localStorage.getItem("importedAlarm")) importAlarm();
+  if (pcDraft_str= localStorage.getItem("importedAlarm")) importAlarm(); //like a poll, for "importedAlarm" in localStorage
 
   var sync_dtO= new Date();
   sync_diff_ms= clock_elapse_ms -sync_dtO.getTime();
@@ -1137,7 +1137,10 @@ function importAlarm() {
         alarmInst_el.ELO.aTime.textContent= pc_alarm_obj.time;
       }
     }
-    if (ct) saveAlarms();
+    if (ct) {
+      if (auto_mode) auto_procAlarms();
+      saveAlarms();
+    }
   });
 } //importAlarm()
 
@@ -1993,7 +1996,8 @@ if (fClick_flag) { //satisfy browser requirement to allow play-sound
 }
 
 
-function urlImportALarm(q_str) { //import from pc via url querystring
+function urlImportALarm(q_str) { //import from pC via url querystring, stores "importedAlarm" in localstorage
+  //.. this is a url based endpoint, not really a webpage, self closes
   if (!q_str) return; //-->
   var usp= new URLSearchParams(q_str);
   var pcDrft_str= usp.get("pc_draft"); // ?pc_draft=New%20York%20Yankees|123|WED|5/5|12:34pm
