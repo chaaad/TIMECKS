@@ -105,6 +105,8 @@ div#alarm {
 
   div.alarmInstance {
     margin-bottom: 20px;
+    border-radius: 8px;
+    transition: background-color 2s ease-out;
 
     * {
       cursor: pointer;
@@ -1031,7 +1033,7 @@ function add_instanceShortcutEls(aI_el) { //.dataset only stores strings
   };
 } //add_instanceShortcutEls()
 
-function editAlarmInfo() {
+function editAlarmInfo(NEW_str) {
   var t_str= alarmInst_el.ELO.aTime.textContent;
   var info_str= alarmInst_el.ELO.aInfo.innerHTML.replaceAll("<br>", "\n");
   jm.prompt_textarea('Alarm info (html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
@@ -1043,6 +1045,7 @@ function editAlarmInfo() {
       });
     } else {
       alarmInst_el.ELO.aInfo.innerHTML= info_str.replaceAll("\n", "<br>");
+      glowAlarm();
       saveAlarms();
     }
   });
@@ -1095,7 +1098,7 @@ function editAlarmTime(NEW_str) {
             auto_procAlarms();
             saveAlarms();
           }
-          if (NEW_str) editAlarmInfo();
+          if (NEW_str) editAlarmInfo(NEW_str);
         }
       }
     });
@@ -1114,6 +1117,13 @@ function exec_addAlarm() {
   play_sound("beep", 2);
   alarmInst_el= clAlrmInst_el;
 } //exec_addAlarm()
+
+function glowAlarm(aI_el= alarmInst_el) {
+  aI_el.scrollIntoView({behavior:"smooth"});
+
+  aI_el.style.background= "lightBlue";
+  setTimeout(() => {aI_el.style.background= ""; }, 4000);
+}
 
 function importAlarm() {
   localStorage.removeItem("importedAlarm");
@@ -1135,6 +1145,7 @@ function importAlarm() {
         alarmInst_el.ELO.aInfo.innerHTML= html_str;
 
         alarmInst_el.ELO.aTime.textContent= pc_alarm_obj.time;
+        glowAlarm();
       }
     }
     if (ct) {
@@ -1645,7 +1656,7 @@ var snooze_ctdn_m;
 
 function startRinger() {
   ring_flag= true;
-  active_aI_el.scrollIntoView(true); //true, alignToTop
+  active_aI_el.scrollIntoView({behavior:"smooth", block:"top"});
   play_sound("rngr");
   ringerButs_el.style.display= "block";
   body_el.classList.add("ringing", "ringingFlash");
@@ -1734,7 +1745,7 @@ function play_sound(ac_key, repeat_n= 1, step_ms= 750) {
 
 //utils
 function showEl(el, display_str= "block") {
-  el.style.display= display_str
+  el.style.display= display_str;
 }
 
 
