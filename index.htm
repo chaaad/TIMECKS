@@ -52,13 +52,6 @@ i {
     height: 20px;
     text-align: center;
   }
-  &.leftButton {
-    float: left;
-  }
-  &.rightButton {
-    float: right;
-  }
-
 }
 
 .roundButton {
@@ -78,7 +71,9 @@ i {
   }
 }
 
-
+div#topButtons {
+  position: fixed;
+}
 
 div#trashCan {
   font-size: xx-large;
@@ -183,10 +178,6 @@ div#alarm {
 
   div#alarmCountdown {}
 
-  span#addAlarmBut {
-    margin-top: 8px;
-  }
-
   div#alarmStatus {
     margin-bottom: 16px;
 
@@ -224,11 +215,6 @@ div#alarm {
     font-size: larger;
     font-weight: 800;
     color: cornflowerblue;
-  }
-
-
-  div#lowerAlarmButs {
-    height:50px;
   }
 
   div#wakeLockEnable {
@@ -534,15 +520,18 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <body>
 
-<div id="editStgsBut" class="button squareButton leftButton" title="Settings (snooze duration)">︙</div>
-<div id="autoModeBut" class="button squareButton leftButton" title="Auto Mode">⮙</div>
-<div id="sortBut" class="button squareButton leftButton" title="Sort alarms (ctrl-click to skip confirm)">⮝</div>
-<div id="trashCan" class="button squareButton leftButton" title="Trash (drop unwanted alarm here)">🗑</div>
+<div id="topButtons">
+  <div id="editStgsBut" class="button squareButton" title="Settings (snooze duration)">︙</div>
+  <div id="autoModeBut" class="button squareButton" title="Auto Mode">⮙</div>
+  <div id="sortBut" class="button squareButton" title="Sort alarms (ctrl-click to skip confirm)">⮝</div>
+  <div id="addAlarmBut" class="button squareButton" title="Add new alarm">+</div>
+  <div id="trashCan" class="button squareButton" title="Trash (drop unwanted alarm here)">🗑</div>
+</div>
 
 <div id="alarm">
 
   <div id="alarmTemplates">
-    <div class="alarmInstance">
+    <div class="alarmInstance" draggable="true">
       <div class="alarmInfo" title="Edit info"></div>
       <span class="alarmEnable button" title="On/Off">⏹</span>
       <span class="alarmTime" title="Edit time"></span>
@@ -560,9 +549,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       </div>
     </div>
   </div>
-  <div id="lowerAlarmButs">
-    <span id="addAlarmBut" class="roundButton" title="Add alarm">✚</span>
-  </div>
+
   <div id="wakeLockEnable" class="button squareButton" title="Wake Lock">🔒</div>
 </div>
 
@@ -858,6 +845,7 @@ var body_el= document.querySelector("body");
 var editStgs_el= document.querySelector("div#editStgsBut");
 var auto_el= document.querySelector("div#autoModeBut");
 var sort_el= document.querySelector("div#sortBut");
+var add_el= document.querySelector("div#addAlarmBut");
 var trash_el= document.querySelector("div#trashCan");
 
 var alarmTemplates_el= document.querySelector("div#alarmTemplates");
@@ -893,6 +881,7 @@ document.addEventListener("keyup", evt => { //capture any keyup
 editStgs_el.addEventListener("click", editSettings);
 auto_el.addEventListener("click", setAutoMode);
 sort_el.addEventListener("click", sortAlarms);
+add_el.addEventListener("click", addAlarm);
 
 alarmsCont_el.addEventListener("click", evt => {
   var targ_el= evt.target;
@@ -913,7 +902,6 @@ alarmsCont_el.addEventListener("click", evt => {
   }
 });
 
-document.querySelector("span#addAlarmBut").addEventListener("click", addAlarm);
 
 wlEnable_el.addEventListener("click", setWakeLock);
 
@@ -981,9 +969,9 @@ function setAutoMode() {
 function exec_setAutoMode() { //on or off
   var displ_str= auto_mode ? "none" : "";
   showEl(sort_el, displ_str);
-  showEl(trash_el, displ_str);
+  //showEl(trash_el, displ_str);
 
-  get_aIList().forEach(aI_el => aI_el.draggable= !auto_mode );
+  //get_aIList().forEach(aI_el => aI_el.draggable= !auto_mode );
 
   if (auto_mode) auto_procAlarms();
 } //exec_setAutoMode()
@@ -1037,7 +1025,7 @@ function editAlarmInfo(NEW_str) {
   var t_str= alarmInst_el.ELO.aTime.textContent;
   var info_str= alarmInst_el.ELO.aInfo.innerHTML.replaceAll("<br>", "\n");
   jm.prompt_textarea('Alarm info (html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
-    if (resp==null || resp==info_str) return; //-->
+    if (!NEW_str && (resp==null || resp==info_str)) return; //-->
     info_str= resp.trim();
     if (info_str.length > 80) {
       jm.error("Info length is up to 80 chars. Your text is " +info_str.length +" chars", () => {
@@ -1045,7 +1033,7 @@ function editAlarmInfo(NEW_str) {
       });
     } else {
       alarmInst_el.ELO.aInfo.innerHTML= info_str.replaceAll("\n", "<br>");
-      glowAlarm();
+      if (NEW_str) glowAlarm();
       saveAlarms();
     }
   });
@@ -1584,6 +1572,7 @@ function alarmDragger() {
         prev_dragOver_el= undefined;
       }
 
+      if (auto_mode) return; //-->{
       if (dragOvAl_el= dragOver_el.closest("div.alarmInstance")) { //alarm instance (reorder)
         if (prev_dragOver_el) clear();
         if (dragOvAl_el == dragAl_el) return; //-->
