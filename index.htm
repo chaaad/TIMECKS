@@ -968,7 +968,7 @@ var autoTopAI_el;
 var autoProcPending_flag;
 
 function setAutoMode() {
-  jm.prompt_boolean('Auto Mode?', auto_mode, resp => {
+  jm.prompt_boolean('Auto Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by time. Also, the first alarm will always self-activate', auto_mode, resp => {
     if (resp==null || resp==auto_mode) return;
     auto_mode= resp;
     exec_setAutoMode();
