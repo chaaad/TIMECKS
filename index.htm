@@ -52,8 +52,12 @@ i {
     height: 20px;
     text-align: center;
   }
-}
 
+  &:hover {
+    background: #ddd;
+  }
+}
+/*
 .roundButton {
   border-radius: 100%;
   border: 8px solid lightgray;
@@ -70,7 +74,7 @@ i {
     color: red;
   }
 }
-
+*/
 div#topButtons {
   position: fixed;
 
@@ -94,6 +98,42 @@ div#topButtons {
     }
   }
 }
+
+
+/*adapted from: https://codepen.io/ndeniche/pen/rNPjmg*/
+.closeButton {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  float: right;
+  margin-left: 8px;
+  margin-top: 2px;
+  &:hover {
+    &::before, &::after {
+      background: red; /*bgcolor*/
+    }
+  }
+  &::before, &::after {
+    content: "";
+    position: absolute;
+    height: 2px;
+    width: 100%;
+    top: 50%;
+    left: 0;
+    margin-top: -1px;
+    background: darkgray; /*bgcolor*/
+    border-radius: 5px; /*rounded*/
+    height: 6px; margin-top: -3px; /*heavy*/
+  }
+  &::before {
+    transform: rotate(45deg);
+  }
+  &::after {
+    transform: rotate(-45deg);
+  }
+} /*closeButton*/
+
 
 div#alarm {
   float: right;
@@ -394,8 +434,7 @@ div#clockFace {
 
 
 /* MODAL
-modded off of:
-https://jasonwatmore.com/post/2023/01/04/vanilla-js-css-modal-popup-dialog-tutorial-with-example#styles-css
+adapted from: https://jasonwatmore.com/post/2023/01/04/vanilla-js-css-modal-popup-dialog-tutorial-with-example#styles-css
 -------------------------------*/
 body.jw-modal-active { /*dont edit this css*/
   overflow: hidden; /* to hide main scrollbar when modal is active */
@@ -538,7 +577,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       <div class="alarmInfo" title="Edit info"></div>
       <span class="alarmEnable button" title="On/Off">⏹</span>
       <span class="alarmTime" title="Edit time"></span>
-      <span class="roundButton delAlarmBut" title="Delete">✖</span>
+      <span class="delAlarmBut closeButton" title="Delete"></span>
     </div>
   </div>
 
@@ -576,7 +615,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <div id="jwmOverlay">
   <div id="jwmModal" class="jw-modal-item">
-    <span id="jwmCloseBut" class="roundButton">✖</span>
+    <span id="jwmCloseBut" class="closeButton"></span>
     <div id="jwmContent">
       <div id="jwmDescription"></div>
       <input id="jwmInput"/>
@@ -590,8 +629,8 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 
 <script>
-//clock, modded off of:
-//https://codepen.io/opheliafl/pen/RaYbvL/
+//clock
+//adapted from: https://codepen.io/opheliafl/pen/RaYbvL/
 
 //favicon
 //<a href="https://www.freepik.com/icon/alarm-clock_15092469#fromView=keyword&page=1&position=21&uuid=6aee3d4d-c58a-453e-8681-22457f5c0a34">Icon by sonnycandra</a>
@@ -1525,8 +1564,8 @@ function exec_sortAlarms() {
 } //exec_sortAlarms()
 
 function alarmDragger() {
-  //dragndrop, modded off of:
-  //https://www.w3resource.com/javascript-exercises/event/javascript-event-handling-exercise-6.php
+  //dragndrop
+  //adapted from: https://www.w3resource.com/javascript-exercises/event/javascript-event-handling-exercise-6.php
 
   var dragAl_el;
   var prev_dragOver_el;
@@ -1967,7 +2006,7 @@ var jm= {
     });
   },
 
-  //orig: https://jasonwatmore.com/post/2023/01/04/vanilla-js-css-modal-popup-dialog-tutorial-with-example
+  //adapted from: https://jasonwatmore.com/post/2023/01/04/vanilla-js-css-modal-popup-dialog-tutorial-with-example
   openModal: function(id) { //open modal by id
     document.body.classList.add("jw-modal-active");
     var el;
