@@ -1645,7 +1645,7 @@ var snooze_ctdn_m;
 
 function startRinger() {
   ring_flag= true;
-  active_aI_el.scrollIntoView({behavior:"smooth", block:"top"});
+  active_aI_el.scrollIntoView({behavior:"smooth", block:"start"});
   play_sound("rngr");
   ringerButs_el.style.display= "block";
   body_el.classList.add("ringing", "ringingFlash");
