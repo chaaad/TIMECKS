@@ -171,22 +171,29 @@ div#alarm {
       color: lightgray;
     }
 
-    span.alarmTime {
+    span.alarmTime,
+    span.alarmTMinus {
       width: 200px;
+      padding: 4px;
+      border-radius: 2px;
+      opacity: 25%;
+      text-align: right;
+    }
+
+    span.alarmTime {
       letter-spacing: 2px;
       display: inline-block;
       font: bold 28px "Seven Segment", sans-serif;
       color: greenyellow;
       background: black;
-      padding: 4px;
-      border-radius: 2px;
-      opacity: 25%;
-      text-align: right;
-/*
-      &::before {
-        content: "🕭 ";
-      }
-*/
+    }
+
+    span.alarmTMinus {
+      font-size: larger;
+      font-weight: 800;
+      color: cornflowerblue;
+      opacity: 50%;
+      padding-top: 1px; /*compensate for the diff fonts being slightly diff height*/
     }
 
     &.alarm-active {
@@ -577,6 +584,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       <div class="alarmInfo" title="Edit info"></div>
       <span class="alarmEnable button squareButton" title="On/Off">⏹</span>
       <span class="alarmTime" title="Edit time"></span>
+      <span class="alarmTMinus" title="Edit time"></span>
       <span class="delAlarmBut closeButton" title="Delete"></span>
     </div>
   </div>
@@ -903,6 +911,7 @@ var trash_el= document.querySelector("div#trashCan");
 
 var alarmTemplates_el= document.querySelector("div#alarmTemplates");
 showEl(alarmTemplates_el, "none");
+showEl(alarmTemplates_el.querySelector("span.alarmTMinus"), "none");
 
 var alarmsCont_el= document.querySelector("div#alarmsContainer");
 
@@ -936,6 +945,34 @@ auto_el.addEventListener("click", setAutoMode);
 sort_el.addEventListener("click", sortAlarms);
 add_el.addEventListener("click", addAlarm);
 
+
+//long click (long press)
+var longpress_flag;
+var press_timerId;
+
+function stopPressTimer() {
+  if (!press_timerId) return; //-->
+  clearTimeout(press_timerId);
+  press_timerId= undefined;
+}
+
+alarmsCont_el.addEventListener("mousedown", evt => {
+  var targ_el= evt.target;
+  if (targ_el.classList.contains("alarmTime")) {
+    stopPressTimer();
+    longpress_flag= false;
+    press_timerId= setTimeout(function() {
+      longpress_flag= true; //this will prevent regular click
+      alarmInst_el= targ_el.closest("div.alarmInstance");
+      altAlarmTime();
+    }, 1000);
+  }
+});
+
+alarmsCont_el.addEventListener("mouseout", stopPressTimer);
+alarmsCont_el.addEventListener("dragstart", stopPressTimer);
+
+
 alarmsCont_el.addEventListener("click", evt => {
   var targ_el= evt.target;
   alarmInst_el= targ_el.closest("div.alarmInstance");
@@ -948,6 +985,9 @@ alarmsCont_el.addEventListener("click", evt => {
     editAlarmInfo();
 
   } else if (targ_el.classList.contains("alarmTime")) {
+    stopPressTimer();
+    if (longpress_flag) return false; //-->
+
     editAlarmTime();
 
   } else if (targ_el.classList.contains("delAlarmBut")) {
@@ -1041,7 +1081,6 @@ function auto_procAlarms() { //sort alarms, and activate top alarm
   }
 } //auto_procAlarms()
 
-//function aNm(el) { if (el) return el.ELO.aInfo.textContent; }
 
 var alarm_flag;
 var alarm_ctdn_m;
@@ -1056,7 +1095,7 @@ function startAlarms() {
   alarms_arr.forEach((a_obj, i) => {
     aInst_el= template_alarmInst_el.cloneNode(true); //clone
     alarmsCont_el.appendChild(aInst_el); //add
-    add_instanceShortcutEls(aInst_el);
+    add_instanceHelpers(aInst_el);
     aInst_el.ELO.aInfo.innerHTML= a_obj.i || "";
     aInst_el.ELO.aTime.textContent= a_obj.t;
     if (a_obj.a) alarmInst_el= aInst_el; //active
@@ -1067,14 +1106,16 @@ function startAlarms() {
   alarmDragger();
 } //startAlarms()
 
-function add_instanceShortcutEls(aI_el) { //.dataset only stores strings
+function add_instanceHelpers(aI_el) { //.dataset only stores strings
   //breaks html/js laws, but as far as js only goes, an element is just an object
   aI_el.ELO= {
     aInfo: aI_el.querySelector("div.alarmInfo"),
     aEnable: aI_el.querySelector("span.alarmEnable"),
-    aTime: aI_el.querySelector("span.alarmTime")
+    aTime: aI_el.querySelector("span.alarmTime"),
+    aTMinus: aI_el.querySelector("span.alarmTMinus")
   };
-} //add_instanceShortcutEls()
+  aI_el.aId= function() {return aI_el.ELO.aInfo.textContent; }; //not really an id, but good for debugging
+} //add_instanceHelpers()
 
 function editAlarmInfo(NEW_str) {
   var t_str= alarmInst_el.ELO.aTime.textContent;
@@ -1149,13 +1190,32 @@ function editAlarmTime(NEW_str) {
 
 } //editAlarmTime()
 
+function altAlarmTime() {
+  var alarmNow_obj= proc_alarmTimeText(alarmInst_el.ELO.aTime.textContent, "preview");
+  console.log("altAlarmTime", alarmInst_el.aId(), alarmNow_obj )
+
+  if (alarmNow_obj) {
+    var t_el= alarmInst_el.ELO.aTime;
+    var tM_el= alarmInst_el.ELO.aTMinus;
+    tM_el.textContent= alarmNow_obj.ahead.replace("(in: ", "").replace(")", "");
+    showEl(t_el, "none");
+    showEl(tM_el, "inline-block");
+
+    setTimeout(() => {
+      showEl(t_el, "inline-block");
+      showEl(tM_el, "none");
+    }, 8000);
+  }
+
+} //altAlarmTime()
+
 function addAlarm() {
   editAlarmTime("NEW");
 } //addAlarm()
 
 function exec_addAlarm() {
   var clAlrmInst_el= template_alarmInst_el.cloneNode(true); //clone
-  add_instanceShortcutEls(clAlrmInst_el);
+  add_instanceHelpers(clAlrmInst_el);
   alarmsCont_el.appendChild(clAlrmInst_el); //add
   play_sound("bell");
   alarmInst_el= clAlrmInst_el;
@@ -1314,7 +1374,7 @@ function proc_alarmTimeText(input_str, param) { //returns truthy if raw_str is g
 
   } else { //no offset given, derive for ahead_str
     let ahead_ms= time_dtO -new Date();
-    ahead_str= "(in: " +g_untilStr(Math.round(ahead_ms /60000)) +")";
+    ahead_str= "(in: " +g_untilStr(Math.ceil(ahead_ms /60000)) +")";
   }
 
   function g_procRawTime(str) {
