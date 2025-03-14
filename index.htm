@@ -583,7 +583,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     <div class="alarmInstance" draggable="true">
       <div class="alarmInfo" title="Edit info"></div>
       <span class="alarmEnable button squareButton" title="On/Off">⏹</span>
-      <span class="alarmTime" title="Edit time"></span>
+      <span class="alarmTime" title="See countdown (Long press to Edit time)"></span>
       <span class="alarmTMinus" title="Edit time"></span>
       <span class="delAlarmBut closeButton" title="Delete"></span>
     </div>
@@ -964,7 +964,8 @@ alarmsCont_el.addEventListener("mousedown", evt => {
     press_timerId= setTimeout(function() {
       longpress_flag= true; //this will prevent regular click
       alarmInst_el= targ_el.closest("div.alarmInstance");
-      altAlarmTime();
+      editAlarmTime();
+
     }, 1000);
   }
 });
@@ -987,7 +988,9 @@ alarmsCont_el.addEventListener("click", evt => {
   } else if (targ_el.classList.contains("alarmTime")) {
     stopPressTimer();
     if (longpress_flag) return false; //-->
+      seeAlarmTMinus();
 
+  } else if (targ_el.classList.contains("alarmTMinus")) {
     editAlarmTime();
 
   } else if (targ_el.classList.contains("delAlarmBut")) {
@@ -1190,9 +1193,9 @@ function editAlarmTime(NEW_str) {
 
 } //editAlarmTime()
 
-function altAlarmTime() {
+function seeAlarmTMinus() {
   var alarmNow_obj= proc_alarmTimeText(alarmInst_el.ELO.aTime.textContent, "preview");
-  console.log("altAlarmTime", alarmInst_el.aId(), alarmNow_obj )
+// console.log("seeAlarmTMinus", alarmInst_el.aId(), alarmNow_obj )
 
   if (alarmNow_obj) {
     var t_el= alarmInst_el.ELO.aTime;
@@ -1207,7 +1210,7 @@ function altAlarmTime() {
     }, 8000);
   }
 
-} //altAlarmTime()
+} //seeAlarmTMinus()
 
 function addAlarm() {
   editAlarmTime("NEW");
