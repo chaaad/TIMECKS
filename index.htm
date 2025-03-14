@@ -638,9 +638,11 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 var audioClips= {
   beep: new Audio("https://cdn.freesound.org/previews/426/426892_7913959-lq.mp3"),
+  bell: new Audio("https://cdn.freesound.org/previews/173/173000_2193194-lq.mp3"),
   buzz: new Audio("https://cdn.freesound.org/previews/696/696600_14786418-lq.mp3"),
   //oops: new Audio("https://cdn.freesound.org/previews/124/124897_1707984-lq.mp3"),
   slam: new Audio("https://cdn.freesound.org/previews/421/421472_3387258-lq.mp3"),
+  trsh: new Audio("https://cdn.freesound.org/previews/655/655617_13805813-lq.mp3"),
   clik: new Audio("https://cdn.freesound.org/previews/668/668985_14100561-lq.mp3"),
   rngr: new Audio("https://cdn.freesound.org/previews/246/246332_4486188-lq.mp3")
 };
@@ -689,7 +691,7 @@ var dayOfWeek_el= clockFace_el.querySelector("h3");
 var monthDay_el= document.getElementById("dtDisplay");
 
 var clockMarker_el= clockFace_el.querySelector("div.marker");
-clockMarker_el.style.display= "none";
+showEl(clockMarker_el, "none");
 
 var degO= {};
 var h_inc= 360 /720;
@@ -768,8 +770,17 @@ function advancedClock() { //+1 clock minute
   if (auto_mode && autoTopAI_el) {
     autoMode_ctdn_m--;
     if (autoMode_ctdn_m == 0) {
-      if (autoTopAI_el!=active_aI_el) auto_procAlarms(); //dont resort if alarm is active
-      else autoProcPending_flag= true;
+      if (autoTopAI_el==active_aI_el) {
+        autoProcPending_flag= true; //dont resort if alarm is active
+      } else {
+        let ms, wait_flag;
+        if (ms= get_alarm_ms(autoTopAI_el)) {
+          if (ms -Date.now() < 60000) wait_flag= true; //alarm turnover (+1 day or year) hasnt happened yet
+        }
+//if (wait_flag) console.log("ms", ms -Date.now() ) //yes, this does fire, but not often
+        if (wait_flag) autoMode_ctdn_m++; //wait 1 more minute
+        else auto_procAlarms();
+      }
     }
   }
 
@@ -844,12 +855,12 @@ console.log("JUMP clock ahead 1 minute", g_fmatTime(sync_dtO), g_fmatSDM())
       inc_ms= 60000 +sync_diff_ms; //big adjust +, then small adjust -
       if (sync_diff_ms > 100) {
         unthrottle_flag= true;
-        hand_els.minuteH.classList.add("throt");
+        classEl(hand_els.minuteH, "throt");
         play_sound("clik", 2, 500);
 //console.log("unthrot", g_fmatTime(sync_dtO), g_fmatSDM(), inc_ms)
       } else {
         unthrottle_flag= false;
-        hand_els.minuteH.classList.remove("throt");
+        classEl(hand_els.minuteH, "throt", false);
         if (alarm_flag && !wakeLockObj && !document.hidden) setWakeLock(); //on
       }
 
@@ -891,7 +902,7 @@ var add_el= document.querySelector("div#addAlarmBut");
 var trash_el= document.querySelector("div#trashCan");
 
 var alarmTemplates_el= document.querySelector("div#alarmTemplates");
-alarmTemplates_el.style.display= "none";
+showEl(alarmTemplates_el, "none");
 
 var alarmsCont_el= document.querySelector("div#alarmsContainer");
 
@@ -900,7 +911,7 @@ var alarmInst_el;
 var active_aI_el;
 
 var alarmStatus_el= document.querySelector("div#alarmStatus");
-alarmStatus_el.style.display= "none";
+showEl(alarmStatus_el, "none");
 var alarmCountdown_el= alarmStatus_el.querySelector("div#alarmCountdown");
 
 var wlEnable_el= document.querySelector("div#wakeLockEnable");
@@ -952,12 +963,12 @@ var wakeLockObj;
 async function requestWakeLock() {
 	try {
 		wakeLockObj= await navigator.wakeLock.request();
-      wlEnable_el.classList.add("on");
+      classEl(wlEnable_el, "on");
       //localStorage.setItem("wake_lock", true);
 
   		wakeLockObj.addEventListener("release", () => {
   			wakeLockObj= undefined; //clear global
-        wlEnable_el.classList.remove("on");
+        classEl(wlEnable_el, "on", false);
         //localStorage.setItem("wake_lock", false);
   		});
 	} catch (err) {console.log(err.message); }
@@ -1020,12 +1031,17 @@ function auto_procAlarms() { //sort alarms, and activate top alarm
 
   autoTopAI_el= aI_arr[0];
   if (autoTopAI_el) {
-    autoMode_ctdn_m= Math.ceil((autoTopAI_el.tmp_ms -new Date()) /60000);
+    autoMode_ctdn_m= Math.ceil((autoTopAI_el.tM_ms -new Date()) /60000);
     if (autoMode_ctdn_m < 1) autoMode_ctdn_m= 1;
-    if (autoTopAI_el != active_aI_el) setAlarm(autoTopAI_el);
+
+//console.log("auto_procAlarms() | active_aI_el:",aNm(active_aI_el), "| autoTopAI_el:",aNm(autoTopAI_el))
+    if (autoTopAI_el != active_aI_el) {
+      setAlarm(autoTopAI_el);
+    }
   }
 } //auto_procAlarms()
 
+//function aNm(el) { if (el) return el.ELO.aInfo.textContent; }
 
 var alarm_flag;
 var alarm_ctdn_m;
@@ -1065,7 +1081,7 @@ function editAlarmInfo(NEW_str) {
   var info_str= alarmInst_el.ELO.aInfo.innerHTML.replaceAll("<br>", "\n");
   jm.prompt_textarea('Alarm info (html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
     if (!NEW_str && (resp==null || resp==info_str)) return; //-->
-    info_str= resp.trim();
+    info_str= (resp || "").trim();
     if (info_str.length > 80) {
       jm.error("Info length is up to 80 chars. Your text is " +info_str.length +" chars", () => {
         editAlarmInfo(info_str); //try again (and we dont throw away what you typed in)
@@ -1084,14 +1100,14 @@ function editAlarmTime(NEW_str) {
   var livePreview_el;
 
   function pop_prompt() {
-    var new_alarm_obj= proc_alarmTimeText(jm._els.Input.value, "preview");
-    livePreview_el.innerHTML= new_alarm_obj ? (new_alarm_obj.time +"<br>" +new_alarm_obj.ahead) : "";
+    var alarmNow_obj= proc_alarmTimeText(jm._els.Input.value, "preview");
+    livePreview_el.innerHTML= alarmNow_obj ? (alarmNow_obj.time +"<br>" +alarmNow_obj.ahead) : "";
   }
 
   var prom_str= g_promStr(NEW_str, alarm_str);
-  time_prompt();
+  timePrompt_fn();
 
-  function time_prompt() {
+  function timePrompt_fn() {
     jm.prompt(prom_str, alarm_str, {
       //jm custom hooks object
 
@@ -1109,12 +1125,12 @@ function editAlarmTime(NEW_str) {
         var mod_alarm_str= resp;
 
         //proc input str
-        var mod_alarm_obj;
-        if (mod_alarm_obj= proc_alarmTimeText(mod_alarm_str, undefined, time_prompt)) {
+        var alarmNow_obj;
+        if (alarmNow_obj= proc_alarmTimeText(mod_alarm_str, timePrompt_fn)) {
           //.. passed time_prompt() as err_cb, try again
 
           if (NEW_str) exec_addAlarm();
-          alarmInst_el.ELO.aTime.textContent= mod_alarm_obj.time;
+          alarmInst_el.ELO.aTime.textContent= alarmNow_obj.time;
           if (alarmInst_el==active_aI_el || !active_aI_el) {
             stopRinger(); //if needed
             setAlarm(alarmInst_el);
@@ -1141,7 +1157,7 @@ function exec_addAlarm() {
   var clAlrmInst_el= template_alarmInst_el.cloneNode(true); //clone
   add_instanceShortcutEls(clAlrmInst_el);
   alarmsCont_el.appendChild(clAlrmInst_el); //add
-  play_sound("beep", 2);
+  play_sound("bell");
   alarmInst_el= clAlrmInst_el;
 } //exec_addAlarm()
 
@@ -1155,7 +1171,7 @@ function glowAlarm(aI_el= alarmInst_el) {
 function importAlarm() {
   localStorage.removeItem("importedAlarm");
   var spl_ar;
-  var pc_alarm_obj;
+  var alarmNow_obj;
   var ct= 0;
   pcDraft_str.split("\n").forEach(pcTm_str => {
     spl_ar= pcTm_str.split("|");
@@ -1163,7 +1179,7 @@ function importAlarm() {
 //console.log("pcTm_str, split",spl_ar);
 // ?pc_draft=Schenectady%20Mohawk%20Giants|508-11|WED|3/12|6:53pm
 //      0                                   1     2     3   4
-      if (pc_alarm_obj= proc_alarmTimeText(spl_ar[3] +" " +spl_ar[4] +"-20")) { // -20 minutes
+      if (alarmNow_obj= proc_alarmTimeText(spl_ar[3] +" " +spl_ar[4] +"-20", "preview")) { // -20 minutes
         ct++;
         exec_addAlarm();
 
@@ -1171,7 +1187,7 @@ function importAlarm() {
         var html_str= spl_ar[2] +' <br>' +spl_ar[0];
         alarmInst_el.ELO.aInfo.innerHTML= html_str;
 
-        alarmInst_el.ELO.aTime.textContent= pc_alarm_obj.time;
+        alarmInst_el.ELO.aTime.textContent= alarmNow_obj.time;
         glowAlarm();
       }
     }
@@ -1198,7 +1214,7 @@ function exec_deleteAlarm() {
     if (auto_mode) auto_procAlarms();
     saveAlarms();
   }
-  play_sound("slam", 2);
+  play_sound("trsh");
 } //exec_deleteAlarm()
 
 
@@ -1211,7 +1227,10 @@ function g_promStr(str, t_str) {
 var DoW2_arr= "SU,MO,TU,WE,TH,FR,SA".split(",");
 var DoW_arr= "SUN,MON,TUE,WED,THU,FRI,SAT".split(",");
 
-function proc_alarmTimeText(input_str, preview_flag, err_cb) { //returns truthy if raw_str is good
+function proc_alarmTimeText(input_str, param) { //returns truthy if raw_str is good
+  var preview_flag= (param == "preview");
+  var err_cb= (typeof(param) == "function") ? param : undefined;
+
   //.. geared toward keypad input, with some shortcuts baked in
   input_str= input_str.trim();
   var raw_str= input_str.toUpperCase();
@@ -1445,11 +1464,11 @@ function setAlarm(aI_el) {
   var flag= !!aI_el; //to boolean
   if (flag) {
     var alarm_str= aI_el.ELO.aTime.textContent;
-    var alarm_obj= proc_alarmTimeText(alarm_str);
-    if (!alarm_obj) flag= false;
+    var alarmNow_obj= proc_alarmTimeText(alarm_str);
+    if (!alarmNow_obj) flag= false;
 
     if (flag) {
-      var alm_ctdn_ms= alarm_obj.ms -new Date(); //is DST handled here by js date ?
+      var alm_ctdn_ms= alarmNow_obj.ms -new Date(); //is DST handled here by js date ?
       if (alm_ctdn_ms < 60000) alm_ctdn_ms= 60000; //minimum of 1 minute
       alarm_ctdn_m= Math.ceil(alm_ctdn_ms /60000);
       checkAlarm();
@@ -1457,19 +1476,20 @@ function setAlarm(aI_el) {
   } //flag
 
   if (active_aI_el) { //prev alarm off
-    active_aI_el.classList.remove("alarm-active");
+    classEl(active_aI_el, "alarm-active", false);
   }
 
   if (flag) { //alarm on
     alarm_flag= true;
     active_aI_el= aI_el;
-    aI_el.classList.add("alarm-active");
+    classEl(aI_el, "alarm-active");
     aI_el.after(alarmStatus_el);
-    alarmStatus_el.style.display= "block";
-    alarmCountdown_el.style.display= "block";
+    showEl(alarmStatus_el);
+    showEl(alarmCountdown_el);
     drawMarker(alarm_ctdn_m < 1440);
     play_sound("beep");
     if (!wakeLockObj) setWakeLock(); //on
+    active_aI_el.scrollIntoView({behavior:"smooth"});
 
   } else { //alarm off
     alarm_ctdn_m= 0;
@@ -1477,7 +1497,7 @@ function setAlarm(aI_el) {
     alarm_flag= false;
     active_aI_el= undefined;
     stopRinger(); //if needed
-    alarmStatus_el.style.display= "none";
+    showEl(alarmStatus_el, "none");
     drawMarker(false);
     play_sound("slam");
     if (wakeLockObj) setWakeLock(); //off
@@ -1494,9 +1514,9 @@ function setAlarm(aI_el) {
 
 function drawMarker(flag) {
   if (flag == false) {
-    clockMarker_el.style.display= "none";
+    showEl(clockMarker_el, "none");
   } else {
-    clockMarker_el.style.display= "block";
+    showEl(clockMarker_el);
     clockMarker_el.style.transform= "translate(-50%, -50%) rotate(" +(30*hTimO.h +0.5*hTimO.m) +"deg)";
     classEl(clockMarker_el, "on", alarm_ctdn_m<720);
   }
@@ -1505,7 +1525,7 @@ function drawMarker(flag) {
 function checkAlarm() {
   if (alarm_ctdn_m < 1) { //end alarm countdown
     alarm_flag= false;
-    alarmCountdown_el.style.display= "none";
+    showEl(alarmCountdown_el, "none");
     startRinger();
   } else {
     alarmCountdown_el.textContent= g_untilStr(alarm_ctdn_m);
@@ -1544,17 +1564,14 @@ function sortAlarms(evt) {
 
 function exec_sortAlarms() {
   var aI_nL= get_aIList();
-  var t_str, alarm_obj, ms;
-  aI_nL.forEach(aI_el => { //pop .tmp_ms for each alarm
-    ms= 0;
-    if (t_str= aI_el.ELO.aTime.textContent) {
-      if (alarm_obj= proc_alarmTimeText(aI_el.ELO.aTime.textContent, "preview")) ms= alarm_obj.ms;
-    }
-    aI_el.tmp_ms= ms; //breakin the law, unsanctioned attribute
+  var t_str;
+  aI_nL.forEach(aI_el => { //pop .tM_ms for each alarm
+    aI_el.tM_ms= get_alarm_ms(aI_el); //breakin the law, unsanctioned attribute
   });
 
   var aI_arr= [...aI_nL]; //to plain js array
-  aI_arr.sort((a, b) => a.tmp_ms > b.tmp_ms ? 1 : -1)
+  aI_arr
+    .sort((a, b) => a.tM_ms > b.tM_ms ? 1 : -1)
     .forEach(aI_el => alarmsCont_el.appendChild(aI_el))
   ;
   if (active_aI_el) active_aI_el.after(alarmStatus_el);
@@ -1562,6 +1579,13 @@ function exec_sortAlarms() {
   play_sound("clik");
   return aI_arr; //bonus get
 } //exec_sortAlarms()
+
+function get_alarm_ms(aI_el) {
+  var t_str, alarmNow_obj;
+  if (t_str= aI_el.ELO.aTime.textContent) {
+    if (alarmNow_obj= proc_alarmTimeText(t_str, "preview")) return alarmNow_obj.ms;
+  }
+} //get_alarm_ms()
 
 function alarmDragger() {
   //dragndrop
@@ -1580,7 +1604,7 @@ function alarmDragger() {
     if (dragAl_el) clear("fully"); //recover after a failed drop
 
     dragAl_el= evt.target;
-    dragAl_el.classList.add("dragging");
+    classEl(dragAl_el, "dragging");
     //evt.dataTransfer.effectAllowed= "move"; //what does this even do? seems unneeded for reorder
 
     get_aIList().forEach((aI_el, i) => aI_el.d_index= i); //current order
@@ -1596,7 +1620,7 @@ function alarmDragger() {
     if (dragOver_el == trash_el) { //trash can
       if (dragOver_el == prev_dragOver_el) return; //-->
       if (prev_dragOver_el) clear();
-      dragOver_el.classList.add("dropTrash");
+      classEl(dragOver_el, "dropTrash");
 
       prev_dragOver_el= dragOver_el;
 
@@ -1615,9 +1639,9 @@ function alarmDragger() {
         const boundingRect= dragOvAl_el.getBoundingClientRect();
         const offset_y= boundingRect.y +(boundingRect.height /2);
         if (evt.clientY-offset_y < 0) {
-          if (dragOvAl_el.d_index-1 != dragAl_el.d_index) dragOvAl_el.classList.add("dropAbove");
+          if (dragOvAl_el.d_index-1 != dragAl_el.d_index) classEl(dragOvAl_el, "dropAbove");
         } else {
-          if (dragOvAl_el.d_index+1 != dragAl_el.d_index) dragOvAl_el.classList.add("dropBelow");
+          if (dragOvAl_el.d_index+1 != dragAl_el.d_index) classEl(dragOvAl_el, "dropBelow");
         }
 
         prev_dragOver_el= dragOvAl_el;
@@ -1652,7 +1676,7 @@ function alarmDragger() {
   function clear(fully_flag) { //if not fully, just clear dragOver's class
     if (prev_dragOver_el) prev_dragOver_el.classList.remove("dropAbove", "dropBelow", "dropTrash");
     if (fully_flag) {
-      if (dragAl_el) dragAl_el.classList.remove("dragging");
+      if (dragAl_el) classEl(dragAl_el, "dragging", false);
       dragAl_el= undefined;
       prev_dragOver_el= undefined;
     }
@@ -1663,8 +1687,7 @@ function alarmDragger() {
 
 
 var ringerButs_el= document.querySelector("div#ringerButs");
-ringerButs_el.style.display= "none";
-
+showEl(ringerButs_el, "none");
 var ringerOff_el= document.querySelector("div#ringerOff")
 ringerOff_el.addEventListener("click", () => stopRinger());
 
@@ -1681,7 +1704,7 @@ function startRinger() {
   ring_flag= true;
   active_aI_el.scrollIntoView({behavior:"smooth", block:"start"});
   play_sound("rngr");
-  ringerButs_el.style.display= "block";
+  showEl(ringerButs_el);
   body_el.classList.add("ringing", "ringingFlash");
   ring_intimerId= setInterval(() => { //recurse
     body_el.classList.toggle("ringingFlash");
@@ -1702,14 +1725,14 @@ function stopRinger(snooze_flag) {
     //note: snooze wont be exact, since it only checks/fires at top of minute
     //eg. 5 minutes will be 4-5 minutes
     snooze_ctdn_m= snooze_def_num;
-    ringerSnooze_el.classList.add("but-active");
+    classEl(ringerSnooze_el, "but-active");
 
   } else { //ringer off
     if (ring_flag) play_sound("slam"); //ringer-off slam
-    alarmStatus_el.style.display= "none";
-    ringerButs_el.style.display= "none";
+    showEl(alarmStatus_el, "none");
+    showEl(ringerButs_el, "none");
     snooze_ctdn_m= 0; //if needed
-    ringerSnooze_el.classList.remove("but-active"); //if needed
+    classEl(ringerSnooze_el, "but-active", false); //if needed
     ring_flag= false;
     setAlarm(false);
   }
@@ -1724,7 +1747,7 @@ function drawSnooze() {
 function checkSnooze() {
   drawSnooze();
   if (!snooze_ctdn_m) { //end snooze
-    ringerSnooze_el.classList.remove("but-active");
+    classEl(ringerSnooze_el, "but-active", false);
     startRinger();
   }
 } //checkSnooze()
