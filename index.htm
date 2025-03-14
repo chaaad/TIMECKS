@@ -17,13 +17,14 @@ body {
   font-size: 100%;
   font-style: normal;
   font-weight: 300;
+  transition: background-color 2s;
 }
 ul {list-style: none; }
 /*prereq css end*/
 
 
 body.ringing {
-  background: lightgray;
+  background: lightblue;
 }
 body.ringingFlash {
   background: pink;
@@ -110,11 +111,13 @@ div#topButtons {
   margin-left: 8px;
   margin-top: 2px;
   &:hover {
-    &::before, &::after {
+    &::before,
+    &::after {
       background: red; /*bgcolor*/
     }
   }
-  &::before, &::after {
+  &::before,
+  &::after {
     content: "";
     position: absolute;
     height: 2px;
@@ -144,7 +147,7 @@ div#alarm {
   div.alarmInstance {
     margin-bottom: 20px;
     border-radius: 8px;
-    transition: background-color 2s ease-out;
+    transition: background-color 1s ease-out;
 
     * {
       cursor: pointer;
@@ -305,7 +308,7 @@ div#clockFace {
   }
 
   div#minuteHand {
-    transition: transform 1s linear
+    transition: transform 1s linear;
   }
   div#minuteHand::before {
     width: 6px;
