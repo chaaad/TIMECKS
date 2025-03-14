@@ -1166,7 +1166,7 @@ function glowAlarm(aI_el= alarmInst_el) {
 
   aI_el.style.background= "lightBlue";
   setTimeout(() => {aI_el.style.background= ""; }, 4000);
-}
+} //glowAlarm()
 
 function importAlarm() {
   localStorage.removeItem("importedAlarm");
@@ -1219,7 +1219,7 @@ function exec_deleteAlarm() {
 
 
 function g_promStr(str, t_str) {
-  if (!str) str= alarmInst_el.ELO.aInfo.textContent.substring(0, 40);
+  if (!str) str= alarmInst_el.ELO.aInfo.innerHTML.replaceAll("<br>", " | ").substring(0, 40);
   if (!t_str) t_str= alarmInst_el.ELO.aTime.textContent;
   return 'Alarm info:<b>' +str +'</b><br>Time:<b class="livePreview">' +t_str +'</b>';
 } //g_promStr()
@@ -1309,7 +1309,8 @@ function proc_alarmTimeText(input_str, param) { //returns truthy if raw_str is g
     ahead_str+= get_fmatHTime_str(raw_hTimO) + " ";
     ahead_str+= offsetMod_str +g_untilStr(ofsO.m, ofsO.h) +")";
 
-    time_dtO= new Date(time_ms); //is DST handled here by js date ?
+    time_dtO= new Date(time_ms);
+    //DST handled here by js date ?
 
   } else { //no offset given, derive for ahead_str
     let ahead_ms= time_dtO -new Date();
@@ -1370,7 +1371,7 @@ function proc_alarmTimeText(input_str, param) { //returns truthy if raw_str is g
 
   function get_fmatHTime_str(tO) {
     var str= "";
-    if (tO.MD) str= (tO.MD.DoW ? tO.MD.DoW : ((tO.MD.r_mo || tO.MD.mo) +"/" +tO.MD.da)) +" ";
+    if (tO.MD) str= (tO.MD.DoW ? tO.MD.DoW : ((tO.MD.mW || tO.MD.mo) +"/" +tO.MD.da)) +" ";
     return str +tO.h +":" +String(tO.m).padStart(2, "0")  +(tO.p?" PM":" AM"); //human time
   } //get_fmatHTime_str()
 
@@ -1400,8 +1401,13 @@ function proc_alarmTimeText(input_str, param) { //returns truthy if raw_str is g
 
     var diff_ms= dtO -new Date();
     if (diff_ms < 1) { //if reqTime less than nowTime
-      if (tO.MD) dtO.setFullYear(dtO.getFullYear() +1); //+1 year
-      else dtO.setDate(dtO.getDate() +1); //+1 day //is DST handled here by js date ?
+      if (tO.MD) {
+        if (tO.MD.mW) dtO.setMonth(dtO.getMonth() +1); //+1 month //mon_wildcard_str
+        else dtO.setFullYear(dtO.getFullYear() +1); //+1 year
+      } else {
+        dtO.setDate(dtO.getDate() +1); //+1 day
+      }
+      //DST handled here by js date ?
     }
 
     return dtO;
@@ -1414,7 +1420,7 @@ function proc_alarmTimeText(input_str, param) { //returns truthy if raw_str is g
   }
 
   function valid_moDa(mD_str) {
-    var raw_month_str;
+    var mon_wildcard_str;
     var DoW_str;
     if (mD_str.includes("/")) {
       var month, day;
@@ -1422,7 +1428,7 @@ function proc_alarmTimeText(input_str, param) { //returns truthy if raw_str is g
 
       month*= 1;
       if (isNaN(month) || month<1 || month>12) {
-        raw_month_str= "?"; //month wildcard
+        mon_wildcard_str= "?"; //month wildcard
         month= time_dtO.getMonth() +1; //no month? assume this month
       }
 
@@ -1452,7 +1458,7 @@ function proc_alarmTimeText(input_str, param) { //returns truthy if raw_str is g
       da: day
     };
     if (DoW_str) o.DoW= DoW_str;
-    if (raw_month_str) o.r_mo= raw_month_str;
+    if (mon_wildcard_str) o.mW= mon_wildcard_str;
 
     //success
     return o;
@@ -1468,7 +1474,7 @@ function setAlarm(aI_el) {
     if (!alarmNow_obj) flag= false;
 
     if (flag) {
-      var alm_ctdn_ms= alarmNow_obj.ms -new Date(); //is DST handled here by js date ?
+      var alm_ctdn_ms= alarmNow_obj.ms -new Date();
       if (alm_ctdn_ms < 60000) alm_ctdn_ms= 60000; //minimum of 1 minute
       alarm_ctdn_m= Math.ceil(alm_ctdn_ms /60000);
       checkAlarm();
