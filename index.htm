@@ -171,8 +171,7 @@ div#alarm {
       color: lightgray;
     }
 
-    span.alarmTime,
-    span.alarmTMinus {
+    span.alarmT {
       width: 200px;
       padding: 4px;
       border-radius: 2px;
@@ -188,7 +187,7 @@ div#alarm {
       background: black;
     }
 
-    span.alarmTMinus {
+    span.alarmT_Minus {
       font-size: larger;
       font-weight: 800;
       color: cornflowerblue;
@@ -577,14 +576,14 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   <div id="trashCan" class="button squareButton" title="Trash (drop unwanted alarm here)">🗑</div>
 </div>
 
-<div id="alarm">
+<div id="alarm" data-tminus-title=" (Long press for time view)">
 
   <div id="alarmTemplates">
     <div class="alarmInstance" draggable="true">
       <div class="alarmInfo" title="Edit info"></div>
       <span class="alarmEnable button squareButton" title="On/Off">⏹</span>
-      <span class="alarmTime" title="See countdown (Long press to Edit time)"></span>
-      <span class="alarmTMinus" title="Edit time"></span>
+      <span class="alarmT alarmTime" title="Edit time (Long press for countdown view)"></span>
+      <span class="alarmT alarmT_Minus"></span>
       <span class="delAlarmBut closeButton" title="Delete"></span>
     </div>
   </div>
@@ -794,6 +793,8 @@ function advancedClock() { //+1 clock minute
 
   if (pcDraft_str= localStorage.getItem("importedAlarm")) importAlarm(); //like a poll, for "importedAlarm" in localStorage
 
+  if (T_MaI_arr.length) drawAllT_Minus();
+
   var sync_dtO= new Date();
   sync_diff_ms= clock_elapse_ms -sync_dtO.getTime();
 
@@ -889,7 +890,7 @@ console.log("JUMP clock ahead 1 minute", g_fmatTime(sync_dtO), g_fmatSDM())
 } //advancedClock()
 
 //console.log utils
-function g_fmatTime(dtO= new Date()) { //formatted time string, eg. "@11:48:22.005" //shows ms
+function g_fmatTime(dtO =new Date()) { //formatted time string, eg. "@11:48:22.005" //shows ms
   return "@" +(dtO.getHours()%12||12) +":" +dtO.toISOString().substring(14, 23);
   //.. toISOString(), eg. "2011-10-05T14:48:22.005Z"
 } //g_fmatTime()
@@ -903,6 +904,7 @@ function g_fmatSDM() { //formatted sync_diff_ms string, eg. "dif+12"
 var body_el= document.querySelector("body");
 
 //div#alarm
+var alarmRoot_el= document.querySelector("div#alarm");
 var editStgs_el= document.querySelector("div#editStgsBut");
 var auto_el= document.querySelector("div#autoModeBut");
 var sort_el= document.querySelector("div#sortBut");
@@ -911,7 +913,7 @@ var trash_el= document.querySelector("div#trashCan");
 
 var alarmTemplates_el= document.querySelector("div#alarmTemplates");
 showEl(alarmTemplates_el, "none");
-showEl(alarmTemplates_el.querySelector("span.alarmTMinus"), "none");
+showEl(alarmTemplates_el.querySelector("span.alarmT_Minus"), "none");
 
 var alarmsCont_el= document.querySelector("div#alarmsContainer");
 
@@ -958,14 +960,15 @@ function stopPressTimer() {
 
 alarmsCont_el.addEventListener("mousedown", evt => {
   var targ_el= evt.target;
-  if (targ_el.classList.contains("alarmTime")) {
+  if (targ_el.classList.contains("alarmT")) {
     stopPressTimer();
     longpress_flag= false;
     press_timerId= setTimeout(function() {
-      longpress_flag= true; //this will prevent regular click
-      alarmInst_el= targ_el.closest("div.alarmInstance");
-      editAlarmTime();
-
+      var c_alarmInst_el= targ_el.closest("div.alarmInstance");
+      if (c_alarmInst_el == active_aI_el) return jm.error('Cant change time/countdown view on active alarm'); //-->
+      longpress_flag= true; //this will prevent regular click handler
+      alarmInst_el= c_alarmInst_el;
+      if (toggleAlarmT_Minus()) play_sound("clik");
     }, 1000);
   }
 });
@@ -985,12 +988,9 @@ alarmsCont_el.addEventListener("click", evt => {
   } else if (targ_el.classList.contains("alarmInfo")) {
     editAlarmInfo();
 
-  } else if (targ_el.classList.contains("alarmTime")) {
+  } else if (targ_el.classList.contains("alarmT")) {
     stopPressTimer();
     if (longpress_flag) return false; //-->
-      seeAlarmTMinus();
-
-  } else if (targ_el.classList.contains("alarmTMinus")) {
     editAlarmTime();
 
   } else if (targ_el.classList.contains("delAlarmBut")) {
@@ -1074,7 +1074,7 @@ function auto_procAlarms() { //sort alarms, and activate top alarm
 
   autoTopAI_el= aI_arr[0];
   if (autoTopAI_el) {
-    autoMode_ctdn_m= Math.ceil((autoTopAI_el.tM_ms -new Date()) /60000);
+    autoMode_ctdn_m= Math.ceil((autoTopAI_el.aM_ms -new Date()) /60000);
     if (autoMode_ctdn_m < 1) autoMode_ctdn_m= 1;
 
 //console.log("auto_procAlarms() | active_aI_el:",aNm(active_aI_el), "| autoTopAI_el:",aNm(autoTopAI_el))
@@ -1089,6 +1089,7 @@ var alarm_flag;
 var alarm_ctdn_m;
 var alarm_dtO;
 var hTimO;
+var T_MaI_arr= [];
 
 function startAlarms() {
   var alarms_json= localStorage.getItem("alarms");
@@ -1100,13 +1101,18 @@ function startAlarms() {
     alarmsCont_el.appendChild(aInst_el); //add
     add_instanceHelpers(aInst_el);
     aInst_el.ELO.aInfo.innerHTML= a_obj.i || "";
-    aInst_el.ELO.aTime.textContent= a_obj.t;
+    pop_Time_T_Mtitle(a_obj.t, aInst_el);
     if (a_obj.a) alarmInst_el= aInst_el; //active
+    if (a_obj.T_M) {
+      T_MaI_arr.push(aInst_el);
+      toggleAlarmT_Minus(aInst_el); //init
+    }
   });
 
   if (auto_mode) exec_setAutoMode();
   else if (alarmInst_el) setAlarm(alarmInst_el); //active on init
-  alarmDragger();
+
+  startAlarmsDraggable();
 } //startAlarms()
 
 function add_instanceHelpers(aI_el) { //.dataset only stores strings
@@ -1115,7 +1121,7 @@ function add_instanceHelpers(aI_el) { //.dataset only stores strings
     aInfo: aI_el.querySelector("div.alarmInfo"),
     aEnable: aI_el.querySelector("span.alarmEnable"),
     aTime: aI_el.querySelector("span.alarmTime"),
-    aTMinus: aI_el.querySelector("span.alarmTMinus")
+    aT_Minus: aI_el.querySelector("span.alarmT_Minus")
   };
   aI_el.aId= function() {return aI_el.ELO.aInfo.textContent; }; //not really an id, but good for debugging
 } //add_instanceHelpers()
@@ -1174,7 +1180,8 @@ function editAlarmTime(NEW_str) {
           //.. passed time_prompt() as err_cb, try again
 
           if (NEW_str) exec_addAlarm();
-          alarmInst_el.ELO.aTime.textContent= alarmNow_obj.time;
+          pop_Time_T_Mtitle(alarmNow_obj.time);
+          setT_Mcountdown();
           if (alarmInst_el==active_aI_el || !active_aI_el) {
             stopRinger(); //if needed
             setAlarm(alarmInst_el);
@@ -1193,24 +1200,58 @@ function editAlarmTime(NEW_str) {
 
 } //editAlarmTime()
 
-function seeAlarmTMinus() {
-  var alarmNow_obj= proc_alarmTimeText(alarmInst_el.ELO.aTime.textContent, "preview");
-// console.log("seeAlarmTMinus", alarmInst_el.aId(), alarmNow_obj )
-
-  if (alarmNow_obj) {
-    var t_el= alarmInst_el.ELO.aTime;
-    var tM_el= alarmInst_el.ELO.aTMinus;
-    tM_el.textContent= alarmNow_obj.ahead.replace("(in: ", "").replace(")", "");
-    showEl(t_el, "none");
-    showEl(tM_el, "inline-block");
-
-    setTimeout(() => {
-      showEl(t_el, "inline-block");
-      showEl(tM_el, "none");
-    }, 8000);
+function toggleAlarmT_Minus(aI_el =alarmInst_el) {
+  var flag= !aI_el.T_M; //toggle
+//console.log("toggleAlarmT_Minus", aI_el.aId(), flag)
+  if (!flag) { //turn T_M off
+    showT_Mel(aI_el, false);
+  } else { //turn T_M on
+    if (setT_Mcountdown(aI_el)) {
+      showT_Mel(aI_el);
+    } else { //T_M on, failed
+      flag= undefined;
+    }
   }
+  if (flag != undefined) {
+    aI_el.T_M= flag;
+    saveAlarms();
+  }
+  return flag != undefined; //bonus get //success flag
+} //toggleAlarmT_Minus()
 
-} //seeAlarmTMinus()
+function pop_Time_T_Mtitle(str, aI_el =alarmInst_el) {
+  aI_el.ELO.aTime.textContent= str;
+  aI_el.ELO.aT_Minus.title= str +alarmRoot_el.dataset.tminusTitle;
+} //pop_Time_T_Mtitle()
+
+function showT_Mel(aI_el, flag =true) {
+  showEl(aI_el.ELO.aT_Minus, flag ? "inline-block" : "none");
+  showEl(aI_el.ELO.aTime, !flag ? "inline-block" : "none");
+} //showT_Mel()
+
+function setT_Mcountdown(aI_el =alarmInst_el) {
+  var alarmNow_obj= proc_alarmTimeText(aI_el.ELO.aTime.textContent, "preview");
+  if (alarmNow_obj) {
+    var ms= alarmNow_obj.ms -new Date();
+    if (ms < 60000) ms= 60000; //minimum of 1 minute
+    aI_el.T_M_ctdn_m= Math.ceil(ms /60000);
+    aI_el.ELO.aT_Minus.textContent= g_untilStr(aI_el.T_M_ctdn_m);
+//console.log("setT_Mcountdown", alarmNow_obj )
+  }
+  return alarmNow_obj;
+} //setT_Mcountdown()
+
+function drawAllT_Minus() {
+  T_MaI_arr.forEach(aI_el  => {
+    aI_el.T_M_ctdn_m--;
+    if (aI_el.T_M_ctdn_m < 1) setT_Mcountdown(aI_el); //reset upon turnover
+
+//tbd //skip draw for active alarm (since its hidden)? or dont bother checking, just draw it..
+    aI_el.ELO.aT_Minus.textContent= g_untilStr(aI_el.T_M_ctdn_m);
+  });
+
+} //drawAllT_Minus()
+
 
 function addAlarm() {
   editAlarmTime("NEW");
@@ -1224,7 +1265,7 @@ function exec_addAlarm() {
   alarmInst_el= clAlrmInst_el;
 } //exec_addAlarm()
 
-function glowAlarm(aI_el= alarmInst_el) {
+function glowAlarm(aI_el =alarmInst_el) {
   aI_el.scrollIntoView({behavior:"smooth"});
 
   aI_el.style.background= "lightBlue";
@@ -1249,8 +1290,8 @@ function importAlarm() {
         //tid= spl_ar[1]
         var html_str= spl_ar[2] +' <br>' +spl_ar[0];
         alarmInst_el.ELO.aInfo.innerHTML= html_str;
+        pop_Time_T_Mtitle(alarmNow_obj.time);
 
-        alarmInst_el.ELO.aTime.textContent= alarmNow_obj.time;
         glowAlarm();
       }
     }
@@ -1545,7 +1586,9 @@ function setAlarm(aI_el) {
   } //flag
 
   if (active_aI_el) { //prev alarm off
+//console.log("setAlarm,flag,  active_aI_el", active_aI_el.aId() )
     classEl(active_aI_el, "alarm-active", false);
+    if (active_aI_el.T_M) showT_Mel(active_aI_el);
   }
 
   if (flag) { //alarm on
@@ -1559,6 +1602,7 @@ function setAlarm(aI_el) {
     play_sound("beep");
     if (!wakeLockObj) setWakeLock(); //on
     active_aI_el.scrollIntoView({behavior:"smooth"});
+    showT_Mel(aI_el, false); //if needed
 
   } else { //alarm off
     alarm_ctdn_m= 0;
@@ -1611,10 +1655,15 @@ function saveAlarms() {
   var alarms_arr= [];
   var a_obj;
   var info_str;
+  T_MaI_arr= [];
   get_aIList().forEach(aI_el => {
     a_obj= {t: aI_el.ELO.aTime.textContent};
     if (info_str= aI_el.ELO.aInfo.innerHTML) a_obj.i= info_str;
     if (aI_el.classList.contains("alarm-active")) a_obj.a= 1;
+    if (aI_el.T_M) {
+      a_obj.T_M= 1;
+      T_MaI_arr.push(aI_el);
+    }
     alarms_arr.push(a_obj);
   });
   localStorage.setItem("alarms", JSON.stringify(alarms_arr));
@@ -1634,13 +1683,13 @@ function sortAlarms(evt) {
 function exec_sortAlarms() {
   var aI_nL= get_aIList();
   var t_str;
-  aI_nL.forEach(aI_el => { //pop .tM_ms for each alarm
-    aI_el.tM_ms= get_alarm_ms(aI_el); //breakin the law, unsanctioned attribute
+  aI_nL.forEach(aI_el => { //pop .aM_ms for each alarm
+    aI_el.aM_ms= get_alarm_ms(aI_el); //breakin the law, unsanctioned attribute
   });
 
   var aI_arr= [...aI_nL]; //to plain js array
   aI_arr
-    .sort((a, b) => a.tM_ms > b.tM_ms ? 1 : -1)
+    .sort((a, b) => a.aM_ms > b.aM_ms ? 1 : -1)
     .forEach(aI_el => alarmsCont_el.appendChild(aI_el))
   ;
   if (active_aI_el) active_aI_el.after(alarmStatus_el);
@@ -1656,7 +1705,7 @@ function get_alarm_ms(aI_el) {
   }
 } //get_alarm_ms()
 
-function alarmDragger() {
+function startAlarmsDraggable() {
   //dragndrop
   //adapted from: https://www.w3resource.com/javascript-exercises/event/javascript-event-handling-exercise-6.php
 
@@ -1752,7 +1801,7 @@ function alarmDragger() {
   } //clear()
 
   //dragndrop
-} //alarmDragger()
+} //startAlarmsDraggable()
 
 
 var ringerButs_el= document.querySelector("div#ringerButs");
@@ -1842,7 +1891,7 @@ function g_untilStr(m, h) {
 } //g_untilStr()
 
 
-function play_sound(ac_key, repeat_n= 1, step_ms= 750) {
+function play_sound(ac_key, repeat_n =1, step_ms =750) {
   if (repeat_n == 1) {
     audioClips[ac_key].play();
     return; //-->
@@ -1859,10 +1908,10 @@ function play_sound(ac_key, repeat_n= 1, step_ms= 750) {
 } //play_sound()
 
 //utils
-function showEl(el, display_str= "block") {
+function showEl(el, display_str ="block") {
   el.style.display= display_str;
 }
-function classEl(el, class_str, flag= true) {
+function classEl(el, class_str, flag =true) {
   el.classList[flag?"add":"remove"](class_str);
 }
 
