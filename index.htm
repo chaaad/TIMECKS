@@ -756,8 +756,8 @@ function advancedClock() { //+1 clock minute
 
   if (aI_arr.length) updateAlarms(-1);
 
-  if (pcDraft_str= localStorage.getItem("importedAlarm")) importAlarm(); //like a poll, for "importedAlarm" in localStorage
-
+  if (pcDraft_str= localStorage.getItem("importedAlarm")) importAlarm();
+  //.. like a poll, for "importedAlarm" in localStorage
 
   var sync_dtO= new Date();
   sync_diff_ms= clock_elapse_ms -sync_dtO.getTime();
@@ -1268,7 +1268,7 @@ function importAlarm() {
         var html_str= spl_ar[2] +' <br>' +spl_ar[0];
         alarmInst_el.ELO.aInfo.innerHTML= html_str;
         pop_Time_T_Mtitle(alarmNow_obj.time);
-
+        setT_Mcountdown(alarmInst_el);
         glowAlarm();
       }
     }
