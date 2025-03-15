@@ -58,24 +58,7 @@ i {
     background: #ddd;
   }
 }
-/*
-.roundButton {
-  border-radius: 100%;
-  border: 8px solid lightgray;
-  background:lightgray;
-  color: lightseagreen;
-  margin-left: 8px;
-  float: right;
-  font-size: small;
-  cursor: pointer;
-  user-select: none;
 
-  &#jwmCloseBut,
-  &.delAlarmBut {
-    color: red;
-  }
-}
-*/
 div#topButtons {
   position: fixed;
 
@@ -520,6 +503,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       user-select: none;
       -webkit-user-select: none;
       touch-action: manipulation;
+      min-width: 160px; /*timecks addition*/
     }
 
     button:before {
@@ -1078,9 +1062,7 @@ function auto_procAlarms() { //sort alarms, and activate top alarm
     if (autoMode_ctdn_m < 1) autoMode_ctdn_m= 1;
 
 //console.log("auto_procAlarms() | active_aI_el:",aNm(active_aI_el), "| autoTopAI_el:",aNm(autoTopAI_el))
-    if (autoTopAI_el != active_aI_el) {
-      setAlarm(autoTopAI_el);
-    }
+    if (!active_aI_el || autoTopAI_el!=active_aI_el) setAlarm(autoTopAI_el);
   }
 } //auto_procAlarms()
 
