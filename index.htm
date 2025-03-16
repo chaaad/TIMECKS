@@ -632,7 +632,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     }
   }
 
-} /*jwmOverlay*/
+} /*jwmOverlay*/auto
 
 </style>
 </head>
@@ -642,7 +642,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 <div id="topButtons">
   <div id="editStgsBut" class="button squareButton" title="Settings (snooze duration)">︙</div>
   <div id="diasablerModeBut" class="button squareButton" title="Disabler Mode">D</div>
-  <div id="autoModeBut" class="button squareButton" title="Auto Mode">A</div>
+  <div id="autsrtModeBut" class="button squareButton" title="AutoSort Mode">A</div>
   <div id="sortBut" class="button squareButton" title="Sort alarms (ctrl-click to skip confirm)">⮝</div>
   <div id="addAlarmBut" class="button squareButton" title="Add new alarm">✚</div>
   <div id="trashCan" class="button squareButton" title="Trash (drop unwanted alarm here)">🗑</div>
@@ -967,7 +967,7 @@ var body_el= document.querySelector("body");
 var alarmRoot_el= document.querySelector("div#alarm");
 var editStgs_el= document.querySelector("div#editStgsBut");
 var disblabler_el= document.querySelector("div#diasablerModeBut");
-var auto_el= document.querySelector("div#autoModeBut");
+var autoSort_el= document.querySelector("div#autsrtModeBut");
 var sort_el= document.querySelector("div#sortBut");
 var add_el= document.querySelector("div#addAlarmBut");
 var trash_el= document.querySelector("div#trashCan");
@@ -1006,7 +1006,7 @@ document.addEventListener("keyup", evt => { //capture any keyup
 editStgs_el.addEventListener("click", editSettings);
 
 disblabler_el.addEventListener("click", toggleDisabler);
-auto_el.addEventListener("click", setAutoMode);
+autoSort_el.addEventListener("click", setAutosortMode);
 sort_el.addEventListener("click", sortAlarms);
 add_el.addEventListener("click", addAlarm);
 
@@ -1119,32 +1119,31 @@ function editSettings() { //just snooze duration
 } //editSettings()
 
 
-var auto_mode= localStorage.getItem("auto_mode") || false;
-var autoTopAI_el;
-var autoProcPending_flag;
+var autsrt_mode= localStorage.getItem("autsrt_mode") || false;
+var autsrtTopAI_el;
+var autsrtProcPending_flag;
 
-function setAutoMode() {
-  jm.state('Auto Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by time. Also, the first alarm will always self-activate', auto_mode, resp => {
-    if (resp==null || resp==auto_mode) return;
-    auto_mode= resp;
-    exec_setAutoMode();
-    localStorage.setItem("auto_mode", auto_mode);
+function setAutosortMode() {
+  jm.state('Auto Sort Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by time. Also, the first alarm will always self-activate', autsrt_mode, resp => {
+    if (resp==null || resp==autsrt_mode) return;
+    autsrt_mode= resp;
+    exec_setAutosortMode();
+    localStorage.setItem("autsrt_mode", autsrt_mode);
   });
-} //setAutoMode()
+} //setAutosortMode()
 
-function exec_setAutoMode() { //on or off
-  var displ_v= auto_mode ? false : undefined;
+function exec_setAutosortMode() { //on or off
+  var displ_v= autsrt_mode ? false : undefined;
   showEl(sort_el, displ_v);
-  classEl(auto_el, "on", auto_mode);
-  if (auto_mode) auto_procAlarms();
-} //exec_setAutoMode()
+  classEl(autoSort_el, "on", autsrt_mode);
+  if (autsrt_mode) autsrt_procAlarms();
+} //exec_setAutosortMode()
 
-function auto_procAlarms(requery_flag) { //sort alarms, and activate top alarm
+function autsrt_procAlarms(requery_flag) { //sort alarms, and activate top alarm
   exec_sortAlarms(requery_flag);
-  autoTopAI_el= aI_arr.find(aI_el => aI_el.checkVisibility()); //skip disabled
-  if (autoTopAI_el && autoTopAI_el!=active_aI_el) setAlarm(autoTopAI_el); //auto activate top alarm
-} //auto_procAlarms()
-
+  autsrtTopAI_el= aI_arr.find(aI_el => aI_el.checkVisibility()); //skip disabled
+  if (autsrtTopAI_el && autsrtTopAI_el!=active_aI_el) setAlarm(autsrtTopAI_el); //auto activate top alarm
+} //autsrt_procAlarms()
 
 var alarm_flag;
 var alarm_ctdn_m;
@@ -1177,7 +1176,7 @@ function startAlarms() {
     aI_arr.push(aInst_el);
   });
 
-  if (auto_mode) exec_setAutoMode();
+  if (autsrt_mode) exec_setAutosortMode();
   else if (alarmInst_el && !disabler_mode) setAlarm(alarmInst_el); //active on init
 } //startAlarms()
 
@@ -1207,19 +1206,19 @@ function add_instanceHelpers(aI_el) { //.dataset only stores strings
   aI_el.aId= function() {return aI_el.ELO.aInfo.textContent; }; //not really an id, but good for debugging
 } //add_instanceHelpers()
 
-function editAlarmInfo(NEW_str) {
+function editAlarmInfo(info_str, NEW_str) {
   var t_str= alarmInst_el.ELO.aTime.textContent;
-  var info_str= alarmInst_el.ELO.aInfo.innerHTML.replaceAll("<br>", "\n");
+  if (!info_str) info_str= alarmInst_el.ELO.aInfo.innerHTML.replaceAll("<br>", "\n");
   jm.prompt_textarea('Alarm info (html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
     if (!NEW_str && (resp==null || resp==info_str)) return; //-->
     info_str= (resp || "").trim();
     if (info_str.length > 80) {
       jm.error("Info length is up to 80 chars. Your text is " +info_str.length +" chars", () => {
-        editAlarmInfo(info_str); //try again (and we dont throw away what you typed in)
+        editAlarmInfo(info_str, NEW_str); //try again (and we dont throw away what you typed in)
       });
     } else {
       alarmInst_el.ELO.aInfo.innerHTML= info_str.replaceAll("\n", "<br>");
-      if (NEW_str) glowAlarm();
+      glowAlarm(NEW_str ? 4 : 1);
       saveAlarms();
     }
   });
@@ -1260,20 +1259,24 @@ function editAlarmTime(NEW_str) {
         if (alarmNow_obj= proc_alarmTimeText(mod_alarm_str, timePrompt_fn)) {
           //.. passed time_prompt() as err_cb, try again
 
-          if (NEW_str) exec_addAlarm();
+          if (NEW_str) {
+            exec_addAlarm();
+            play_sound("bell");
+          }
           pop_Time_T_Mtitle(alarmNow_obj.time);
           setT_Mcountdown();
           if (!disabler_mode && (alarmInst_el==active_aI_el || !active_aI_el)) {
             stopRinger(); //if needed
             setAlarm(alarmInst_el);
-          } else if (!auto_mode && !NEW_str) {
+          } else if (!autsrt_mode && !NEW_str) {
             saveAlarms();
           }
-          if (auto_mode) {
-            auto_procAlarms("requery");
+          if (autsrt_mode) {
+            autsrt_procAlarms("requery");
             if (!NEW_str) saveAlarms();
           }
-          if (NEW_str) editAlarmInfo(NEW_str);
+          if (NEW_str) editAlarmInfo(NEW_str, NEW_str);
+          else glowAlarm();
         }
       }
     });
@@ -1321,7 +1324,7 @@ function updateAlarms(mnt_n) {
     if (aI_el.T_M_ctdn_m < 1) {
       classEl(aI_el, "expired");
       setT_Mcountdown(aI_el, "preview_forceTurnover");
-      if (auto_mode && aI_el==autoTopAI_el) autoTurn_flag= true;
+      if (autsrt_mode && aI_el==autsrtTopAI_el) autoTurn_flag= true;
     }
 
     if (aI_el.T_M) {
@@ -1331,8 +1334,8 @@ function updateAlarms(mnt_n) {
   });
 
   if (autoTurn_flag) {
-    if (active_aI_el && autoTopAI_el==active_aI_el) autoProcPending_flag= true; //dont resort if alarm is active
-    else auto_procAlarms();
+    if (active_aI_el && autsrtTopAI_el==active_aI_el) autsrtProcPending_flag= true; //dont resort if alarm is active
+    else autsrt_procAlarms();
   }
 
   if (alarm_flag) {
@@ -1362,15 +1365,14 @@ function exec_addAlarm() {
   add_instanceHelpers(clAlrmInst_el);
   alarmsCont_el.appendChild(clAlrmInst_el); //add
   if (disabler_mode) disablerAlarm(clAlrmInst_el);
-  play_sound("bell");
   alarmInst_el= clAlrmInst_el;
 } //exec_addAlarm()
 
-function glowAlarm(aI_el =alarmInst_el) {
+function glowAlarm(s =1, aI_el =alarmInst_el) {
   aI_el.scrollIntoView({behavior:"smooth"});
 
   aI_el.style.background= "lightBlue";
-  setTimeout(() => {aI_el.style.background= ""; }, 4000);
+  setTimeout(() => {aI_el.style.background= ""; }, s *1000);
 } //glowAlarm()
 
 function importAlarm() {
@@ -1393,11 +1395,12 @@ function importAlarm() {
         alarmInst_el.ELO.aInfo.innerHTML= html_str;
         pop_Time_T_Mtitle(alarmNow_obj.time);
         setT_Mcountdown(alarmInst_el);
-        glowAlarm();
+        glowAlarm(4);
       }
     }
     if (ct) {
-      if (auto_mode) auto_procAlarms("requery");
+        play_sound("bell", ct, 1400); //1400, bell is longish clip
+      if (autsrt_mode) autsrt_procAlarms("requery");
       saveAlarms();
     }
   });
@@ -1415,8 +1418,8 @@ function deleteAlarm() {
 function exec_deleteAlarm() {
   alarmInst_el.remove();
   if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
-  if (auto_mode || alarmInst_el!=active_aI_el) {
-    if (auto_mode) auto_procAlarms("requery");
+  if (autsrt_mode || alarmInst_el!=active_aI_el) {
+    if (autsrt_mode) autsrt_procAlarms("requery");
     saveAlarms();
   }
   play_sound("trsh");
@@ -1722,11 +1725,11 @@ console.log("bad alarm time", alarm_str)
     if (wakeLockObj) setWakeLock(); //off
   }
 
-  if (!auto_mode) {
+  if (!autsrt_mode) {
     saveAlarms();
-  } else if (autoProcPending_flag) {
-    autoProcPending_flag= false;
-    auto_procAlarms();
+  } else if (autsrtProcPending_flag) {
+    autsrtProcPending_flag= false;
+    autsrt_procAlarms();
   }
 } //setAlarm()
 
@@ -1784,34 +1787,34 @@ function exec_sortAlarms(requery_flag) {
     .forEach(aI_el => alarmsCont_el.appendChild(aI_el))
   ;
   if (active_aI_el) active_aI_el.after(alarmStatus_el);
-  if (!auto_mode) saveAlarms();
+  if (!autsrt_mode) saveAlarms();
   play_sound("clik");
 } //exec_sortAlarms()
 
 
 var disabler_mode;
-var preserved_auto_mode;
+var preserved_autsrt_mode;
 
 function toggleDisabler() {
   if (!disabler_mode) { //turn disabler on}
     if (alarm_flag && active_aI_el) setAlarm(false);
 
-    showEl(auto_el, false);
-    if (auto_mode) {
-      preserved_auto_mode= true;
-      auto_mode= false;
-      exec_setAutoMode();
+    showEl(autoSort_el, false);
+    if (autsrt_mode) {
+      preserved_autsrt_mode= true;
+      autsrt_mode= false;
+      exec_setAutosortMode();
     }
 
     if (wakeLockObj) setWakeLock(); //off
     showEl(wlEnable_el, false);
 
   } else { //turn disabler off
-    showEl(auto_el);
-    if (preserved_auto_mode) {
-      preserved_auto_mode= undefined;
-      auto_mode= true;
-      exec_setAutoMode();
+    showEl(autoSort_el);
+    if (preserved_autsrt_mode) {
+      preserved_autsrt_mode= undefined;
+      autsrt_mode= true;
+      exec_setAutosortMode();
     }
 
     showEl(wlEnable_el);
@@ -1869,7 +1872,7 @@ function startDragAlarms() {
         prev_dragOver_el= undefined;
       }
 
-      if (auto_mode) return; //-->{
+      if (autsrt_mode) return; //-->{
       if (dragOvAl_el= dragOver_el.closest("div.alarmInstance")) { //alarm instance (reorder)
         if (prev_dragOver_el) clear();
         if (dragOvAl_el == dragAl_el) return; //-->
@@ -2126,6 +2129,7 @@ var jm= {
     //} else if (type_str.search(/PROMPT$|PROMPT_TEXTAREA/) > -1) {
     } else if (typeHas("PROMPT_")) {
       if (typeHas("PROMPT_TEXTAREA")) jm._els.aliasIO= jm._els.Textarea;
+
       jm._els.aliasIO.value= value_str;
 
       jm._displayEls("aliasIO");
@@ -2154,7 +2158,9 @@ var jm= {
     jm._cb= cb;
 
     jm.openModal("jwmModal");
-    jm._els.aliasIO.select(); //highlight text //if needed
+
+    if (typeHas("PROMPT_INPUT")) jm._els.aliasIO.select();
+    else jm._els.aliasIO.focus(); //for textarea, if all text is highlighted, enter key will delete the text!
   },
 
   alert: function(text_str, cb) {
@@ -2211,7 +2217,7 @@ var jm= {
     if (submit_flag) jm._respond(); //btw, closes modal
   },
 
-  _respond: function(act_code= "") {
+  _respond: function(act_code ="") {
     if (jm._type=="ALERT" && act_code=="Escape") return; //-->
     //hacky - but dont allow esc key for ALERT, because it wont satisfy browser restriction for sound to play
 
