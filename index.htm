@@ -717,6 +717,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   </div>
 </div>
 
+</body>
 
 <script>
 //clock
@@ -965,11 +966,12 @@ var body_el= document.querySelector("body");
 
 //div#alarm
 var alarmRoot_el= document.querySelector("div#alarm");
-var editStgs_el= document.querySelector("div#editStgsBut");
+
+//var editStgs_el= document.querySelector("div#editStgsBut");
 var disblabler_el= document.querySelector("div#diasablerModeBut");
 var autoSort_el= document.querySelector("div#autsrtModeBut");
 var sort_el= document.querySelector("div#sortBut");
-var add_el= document.querySelector("div#addAlarmBut");
+//var add_el= document.querySelector("div#addAlarmBut");
 var trash_el= document.querySelector("div#trashCan");
 
 var alarmTemplates_el= document.querySelector("div#alarmTemplates");
@@ -993,22 +995,31 @@ var snooze_def_num= (localStorage.getItem("snooze_num") || 5) *1; //default 5
 
 document.addEventListener("keyup", evt => { //capture any keyup
   if (!document.body.classList.contains("jw-modal-active")) { //modal inactive
-    if (evt.key == "-") { //useful for testing, maybe remove //tbd
-      alarmInst_el= alarmsCont_el.querySelector("div.alarmInstance"); //always the standard (1st) alarm
-      editAlarmTime();
-    } else if (ringerButs_el.style.display == "block") { //keys to silence ringer
+    if (ringerButs_el.style.display == "block") { //keys to silence ringer
       if (evt.key == " ") stopRinger("snooze");
       else if (evt.key.search(/Enter|Escape/) > -1) stopRinger();
+    //} else if (evt.key == "-") { //useful for testing, remove
+      //alarmInst_el= alarmsCont_el.querySelector("div.alarmInstance"); //always the standard (1st) alarm
+      //editAlarmTime();
     }
   }
 });
 
-editStgs_el.addEventListener("click", editSettings);
-
-disblabler_el.addEventListener("click", toggleDisabler);
-autoSort_el.addEventListener("click", setAutosortMode);
-sort_el.addEventListener("click", sortAlarms);
-add_el.addEventListener("click", addAlarm);
+document.querySelector("div#topButtons").addEventListener("click", evt => {
+  stopRinger(); //if needed
+  var targ_el= evt.target;
+  if (targ_el.id == "editStgsBut") {
+    editSettings();
+  } else if (targ_el == disblabler_el) {
+    toggleDisabler();
+  } else if (targ_el == autoSort_el) {
+    setAutosortMode();
+  } else if (targ_el == sort_el) {
+    sortAlarms();
+  } else if (targ_el.id == "addAlarmBut") {
+    addAlarm();
+  }
+});
 
 
 //long click (long press)
@@ -1039,32 +1050,47 @@ alarmsCont_el.addEventListener("mousedown", evt => {
 });
 
 alarmsCont_el.addEventListener("mouseout", stopPressTimer);
-alarmsCont_el.addEventListener("dragstart", stopPressTimer);
+alarmsCont_el.addEventListener("dragstart", () => {
+  stopRinger(); //if needed
+  stopPressTimer();
+});
 
 
 alarmsCont_el.addEventListener("click", evt => {
   var targ_el= evt.target;
-  alarmInst_el= targ_el.closest("div.alarmInstance");
-  classEl(alarmInst_el, "expired", false);
 
-  if (targ_el.classList.contains("alarmActivate")) {
+  var _alarmInst_el;
+  if (_alarmInst_el= targ_el.closest("div.alarmInstance")) {
     stopRinger(); //if needed
-    setAlarm(alarmInst_el==active_aI_el?false:alarmInst_el); //toggle
+    alarmInst_el= _alarmInst_el;
+    classEl(alarmInst_el, "expired", false);
 
-  } else if (targ_el.classList.contains("alarmInfo")) {
-    editAlarmInfo();
+    if (targ_el.classList.contains("alarmActivate")) {
+      setAlarm(alarmInst_el==active_aI_el?false:alarmInst_el); //toggle
 
-  } else if (targ_el.classList.contains("alarmT")) {
-    stopPressTimer();
-    if (longpress_flag) return false; //-->
-    editAlarmTime();
+    } else if (targ_el.classList.contains("alarmInfo")) {
+      editAlarmInfo();
 
-  } else if (targ_el.classList.contains("delAlarmBut")) {
-    deleteAlarm();
+    } else if (targ_el.classList.contains("alarmT")) {
+      stopPressTimer();
+      if (longpress_flag) return false; //-->
+      editAlarmTime();
 
-  } else if (targ_el.tagName == "INPUT") { //disabler checkbox (this is only 1 input el)
-    classEl(alarmInst_el, "disabledInstance", !targ_el.checked);
-    saveAlarms();
+    } else if (targ_el.classList.contains("delAlarmBut")) {
+      deleteAlarm();
+
+    } else if (targ_el.tagName == "INPUT") { //disabler checkbox (there can only 1 input el in alarmInstance)
+      classEl(alarmInst_el, "disabledInstance", !targ_el.checked);
+      saveAlarms();
+    }
+
+  } else if (targ_el.closest("div#ringerSnooze")) {
+    var n;
+    if (targ_el.tagName == "SPAN") n= targ_el.textContent *1;
+    stopRinger("snooze", n);
+
+  } else if (targ_el.closest("div#ringerOff")) {
+    stopRinger()
   }
 
 });
@@ -1422,6 +1448,7 @@ function exec_deleteAlarm() {
     if (autsrt_mode) autsrt_procAlarms("requery");
     saveAlarms();
   }
+  alarmInst_el= undefined;
   play_sound("trsh");
 } //exec_deleteAlarm()
 
@@ -1930,17 +1957,8 @@ function startDragAlarms() {
 
 var ringerButs_el= document.querySelector("div#ringerButs");
 showEl(ringerButs_el, false);
-var ringerOff_el= document.querySelector("div#ringerOff")
-ringerOff_el.addEventListener("click", () => stopRinger());
 
 var ringerSnooze_el= document.querySelector("div#ringerSnooze")
-ringerSnooze_el.addEventListener("click", evt => {
-  var targ_el= evt.target;
-  var n;
-  if (targ_el.tagName == "SPAN") n= targ_el.textContent *1;
-  stopRinger("snooze", n);
-});
-
 var rSnzCountdown_el= document.querySelector("div#rSnzCountdown");
 
 var ring_flag;
@@ -2340,5 +2358,4 @@ function urlImportALarm(q_str) { //import from pC via url querystring, stores "i
 
 </script>
 
-</body>
 </html>
