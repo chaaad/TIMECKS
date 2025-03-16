@@ -70,6 +70,10 @@ div#topButtons {
     color: chartreuse;
   }
 
+  .down {
+    background: chartreuse;
+  }
+
   div#trashCan {
     font-size: xx-large;
     line-height: 20px;
@@ -1790,6 +1794,7 @@ function toggleDisabler() {
   }
 
   disabler_mode= !disabler_mode; //toggle
+  classEl(disblabler_el, "down", disabler_mode);
   classEl(alarmsCont_el, "disablableContainer", disabler_mode);
   startAlarms();
 
