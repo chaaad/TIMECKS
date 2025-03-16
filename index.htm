@@ -1142,9 +1142,7 @@ function exec_setAutoMode() { //on or off
 function auto_procAlarms(requery_flag) { //sort alarms, and activate top alarm
   exec_sortAlarms(requery_flag);
   autoTopAI_el= aI_arr.find(aI_el => aI_el.checkVisibility()); //skip disabled
-
-  //if (autoTopAI_el && !active_aI_el) setAlarm(autoTopAI_el); //auto activate top alarm (not if already an active alarm)
-  if (autoTopAI_el) setAlarm(autoTopAI_el); //auto activate top alarm
+  if (autoTopAI_el && autoTopAI_el!=active_aI_el) setAlarm(autoTopAI_el); //auto activate top alarm
 } //auto_procAlarms()
 
 
