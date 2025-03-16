@@ -84,7 +84,8 @@ div#topButtons {
 }
 
 
-/*adapted from: https://codepen.io/ndeniche/pen/rNPjmg*/
+/*adapted from: https://codepen.io/ndeniche/pen/rNPjmg
+*/
 .closeButton {
   position: relative;
   display: inline-block;
@@ -121,6 +122,56 @@ div#topButtons {
 } /*closeButton*/
 
 
+/*adapted from: https://getcssscan.com/css-checkboxes-examples
+*/
+.checkbox-wrapper-18 {
+  position: relative;
+
+  /*timecks.. */
+  top: 4px;
+  display: inline-block;
+  margin-right: 8px;
+}
+.checkbox-wrapper-18 label {
+  background-color: #fff; /*circle*/
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  cursor: pointer;
+  height: 28px;
+  width: 28px;
+  display: block;
+}
+
+.checkbox-wrapper-18 label:after {
+  border: 2px solid #fff; /*check mark drawn with borders, then rotated*/
+  border-top: none;
+  border-right: none;
+  content: "";
+  height: 6px;
+  left: 8px;
+  opacity: 0;
+  position: absolute;
+  top: 9px;
+  transform: rotate(-45deg);
+  width: 12px;
+}
+
+.checkbox-wrapper-18 input[type="checkbox"] {
+  visibility: hidden;
+  display: none;
+  opacity: 0;
+}
+
+.checkbox-wrapper-18 input[type="checkbox"]:checked + label {
+  background-color: #66bb6a;
+  border-color: #66bb6a;
+}
+
+.checkbox-wrapper-18 input[type="checkbox"]:checked + label:after {
+  opacity: 1;
+}
+/*checkbox*/
+
 div#alarm {
   float: right;
   font-size: larger;
@@ -150,7 +201,7 @@ div#alarm {
       letter-spacing: 0.5px;
     }
 
-    span.alarmEnable {
+    span.alarmActivate {
       color: lightgray;
     }
 
@@ -184,7 +235,7 @@ div#alarm {
         color:white;
         opacity: 100%;
       }
-      span.alarmEnable {
+      span.alarmActivate {
         color: chartreuse;
       }
       span.alarmTime {
@@ -208,6 +259,21 @@ div#alarm {
 
     &.expired {
       background: pink;
+    }
+  }
+
+  div.disablableContainer {
+    div.alarmInfo {
+      color: white;
+      background: black;
+      opacity: 100%;
+    }
+
+    div.disabledInstance {
+      div.alarmInfo {
+        color: gray;
+        background: #eee;
+      }
     }
   }
 
@@ -557,6 +623,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <div id="topButtons">
   <div id="editStgsBut" class="button squareButton" title="Settings (snooze duration)">︙</div>
+  <div id="diasablerModeBut" class="button squareButton" title="Disabler Mode">D</div>
   <div id="autoModeBut" class="button squareButton" title="Auto Mode">A</div>
   <div id="sortBut" class="button squareButton" title="Sort alarms (ctrl-click to skip confirm)">⮝</div>
   <div id="addAlarmBut" class="button squareButton" title="Add new alarm">✚</div>
@@ -568,7 +635,8 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   <div id="alarmTemplates">
     <div class="alarmInstance" draggable="true">
       <div class="alarmInfo" title="Edit info"></div>
-      <span class="alarmEnable button squareButton" title="On/Off">⏹</span>
+
+      <span class="alarmActivate button squareButton" title="On/Off">⏹</span>
       <span class="alarmT alarmTime" title="Edit time (Long press for countdown view)"></span>
       <span class="alarmT alarmT_Minus"></span>
       <span class="delAlarmBut closeButton" title="Delete"></span>
@@ -685,7 +753,7 @@ var dayOfWeek_el= clockFace_el.querySelector("h3");
 var monthDay_el= document.getElementById("dtDisplay");
 
 var clockMarker_el= clockFace_el.querySelector("div.marker");
-showEl(clockMarker_el, "none");
+showEl(clockMarker_el, false);
 
 var degO= {};
 var h_inc= 360 /720;
@@ -870,14 +938,15 @@ var body_el= document.querySelector("body");
 //div#alarm
 var alarmRoot_el= document.querySelector("div#alarm");
 var editStgs_el= document.querySelector("div#editStgsBut");
+var disblabler_el= document.querySelector("div#diasablerModeBut");
 var auto_el= document.querySelector("div#autoModeBut");
 var sort_el= document.querySelector("div#sortBut");
 var add_el= document.querySelector("div#addAlarmBut");
 var trash_el= document.querySelector("div#trashCan");
 
 var alarmTemplates_el= document.querySelector("div#alarmTemplates");
-showEl(alarmTemplates_el, "none");
-showEl(alarmTemplates_el.querySelector("span.alarmT_Minus"), "none");
+showEl(alarmTemplates_el, false);
+showEl(alarmTemplates_el.querySelector("span.alarmT_Minus"), false);
 
 var alarmsCont_el= document.querySelector("div#alarmsContainer");
 
@@ -886,7 +955,7 @@ var alarmInst_el;
 var active_aI_el;
 
 var alarmStatus_el= document.querySelector("div#alarmStatus");
-showEl(alarmStatus_el, "none");
+showEl(alarmStatus_el, false);
 var alarmCountdown_el= alarmStatus_el.querySelector("div#alarmCountdown");
 
 var wlEnable_el= document.querySelector("div#wakeLockEnable");
@@ -896,10 +965,10 @@ var snooze_def_num= (localStorage.getItem("snooze_num") || 5) *1; //default 5
 
 document.addEventListener("keyup", evt => { //capture any keyup
   if (!document.body.classList.contains("jw-modal-active")) { //modal inactive
-    if (evt.key == "-") {
+    if (evt.key == "-") { //useful for testing, maybe remove //tbd
       alarmInst_el= alarmsCont_el.querySelector("div.alarmInstance"); //always the standard (1st) alarm
       editAlarmTime();
-    } else if (ringerButs_el.style.display == "block") {
+    } else if (ringerButs_el.style.display == "block") { //keys to silence ringer
       if (evt.key == " ") stopRinger("snooze");
       else if (evt.key.search(/Enter|Escape/) > -1) stopRinger();
     }
@@ -907,6 +976,8 @@ document.addEventListener("keyup", evt => { //capture any keyup
 });
 
 editStgs_el.addEventListener("click", editSettings);
+
+disblabler_el.addEventListener("click", toggleDisabler);
 auto_el.addEventListener("click", setAutoMode);
 sort_el.addEventListener("click", sortAlarms);
 add_el.addEventListener("click", addAlarm);
@@ -948,7 +1019,7 @@ alarmsCont_el.addEventListener("click", evt => {
   alarmInst_el= targ_el.closest("div.alarmInstance");
   classEl(alarmInst_el, "expired", false);
 
-  if (targ_el.classList.contains("alarmEnable")) {
+  if (targ_el.classList.contains("alarmActivate")) {
     stopRinger(); //if needed
     setAlarm(alarmInst_el==active_aI_el?false:alarmInst_el); //toggle
 
@@ -962,7 +1033,12 @@ alarmsCont_el.addEventListener("click", evt => {
 
   } else if (targ_el.classList.contains("delAlarmBut")) {
     deleteAlarm();
+
+  } else if (targ_el.tagName == "INPUT") { //disabler checkbox (this is only 1 input el)
+    classEl(alarmInst_el, "disabledInstance", !targ_el.checked);
+    saveAlarms();
   }
+
 });
 
 
@@ -1020,7 +1096,7 @@ var autoTopAI_el;
 var autoProcPending_flag;
 
 function setAutoMode() {
-  jm.prompt_boolean('Auto Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by time. Also, the first alarm will always self-activate', auto_mode, resp => {
+  jm.state('Auto Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by time. Also, the first alarm will always self-activate', auto_mode, resp => {
     if (resp==null || resp==auto_mode) return;
     auto_mode= resp;
     exec_setAutoMode();
@@ -1029,18 +1105,16 @@ function setAutoMode() {
 } //setAutoMode()
 
 function exec_setAutoMode() { //on or off
-  var displ_str= auto_mode ? "none" : "";
-  showEl(sort_el, displ_str);
+  var displ_v= auto_mode ? false : undefined;
+  showEl(sort_el, displ_v);
   classEl(auto_el, "on", auto_mode);
   if (auto_mode) auto_procAlarms();
 } //exec_setAutoMode()
 
 function auto_procAlarms(requery_flag) { //sort alarms, and activate top alarm
   exec_sortAlarms(requery_flag);
-  autoTopAI_el= aI_arr[0];
-  if (autoTopAI_el && !active_aI_el) {
-    setAlarm(autoTopAI_el);
-  }
+  autoTopAI_el= aI_arr.find(aI_el => aI_el.checkVisibility()); //skip disabled
+  if (autoTopAI_el && !active_aI_el) setAlarm(autoTopAI_el); //auto activate top alarm
 } //auto_procAlarms()
 
 
@@ -1048,9 +1122,13 @@ var alarm_flag;
 var alarm_ctdn_m;
 var alarm_dtO;
 var hTimO;
-var aI_arr= []; //so dont have to query a list so much
+var aI_arr; //so dont have to query a list so much
 
 function startAlarms() {
+  aI_arr= [];
+  disblr_ct= 0;
+  alarmsCont_el.innerHTML= "";
+
   var alarms_json= localStorage.getItem("alarms");
   var alarms_arr= [{t:"12:00 AM"}]; //empty default
   if (alarms_json) try {alarms_arr= JSON.parse(alarms_json); } catch (err) {}
@@ -1064,22 +1142,39 @@ function startAlarms() {
     setT_Mcountdown(aInst_el);
     if (a_obj.a) alarmInst_el= aInst_el; //active
     if (a_obj.T_M) toggleAlarmT_Minus(aInst_el); //init turn on
+
+    if (disabler_mode) disablerAlarm(aInst_el, a_obj.d);
+    else if (a_obj.d) showEl(aInst_el, false);
+
     aI_arr.push(aInst_el);
   });
 
   if (auto_mode) exec_setAutoMode();
-  else if (alarmInst_el) setAlarm(alarmInst_el); //active on init
-
-  startDragAlarms();
+  else if (alarmInst_el && !disabler_mode) setAlarm(alarmInst_el); //active on init
 } //startAlarms()
+
+var disblr_ct;
+function disablerAlarm(aI_el, dsbl_flag) {
+  var checked_str= dsbl_flag ? "" : " checked";
+  classEl(aI_el, "disabledInstance", !!dsbl_flag); //in classEl(), flag of undefined will default to true
+
+  aI_el.ELO.aActivate.insertAdjacentHTML(
+  "afterend",
+  `<div class="checkbox-wrapper-18"><input type="checkbox" id="chkbx_${disblr_ct}"${checked_str}/><label for="chkbx_${disblr_ct}"></label></div>`
+  );
+  showEl(aI_el.ELO.aActivate, false);
+  disblr_ct++;
+} //disablerAlarm()
+
 
 function add_instanceHelpers(aI_el) { //.dataset only stores strings
   //breaks html/js laws, but as far as js only goes, an element is just an object
   aI_el.ELO= {
     aInfo: aI_el.querySelector("div.alarmInfo"),
-    aEnable: aI_el.querySelector("span.alarmEnable"),
+    aActivate: aI_el.querySelector("span.alarmActivate"),
     aTime: aI_el.querySelector("span.alarmTime"),
-    aT_Minus: aI_el.querySelector("span.alarmT_Minus")
+    aT_Minus: aI_el.querySelector("span.alarmT_Minus"),
+    aDelete: aI_el.querySelector("span.delAlarmBut")
   };
   aI_el.aId= function() {return aI_el.ELO.aInfo.textContent; }; //not really an id, but good for debugging
 } //add_instanceHelpers()
@@ -1140,15 +1235,15 @@ function editAlarmTime(NEW_str) {
           if (NEW_str) exec_addAlarm();
           pop_Time_T_Mtitle(alarmNow_obj.time);
           setT_Mcountdown();
-          if (alarmInst_el==active_aI_el || !active_aI_el) {
+          if (!disabler_mode && (alarmInst_el==active_aI_el || !active_aI_el)) {
             stopRinger(); //if needed
             setAlarm(alarmInst_el);
-          } else if (!auto_mode) {
+          } else if (!auto_mode && !NEW_str) {
             saveAlarms();
           }
           if (auto_mode) {
             auto_procAlarms("requery");
-            saveAlarms();
+            if (!NEW_str) saveAlarms();
           }
           if (NEW_str) editAlarmInfo(NEW_str);
         }
@@ -1175,8 +1270,8 @@ function pop_Time_T_Mtitle(str, aI_el =alarmInst_el) {
 } //pop_Time_T_Mtitle()
 
 function showT_Mel(aI_el, flag =true) {
-  showEl(aI_el.ELO.aT_Minus, flag ? "inline-block" : "none");
-  showEl(aI_el.ELO.aTime, !flag ? "inline-block" : "none");
+  showEl(aI_el.ELO.aT_Minus, flag ? "inline-block" : false);
+  showEl(aI_el.ELO.aTime, !flag ? "inline-block" : false);
 } //showT_Mel()
 
 function setT_Mcountdown(aI_el =alarmInst_el, preview_str ="preview") {
@@ -1215,7 +1310,7 @@ function updateAlarms(mnt_n) {
   if (alarm_flag) {
     if (alarm_ctdn_m < 1) { //end alarm countdown
       alarm_flag= false;
-      showEl(alarmCountdown_el, "none");
+      showEl(alarmCountdown_el, false);
       startRinger();
     } else {
       alarmCountdown_el.textContent= g_untilStr(alarm_ctdn_m);
@@ -1238,6 +1333,7 @@ function exec_addAlarm() {
   var clAlrmInst_el= template_alarmInst_el.cloneNode(true); //clone
   add_instanceHelpers(clAlrmInst_el);
   alarmsCont_el.appendChild(clAlrmInst_el); //add
+  if (disabler_mode) disablerAlarm(clAlrmInst_el);
   play_sound("bell");
   alarmInst_el= clAlrmInst_el;
 } //exec_addAlarm()
@@ -1282,7 +1378,7 @@ function importAlarm() {
 function deleteAlarm() {
   var prom_str= g_promStr();
 
-  jm.prompt_boolean('Delete?<br>' +prom_str, 0, resp => {
+  jm.agree('Delete?<br>' +prom_str, 0, resp => {
     if (resp != true) return; //null or false //-->
     exec_deleteAlarm();
   });
@@ -1578,7 +1674,7 @@ console.log("bad alarm time", alarm_str)
     showT_Mel(aI_el, false); //if needed
     active_aI_el.scrollIntoView({behavior:"smooth"});
 
-    clockMarker_el.mkr_state= undefined;
+    clockMarker_el.mkr_val= undefined;
     checkMarker();
 
     play_sound("beep");
@@ -1590,9 +1686,9 @@ console.log("bad alarm time", alarm_str)
     alarm_ctdn_m= 0;
 
     stopRinger(); //if needed
-    showEl(alarmStatus_el, "none");
+    showEl(alarmStatus_el, false);
 
-    showEl(clockMarker_el, "none");
+    showEl(clockMarker_el, false);
 
     play_sound("slam");
     if (wakeLockObj) setWakeLock(); //off
@@ -1607,14 +1703,14 @@ console.log("bad alarm time", alarm_str)
 } //setAlarm()
 
 function checkMarker() {
-  var marker_state= Math.floor(alarm_ctdn_m /720); //0 1 2+
-  if (marker_state != clockMarker_el.mkr_state) {
-    if (clockMarker_el.state == undefined) { //init
+  var marker_value= Math.floor(alarm_ctdn_m /720); //0 1 2+
+  if (marker_value != clockMarker_el.mkr_val) {
+    if (clockMarker_el.mkr_val == undefined) { //init
       clockMarker_el.style.transform= "translate(-50%, -50%) rotate(" +(30*hTimO.h +0.5*hTimO.m) +"deg)";
     }
-    showEl(clockMarker_el, alarm_ctdn_m<1440 ? "block" : "none");
+    showEl(clockMarker_el, alarm_ctdn_m<1440 ? "block" : false);
     classEl(clockMarker_el, "on", alarm_ctdn_m<720);
-    clockMarker_el.mkr_state= marker_state;
+    clockMarker_el.mkr_val= marker_value;
   }
 } //checkMarker()
 
@@ -1633,6 +1729,7 @@ function saveAlarms() {
     if (info_str= aI_el.ELO.aInfo.innerHTML) a_obj.i= info_str;
     if (aI_el.classList.contains("alarm-active")) a_obj.a= 1;
     if (aI_el.T_M) a_obj.T_M= 1;
+    if (disabler_mode ? !aI_el.querySelector("input").checked : !aI_el.checkVisibility()) a_obj.d= 1;
     saveAlarms_arr.push(a_obj);
   });
   localStorage.setItem("alarms", JSON.stringify(saveAlarms_arr));
@@ -1663,6 +1760,42 @@ function exec_sortAlarms(requery_flag) {
   play_sound("clik");
 } //exec_sortAlarms()
 
+
+var disabler_mode;
+var preserved_auto_mode;
+
+function toggleDisabler() {
+  if (!disabler_mode) { //turn disabler on}
+    if (alarm_flag && active_aI_el) setAlarm(false);
+
+    showEl(auto_el, false);
+    if (auto_mode) {
+      preserved_auto_mode= true;
+      auto_mode= false;
+      exec_setAutoMode();
+    }
+
+    if (wakeLockObj) setWakeLock(); //off
+    showEl(wlEnable_el, false);
+
+  } else { //turn disabler off
+    showEl(auto_el);
+    if (preserved_auto_mode) {
+      preserved_auto_mode= undefined;
+      auto_mode= true;
+      exec_setAutoMode();
+    }
+
+    showEl(wlEnable_el);
+  }
+
+  disabler_mode= !disabler_mode; //toggle
+  classEl(alarmsCont_el, "disablableContainer", disabler_mode);
+  startAlarms();
+
+} //toggleDisabler()
+
+
 function startDragAlarms() {
   //dragndrop
   //adapted from: https://www.w3resource.com/javascript-exercises/event/javascript-event-handling-exercise-6.php
@@ -1683,7 +1816,8 @@ function startDragAlarms() {
     classEl(dragAl_el, "dragging");
     //evt.dataTransfer.effectAllowed= "move"; //what does this even do? seems unneeded for reorder
 
-    get_aIList().forEach((aI_el, i) => aI_el.d_index= i); //current order
+    var ct= 0;
+    get_aIList().forEach(aI_el => {if (aI_el.checkVisibility()) aI_el.d_index= ct++; }); //current order, set .d_index for each alarm
   } //dragStart()
 
   function dragOver(evt) {
@@ -1763,7 +1897,7 @@ function startDragAlarms() {
 
 
 var ringerButs_el= document.querySelector("div#ringerButs");
-showEl(ringerButs_el, "none");
+showEl(ringerButs_el, false);
 var ringerOff_el= document.querySelector("div#ringerOff")
 ringerOff_el.addEventListener("click", () => stopRinger());
 
@@ -1805,8 +1939,8 @@ function stopRinger(snooze_flag) {
 
   } else { //ringer off
     if (ring_flag) play_sound("slam"); //ringer-off slam
-    showEl(alarmStatus_el, "none");
-    showEl(ringerButs_el, "none");
+    showEl(alarmStatus_el, false);
+    showEl(ringerButs_el, false);
     snooze_ctdn_m= 0; //if needed
     classEl(ringerSnooze_el, "but-active", false); //if needed
     ring_flag= false;
@@ -1867,7 +2001,7 @@ function play_sound(ac_key, repeat_n =1, step_ms =750) {
 
 //utils
 function showEl(el, display_str ="block") {
-  if (el) el.style.display= display_str;
+  if (el) el.style.display= display_str==false ? "none" : display_str;
 }
 function classEl(el, class_str, flag =true) {
   if (el) el.classList[flag?"add":"remove"](class_str);
@@ -1893,7 +2027,7 @@ var jm= {
         if (evt.key=="Escape" || (evt.key=="Enter" && !evt.shiftKey)) jm._respond(evt.key);
         //since modal can contain textarea, no 'nav' keys should be captured (arrow, tab)
         //also shift-enter allows linebreak in textarea
-        else if (jm._type == "PROMPT_BOOL") jm._prmBoolProc(evt.key); //however, this does do 'nav' keys
+        else if (jm._type.includes("BOOLEAN")) jm._booleanProc(evt.key); //however, this does do 'nav' keys
       }
     });
 
@@ -1903,7 +2037,7 @@ var jm= {
     });
 
     jm._mouseHandler("OkBut", evt => {
-      if (jm._type == "PROMPT_BOOL") jm._els.aliasIO.value= "OK";
+      if (jm._type.includes("BOOLEAN")) jm._els.aliasIO.value= "OK";
       jm._respond();
     });
 
@@ -1930,32 +2064,34 @@ var jm= {
       return; //abort //-->
     }
 
-    jm._displayEls("Input,Textarea,NoBut,CancelBut", "none");
+    jm._displayEls("Input,Textarea,NoBut,CancelBut", false);
     jm._classEls("OkBut,NoBut", "hilite", false);
     jm._classEls("OkBut", "toggleable", false);
     jm._els.aliasIO= jm._els.Input; //for .Input or .Textarea
     jm._els.OkBut.textContent= "OK";
 
-    if (type_str.search(/ALERT|ERROR|CONFIRM|PROMPT_BOOL/) > -1) {
+    if (typeHas(/ALERT|ERROR|CONFIRM|BOOLEAN/)) {
       jm._els.aliasIO.value= "OK";
 
-      if (type_str == "PROMPT_BOOL") {
+      if (typeHas("BOOLEAN_")) {
         jm._displayEls("NoBut,CancelBut", "inline");
         jm._classEls("OkBut", "toggleable");
-        jm._els.OkBut.textContent= "Yes";
+        jm._els.OkBut.textContent= typeHas("AGREE") ? "Yes" : "On";
+        jm._els.NoBut.textContent= typeHas("AGREE") ? "No" : "Off";
         var state_flag= !!value_str; //to boolean
         //.. local var
         if (!state_flag) jm._els.aliasIO.value= "NO";
         //.. actual value kept in aliasIO.value as string ("OK", "NO")
-        jm._prmBoolProc(); //hilte only
+        jm._booleanProc(); //hilte only
 
-      } else if (type_str == "CONFIRM") { //CONFIRM is just an ALERT with a Cancel button
+      } else if (typeHas("CONFIRM")) { //CONFIRM is just an ALERT with a Cancel button
         jm._displayEls("CancelBut", "inline");
 
-      } else if (type_str == "ERROR") play_sound("buzz");
+      } else if (typeHas("ERROR")) play_sound("buzz");
 
-    } else if (type_str.search(/PROMPT$|PROMPT_TEXTAREA/) > -1) {
-      if (type_str == "PROMPT_TEXTAREA") jm._els.aliasIO= jm._els.Textarea;
+    //} else if (type_str.search(/PROMPT$|PROMPT_TEXTAREA/) > -1) {
+    } else if (typeHas("PROMPT_")) {
+      if (typeHas("PROMPT_TEXTAREA")) jm._els.aliasIO= jm._els.Textarea;
       jm._els.aliasIO.value= value_str;
 
       jm._displayEls("aliasIO");
@@ -1964,6 +2100,10 @@ var jm= {
     } else {
       console.error("jm.dialog, bad type_str:", type_str);
       return; //-->
+    }
+
+    function typeHas(v) { //v can be string or regEx
+      return (typeof(v)=="string" ? type_str.indexOf(v) : type_str.search(v)) > -1;
     }
 
     jm._type= type_str;
@@ -1993,28 +2133,33 @@ var jm= {
     jm.dialog("CONFIRM", text_str, "", cb); //returns true or null
   },
 
-  prompt_boolean: function(text_str, value_flag, cb) {
-    jm.dialog("PROMPT_BOOL", text_str, value_flag, cb); //returns true or false or null
+  agree: function(text_str, value_flag, cb) {
+    jm.dialog("BOOLEAN_AGREE", text_str, value_flag, cb); //returns true or false or null
+    //param called value_flag here, but jm.dialog will still call it value_str
+  },
+
+  state: function(text_str, value_flag, cb) {
+    jm.dialog("BOOLEAN_STATE", text_str, value_flag, cb); //returns true or false or null
     //param called value_flag here, but jm.dialog will still call it value_str
   },
 
   prompt: function(text_str, value_str, cb) {
-    jm.dialog("PROMPT", text_str, value_str, cb); //returns string or null
+    jm.dialog("PROMPT_INPUT", text_str, value_str, cb); //returns string or null
   },
   prompt_textarea: function(text_str, value_str, cb) {
     jm.dialog("PROMPT_TEXTAREA", text_str, value_str, cb); //returns string or null
   },
 
-  _prmBoolProc: function(key) {
-    //PROMPT_BOOL is the only dialog that has Yes/No buttons
-    //they are highlightable by nav keys, and submittable by shortcut key (Y/N)
+  _booleanProc: function(key) {
+    //boolean dialogs have 2 buttons (Yes/No or On/Off) and Cancel
+    //they are highlightable by nav keys, and is submittable by shortcut key (Y/N)
     var state_flag= jm._els.aliasIO.value == "OK"; //local var
     var submit_flag;
 
     if (key) { //key capture
       key= key.toUpperCase();
-      if (key.search(/Y$|N$/) == 0) { //exact match "Y" or "N"
-        state_flag= value= key != "N";
+      if (key=="Y" || key=="N") {
+        state_flag= value= key=="Y";
         submit_flag= true;
       } else if (key.indexOf("ARROW") == 0) {
         state_flag= !state_flag; //toggle
@@ -2042,12 +2187,12 @@ var jm= {
     if (!cb) return; //-->
 
     var resp= true;
-
     if (act_code.search(/Overlay Click|Escape|CANCEL|CLOSE/) > -1) {
       resp= null;
-    } else if (jm._type.includes("PROM")) {
+    } else if (jm._type.includes("PROMPT_")) {
       resp= jm._els.aliasIO.value;
-      if (jm._type == "PROMPT_BOOL") resp= (resp == "OK"); //to boolean
+    } else if (jm._type.includes("BOOLEAN_")) {
+      resp= (jm._els.aliasIO.value == "OK"); //to boolean
     }
 
     if (typeof(cb) == "object") {
@@ -2090,8 +2235,8 @@ var jm= {
     if (el) el.addEventListener(act_str || "click", clk_cb);
   },
 
-  _displayEls: function(jids, display_str) {
-    jm._iterEls(jids, el => showEl(el, display_str) );
+  _displayEls: function(jids, display_v) {
+    jm._iterEls(jids, el => showEl(el, display_v) );
   },
 
   _classEls: function(jids, class_str, flag= true) {
@@ -2129,6 +2274,7 @@ if (fClick_flag) { //satisfy browser requirement to allow play-sound
   jm.alert("Click to start", () => {
     startClock();
     startAlarms();
+    startDragAlarms();
   });
 }
 
