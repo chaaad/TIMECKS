@@ -632,7 +632,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     }
   }
 
-} /*jwmOverlay*/auto
+} /*jwmOverlay*/
 
 </style>
 </head>
@@ -1063,7 +1063,11 @@ alarmsCont_el.addEventListener("click", evt => {
   if (_alarmInst_el= targ_el.closest("div.alarmInstance")) {
     stopRinger(); //if needed
     alarmInst_el= _alarmInst_el;
-    classEl(alarmInst_el, "expired", false);
+
+    if (targ_el.classList.contains("expired")) {
+      classEl(alarmInst_el, "expired", false);
+      scrolltoAlarm();
+    }
 
     if (targ_el.classList.contains("alarmActivate")) {
       setAlarm(alarmInst_el==active_aI_el?false:alarmInst_el); //toggle
@@ -1090,7 +1094,7 @@ alarmsCont_el.addEventListener("click", evt => {
     stopRinger("snooze", n);
 
   } else if (targ_el.closest("div#ringerOff")) {
-    stopRinger()
+    stopRinger();
   }
 
 });
@@ -1146,8 +1150,6 @@ function editSettings() { //just snooze duration
 
 
 var autsrt_mode= localStorage.getItem("autsrt_mode") || false;
-var autsrtTopAI_el;
-var autsrtProcPending_flag;
 
 function setAutosortMode() {
   jm.state('Auto Sort Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by time. Also, the first alarm will always self-activate', autsrt_mode, resp => {
@@ -1162,14 +1164,20 @@ function exec_setAutosortMode() { //on or off
   var displ_v= autsrt_mode ? false : undefined;
   showEl(sort_el, displ_v);
   classEl(autoSort_el, "on", autsrt_mode);
-  if (autsrt_mode) autsrt_procAlarms();
+  if (autsrt_mode) autsrtAlarms();
 } //exec_setAutosortMode()
 
-function autsrt_procAlarms(requery_flag) { //sort alarms, and activate top alarm
+function autsrtAlarms(requery_flag) { //sort alarms, and activate top alarm
   exec_sortAlarms(requery_flag);
-  autsrtTopAI_el= aI_arr.find(aI_el => aI_el.checkVisibility()); //skip disabled
-  if (autsrtTopAI_el && autsrtTopAI_el!=active_aI_el) setAlarm(autsrtTopAI_el); //auto activate top alarm
-} //autsrt_procAlarms()
+  autoActivateAlarm(requery_flag);
+} //autsrtAlarms()
+
+function autoActivateAlarm(override_flag) { //auto-activate top alarm
+  var topAI_el= aI_arr.find(aI_el => aI_el.checkVisibility()); //skip disabled
+  if (topAI_el && topAI_el!=active_aI_el && (!active_aI_el || override_flag)) { //override_flag, existing active_aI_el
+    setAlarm(topAI_el);
+  }
+} //autoActivateAlarm()
 
 var alarm_flag;
 var alarm_ctdn_m;
@@ -1292,13 +1300,13 @@ function editAlarmTime(NEW_str) {
           pop_Time_T_Mtitle(alarmNow_obj.time);
           setT_Mcountdown();
           if (!disabler_mode && (alarmInst_el==active_aI_el || !active_aI_el)) {
-            stopRinger(); //if needed
+//            stopRinger(); //if needed
             setAlarm(alarmInst_el);
           } else if (!autsrt_mode && !NEW_str) {
             saveAlarms();
           }
           if (autsrt_mode) {
-            autsrt_procAlarms("requery");
+            autsrtAlarms("requery");
             if (!NEW_str) saveAlarms();
           }
           if (NEW_str) editAlarmInfo(NEW_str, NEW_str);
@@ -1350,7 +1358,7 @@ function updateAlarms(mnt_n) {
     if (aI_el.T_M_ctdn_m < 1) {
       classEl(aI_el, "expired");
       setT_Mcountdown(aI_el, "preview_forceTurnover");
-      if (autsrt_mode && aI_el==autsrtTopAI_el) autoTurn_flag= true;
+      if (autsrt_mode) autoTurn_flag= true;
     }
 
     if (aI_el.T_M) {
@@ -1358,11 +1366,6 @@ function updateAlarms(mnt_n) {
       aI_el.ELO.aT_Minus.textContent= g_untilStr(aI_el.T_M_ctdn_m);
     }
   });
-
-  if (autoTurn_flag) {
-    if (active_aI_el && autsrtTopAI_el==active_aI_el) autsrtProcPending_flag= true; //dont resort if alarm is active
-    else autsrt_procAlarms();
-  }
 
   if (alarm_flag) {
     if (alarm_ctdn_m < 1) { //end alarm countdown
@@ -1378,6 +1381,8 @@ function updateAlarms(mnt_n) {
     snooze_ctdn_m--; //inc-
     checkSnooze();
   }
+
+  if (autoTurn_flag) autsrtAlarms();
 
 } //updateAlarms()
 
@@ -1395,7 +1400,7 @@ function exec_addAlarm() {
 } //exec_addAlarm()
 
 function glowAlarm(s =1, aI_el =alarmInst_el) {
-  aI_el.scrollIntoView({behavior:"smooth"});
+  aI_el.scrollIntoView(scrollParam);
 
   aI_el.style.background= "lightBlue";
   setTimeout(() => {aI_el.style.background= ""; }, s *1000);
@@ -1425,8 +1430,8 @@ function importAlarm() {
       }
     }
     if (ct) {
-        play_sound("bell", ct, 1400); //1400, bell is longish clip
-      if (autsrt_mode) autsrt_procAlarms("requery");
+      play_sound("bell", ct, 1400); //1400, bell is longish clip
+      if (autsrt_mode) autsrtAlarms("requery");
       saveAlarms();
     }
   });
@@ -1444,10 +1449,7 @@ function deleteAlarm() {
 function exec_deleteAlarm() {
   alarmInst_el.remove();
   if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
-  if (autsrt_mode || alarmInst_el!=active_aI_el) {
-    if (autsrt_mode) autsrt_procAlarms("requery");
-    saveAlarms();
-  }
+  saveAlarms();
   alarmInst_el= undefined;
   play_sound("trsh");
 } //exec_deleteAlarm()
@@ -1730,35 +1732,41 @@ console.log("bad alarm time", alarm_str)
     showEl(alarmStatus_el);
     showEl(alarmCountdown_el);
     showT_Mel(aI_el, false); //if needed
-    active_aI_el.scrollIntoView({behavior:"smooth"});
 
     clockMarker_el.mkr_val= undefined;
     checkMarker();
 
     play_sound("beep");
     if (!wakeLockObj) setWakeLock(); //on
+    scrolltoAlarm();
 
   } else { //alarm off
     active_aI_el= undefined;
     alarm_flag= false;
     alarm_ctdn_m= 0;
 
-    stopRinger(); //if needed
+//    stopRinger(); //if needed
     showEl(alarmStatus_el, false);
 
     showEl(clockMarker_el, false);
 
     play_sound("slam");
     if (wakeLockObj) setWakeLock(); //off
+    if (autsrt_mode) autoActivateAlarm();
   }
 
-  if (!autsrt_mode) {
-    saveAlarms();
-  } else if (autsrtProcPending_flag) {
-    autsrtProcPending_flag= false;
-    autsrt_procAlarms();
-  }
+  if (!autsrt_mode) saveAlarms();
 } //setAlarm()
+
+
+var scrollParam= {behavior:"smooth", block:"center"};
+
+function scrolltoAlarm(activeAlarm_flag) {
+  var important_el;
+  if (!activeAlarm_flag) important_el= alarmsCont_el.querySelector("div.expired");
+  if (!important_el) important_el= active_aI_el;
+  if (important_el) important_el.scrollIntoView(scrollParam);
+} //scrolltoAlarm()
 
 function checkMarker() {
   var marker_value= Math.floor(alarm_ctdn_m /720); //0 1 2+
@@ -1814,6 +1822,9 @@ function exec_sortAlarms(requery_flag) {
     .forEach(aI_el => alarmsCont_el.appendChild(aI_el))
   ;
   if (active_aI_el) active_aI_el.after(alarmStatus_el);
+
+  scrolltoAlarm();
+
   if (!autsrt_mode) saveAlarms();
   play_sound("clik");
 } //exec_sortAlarms()
@@ -1967,7 +1978,7 @@ var snooze_ctdn_m;
 
 function startRinger() {
   ring_flag= true;
-  active_aI_el.scrollIntoView({behavior:"smooth", block:"start"});
+  scrolltoAlarm("activeAlarm");
   play_sound("rngr");
   showEl(ringerButs_el);
   body_el.classList.add("ringing", "ringingFlash");
