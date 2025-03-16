@@ -26,6 +26,7 @@ ul {list-style: none; }
 body.ringing {
   background: lightblue;
 }
+
 body.ringingFlash {
   background: pink;
 }
@@ -230,7 +231,7 @@ div#alarm {
       font-weight: 800;
       color: darkolivegreen;
       opacity: 50%;
-      padding-top: 1px; /*compensate for the diff fonts being slightly diff height*/
+      padding-top: 1px; /*compensate for the fonts being slightly diff height*/
     }
 
     &.alarm-active {
@@ -307,6 +308,13 @@ div#alarm {
         &.but-active {
           color: chartreuse;
         }
+
+        div { /*snooze numbers*/
+          margin-top: -3px; /*weird but works*/
+          span {
+            color: lightgray;
+          }
+        }
       }
     }
 
@@ -334,7 +342,13 @@ div#alarm {
 
 } /*alarm*/
 
-
+body.ringing {
+  div#ringerSnooze {
+    span {
+      color: white !important;
+    }
+  }
+}
 
 div#clockFace {
   width: 272px;
@@ -652,8 +666,18 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       <div id="alarmCountdown" class="countdown"></div>
       <div id="ringerButs">
         <div id="ringerOff" class="button">OFF</div>
-        <div id="ringerSnooze" class="button">SNOOZE</div>
-        <div id="rSnzCountdown" class="countdown"></div>
+        <div id="ringerSnooze" class="button">
+          SNOOZE
+          <div>
+            <span>1</span>
+            <span>5</span>
+            <span>10</span>
+            <span>15</span>
+            <span>20</span>
+            <span>30</span>
+          </div>
+        </div>
+        <div id="rSnzCountdown" class="countdown">&nbsp;</div>
       </div>
     </div>
   </div>
@@ -1118,7 +1142,9 @@ function exec_setAutoMode() { //on or off
 function auto_procAlarms(requery_flag) { //sort alarms, and activate top alarm
   exec_sortAlarms(requery_flag);
   autoTopAI_el= aI_arr.find(aI_el => aI_el.checkVisibility()); //skip disabled
-  if (autoTopAI_el && !active_aI_el) setAlarm(autoTopAI_el); //auto activate top alarm
+
+  //if (autoTopAI_el && !active_aI_el) setAlarm(autoTopAI_el); //auto activate top alarm (not if already an active alarm)
+  if (autoTopAI_el) setAlarm(autoTopAI_el); //auto activate top alarm
 } //auto_procAlarms()
 
 
@@ -1907,7 +1933,12 @@ var ringerOff_el= document.querySelector("div#ringerOff")
 ringerOff_el.addEventListener("click", () => stopRinger());
 
 var ringerSnooze_el= document.querySelector("div#ringerSnooze")
-ringerSnooze_el.addEventListener("click", () => stopRinger("snooze"));
+ringerSnooze_el.addEventListener("click", evt => {
+  var targ_el= evt.target;
+  var n;
+  if (targ_el.tagName == "SPAN") n= targ_el.textContent *1;
+  stopRinger("snooze", n);
+});
 
 var rSnzCountdown_el= document.querySelector("div#rSnzCountdown");
 
@@ -1927,7 +1958,7 @@ function startRinger() {
   }, 5000);
 } //startRinger()
 
-function stopRinger(snooze_flag) {
+function stopRinger(snooze_flag, snooze_n) {
   if (!ring_flag) return;
 
   if (ring_intimerId) {
@@ -1939,7 +1970,7 @@ function stopRinger(snooze_flag) {
   if (snooze_flag) {
     //note: snooze wont be exact, since it only checks/fires at top of minute
     //eg. 5 minutes will be 4-5 minutes
-    snooze_ctdn_m= snooze_def_num;
+    snooze_ctdn_m= snooze_n || snooze_def_num;
     classEl(ringerSnooze_el, "but-active");
 
   } else { //ringer off
@@ -1956,7 +1987,7 @@ function stopRinger(snooze_flag) {
 } //stopRinger()
 
 function drawSnooze() {
-  rSnzCountdown_el.textContent= snooze_ctdn_m ? g_untilStr(snooze_ctdn_m) : "";
+  rSnzCountdown_el.innerHTML= snooze_ctdn_m ? g_untilStr(snooze_ctdn_m) : "&nbsp;";
 } //drawSnooze()
 
 function checkSnooze() {
