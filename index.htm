@@ -1187,7 +1187,7 @@ function disablerAlarm(aI_el, dsbl_flag) {
 
   aI_el.ELO.aActivate.insertAdjacentHTML(
   "afterend",
-  `<div class="checkbox-wrapper-18"><input type="checkbox" id="chkbx_${disblr_ct}"${checked_str}/><label for="chkbx_${disblr_ct}"></label></div>`
+  `<div class="checkbox-wrapper-18" title="Enable/Disable"><input type="checkbox" id="chkbx_${disblr_ct}"${checked_str}/><label for="chkbx_${disblr_ct}"></label></div>`
   );
   showEl(aI_el.ELO.aActivate, false);
   disblr_ct++;
