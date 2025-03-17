@@ -1195,9 +1195,11 @@ var alarm_dtO;
 var hTimO;
 
 var aI_NL; //from .getElementsByClassName(), dynamic nodeList
+var vis_ct;
 
 function startAlarms() {
   disblr_ct= 0;
+  vis_ct= 0;
   alarmsCont_el.innerHTML= "";
 
   var alarms_json= localStorage.getItem("alarms");
@@ -1216,6 +1218,7 @@ function startAlarms() {
 
     if (disabler_mode) disablerAlarm(aInst_el, a_obj.d);
     else if (a_obj.d) showEl(aInst_el, false);
+    else vis_ct++;
   });
 
   aI_NL= alarmsCont_el.getElementsByClassName("alarmInstance");
@@ -1229,7 +1232,8 @@ function get_topAlarm() {
 }
 
 
-var disblr_ct;
+var disblr_ct; //for css checkbox label to work
+
 function disablerAlarm(aI_el, dsbl_flag) {
   var checked_str= dsbl_flag ? "" : " checked";
   classEl(aI_el, "disabledInstance", !!dsbl_flag); //in classEl(), flag of undefined will default to true
@@ -1364,8 +1368,8 @@ function setT_Mcountdown(aI_el =alarmInst_el, preview_str ="preview") {
 } //setT_Mcountdown()
 
 function updateAlarms(mnt_n) {
-  if (!get_topAlarm()) return; //-->
-  var autoTurn_flag;
+  if (!vis_ct)) return; //-->
+  var autoTurnover_flag;
   [...aI_NL].forEach(aI_el  => {
     if (aI_el.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
       aI_el.T_M_ctdn_m+= mnt_n;
@@ -1374,7 +1378,7 @@ function updateAlarms(mnt_n) {
       if (aI_el.T_M_ctdn_m < 1) {
         classEl(aI_el, "expired");
         setT_Mcountdown(aI_el, "preview_forceTurnover");
-        if (autsrt_mode) autoTurn_flag= true;
+        if (autsrt_mode) autoTurnover_flag= true;
       }
 
       if (aI_el.T_M) {
@@ -1399,7 +1403,7 @@ function updateAlarms(mnt_n) {
     checkSnooze();
   }
 
-  if (autoTurn_flag) autsrtAlarms();
+  if (autoTurnover_flag) autsrtAlarms();
 
 } //updateAlarms()
 
@@ -1795,24 +1799,6 @@ function checkMarker() {
   }
 } //checkMarker()
 
-function saveAlarms() {
-  var saveAlarms_arr= [];
-  if (aI_NL.length) {
-    var a_obj;
-    var info_str;
-    [...aI_NL].forEach(aI_el => {
-      a_obj= {t: aI_el.ELO.aTime.textContent};
-      if (info_str= aI_el.ELO.aInfo.innerHTML) a_obj.i= info_str;
-      if (aI_el.classList.contains("alarm-active")) a_obj.a= 1;
-      if (aI_el.T_M) a_obj.T_M= 1;
-      if (disabler_mode ? !aI_el.querySelector("input").checked : !aI_el.checkVisibility()) a_obj.d= 1;
-      saveAlarms_arr.push(a_obj);
-    });
-  }
-//console.trace("saveAlarms",saveAlarms_arr)
-  localStorage.setItem("alarms", JSON.stringify(saveAlarms_arr));
-} //saveAlarms()
-
 function sortAlarms(evt) {
   if (evt.ctrlKey) {
     exec_sortAlarms();
@@ -1825,7 +1811,7 @@ function sortAlarms(evt) {
 } //sortAlarms()
 
 function exec_sortAlarms() {
-  if (!get_topAlarm()) return; //-->
+  if (!vis_ct) return; //-->
   [...aI_NL]
     .sort((a, b) => a.T_M_ctdn_m > b.T_M_ctdn_m ? 1 : -1)
     .forEach(aI_el => alarmsCont_el.appendChild(aI_el)) //reorder in DOM
@@ -1837,6 +1823,28 @@ function exec_sortAlarms() {
   if (!autsrt_mode) saveAlarms();
   play_sound("clik");
 } //exec_sortAlarms()
+
+function saveAlarms() {
+  vis_ct= 0;
+  var saveAl_arr= [];
+  if (aI_NL.length) {
+    var a_obj;
+    var info_str;
+    [...aI_NL].forEach(aI_el => {
+      a_obj= {t: aI_el.ELO.aTime.textContent};
+      if (info_str= aI_el.ELO.aInfo.innerHTML) a_obj.i= info_str;
+      if (aI_el.classList.contains("alarm-active")) a_obj.a= 1;
+      if (aI_el.T_M) a_obj.T_M= 1;
+
+      if (disabler_mode ? !aI_el.querySelector("input").checked : !aI_el.checkVisibility()) a_obj.d= 1;
+      else vis_ct++;
+
+      saveAl_arr.push(a_obj);
+    });
+  }
+//console.trace("saveAlarms",saveAlarms_arr)
+  localStorage.setItem("alarms", JSON.stringify(saveAl_arr));
+} //saveAlarms()
 
 
 var disabler_mode;
