@@ -1461,7 +1461,7 @@ function exec_deleteAlarm() {
   alarmInst_el.remove(); //from DOM
 
   //aI_arr= aI_arr.filter(aI_el => aI_el != alarmInst_el); //remove from aI_arr
-  aI_arr.splice(g_idx(alarmInst_el), 1); //remove from aI_arr
+  move_aIArrEl(alarmInst_el); //remove from aI_arr
 
   if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
   saveAlarms();
@@ -1949,14 +1949,14 @@ function startDragAlarms() {
 
       } else if (dropOn_el.classList.contains("dropAbove") || dropOn_el.classList.contains("dropBelow")) {
 
-        var chg_n= dropOn_el.classList.contains("dropAbove") ? -1 : 1;
+        var chg_n= dropOn_el.classList.contains("dropAbove") ? 0 : 1;
         //move in DOM..
-        if (chg_n == -1) dropOn_el.before(dragAl_el);
+        if (chg_n == 0) dropOn_el.before(dragAl_el);
         else dropOn_el.after(dragAl_el);
 
         //move in aI_arr..
-        aI_arr.splice(g_idx(dragAl_el), 1); //remove from aI_arr
-        aI_arr.splice(g_idx(dropOn_el) +chg_n, 0, dragAl_el); //add back to aI_arr in new position
+        move_aIArrEl(dragAl_el, dropOn_el, chg_n); //move in aI_arr
+
         if (active_aI_el) active_aI_el.after(alarmStatus_el);
 
         saveAlarms();
@@ -1978,9 +1978,25 @@ function startDragAlarms() {
   //dragndrop
 } //startDragAlarms()
 
+
+function move_aIArrEl(aI_el, destAI_el, destChg_n =0) { //if no destAI_el, just delete
+  var idx= g_idx(aI_el);
+  if (idx >= 0) {
+    aI_arr.splice(idx, 1); //remove from aI_arr
+    if (destAI_el) {
+      var dest_idx= g_idx(destAI_el);
+      dest_idx= dest_idx>=0 ? dest_idx +destChg_n : aI_arr.length;
+      //.. if destAI_el not found, append to aI_arr (so accidental delete not possible, just a failed move)
+      aI_arr.splice(dest_idx, 0, aI_el); //add back to aI_arr
+      idx= dest_idx; //to be returned
+    }
+  }
+  return idx; //returns current index of aI_el
+} //move_aIArrEl()
+
 function g_idx(aI_el) { //get the index of aI_el in aI_arr
   return aI_arr.findIndex(aIel => aIel == aI_el);
-} //get_aIArrIndex()
+} //g_idx()
 
 
 var ringerButs_el= document.querySelector("div#ringerButs");
