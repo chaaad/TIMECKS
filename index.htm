@@ -950,7 +950,7 @@ console.log("JUMP clock ahead 1 minute", g_fmatTime(sync_dtO), g_fmatSDM())
   return true; //advanced, yes
 } //advancedClock()
 
-//console.log utils
+//debug utils (console.log)
 function g_fmatTime(dtO =new Date()) { //formatted time string, eg. "@11:48:22.005" //shows ms
   return "@" +(dtO.getHours()%12||12) +":" +dtO.toISOString().substring(14, 23);
   //.. toISOString(), eg. "2011-10-05T14:48:22.005Z"
@@ -960,7 +960,11 @@ function g_fmatSDM() { //formatted sync_diff_ms string, eg. "dif+12"
   if (sync_diff_ms > 0) str+= "+";
   return str +sync_diff_ms;
 } //g_fmatSDM()
-
+function log_aI(str ="") {
+  var arr= [];
+  aI_arr.forEach(aI_el  => arr.push(aI_el.aId()));
+  console.log(str, arr)
+} //log_aI()
 
 var body_el= document.querySelector("body");
 
@@ -1109,6 +1113,8 @@ async function requestWakeLock() {
 		wakeLockObj= await navigator.wakeLock.request();
       classEl(wlEnable_el, "on");
       //localStorage.setItem("wake_lock", true);
+      //no, dont persist, its more of a dynamic value, requesting a wakeLock is more of automatic process
+      //could persist something like "never use wakeLock", dont bother
 
   		wakeLockObj.addEventListener("release", () => {
   			wakeLockObj= undefined; //clear global
@@ -1149,15 +1155,19 @@ function editSettings() { //just snooze duration
 } //editSettings()
 
 
-var autsrt_mode= localStorage.getItem("autsrt_mode") || false;
+var autsrt_mode= localStorage.getItem("autsrt_mode") == "true"; //localStorage, will be string "true", "false"
 
 function setAutosortMode() {
-  jm.state('Auto Sort Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by time. Also, the first alarm will always self-activate', autsrt_mode, resp => {
-    if (resp==null || resp==autsrt_mode) return;
-    autsrt_mode= resp;
-    exec_setAutosortMode();
-    localStorage.setItem("autsrt_mode", autsrt_mode);
-  });
+  jm.state(
+    'Auto Sort Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by time. Also, the first alarm will always self-activate',
+    autsrt_mode,
+    resp => {
+      if (resp==null || resp==autsrt_mode) return;
+      autsrt_mode= resp;
+      exec_setAutosortMode();
+      localStorage.setItem("autsrt_mode", autsrt_mode);
+    }
+  );
 } //setAutosortMode()
 
 function exec_setAutosortMode() { //on or off
@@ -1167,23 +1177,23 @@ function exec_setAutosortMode() { //on or off
   if (autsrt_mode) autsrtAlarms();
 } //exec_setAutosortMode()
 
-function autsrtAlarms(requery_flag) { //sort alarms, and activate top alarm
-  exec_sortAlarms(requery_flag);
-  autoActivateAlarm(requery_flag);
+function autsrtAlarms(useTop_flag) { //sort alarms, and activate top alarm
+  exec_sortAlarms();
+  autoActivateAlarm(useTop_flag);
 } //autsrtAlarms()
 
-function autoActivateAlarm(override_flag) { //auto-activate top alarm
+function autoActivateAlarm(useTop_flag) { //auto-activate top alarm
   var topAI_el= aI_arr.find(aI_el => aI_el.checkVisibility()); //skip disabled
-  if (topAI_el && topAI_el!=active_aI_el && (!active_aI_el || override_flag)) { //override_flag, existing active_aI_el
+  if (topAI_el && topAI_el!=active_aI_el && (!active_aI_el || useTop_flag)) { //useTop_flag, override existing active_aI_el
     setAlarm(topAI_el);
-  }
+  } //else console.trace("autoActivateAlarm didnt fire, active_aI_el", active_aI_el) ////////////////////////
 } //autoActivateAlarm()
 
 var alarm_flag;
 var alarm_ctdn_m;
 var alarm_dtO;
 var hTimO;
-var aI_arr; //so dont have to query a list so much
+var aI_arr;
 
 function startAlarms() {
   aI_arr= [];
@@ -1253,7 +1263,7 @@ function editAlarmInfo(info_str, NEW_str) {
     } else {
       alarmInst_el.ELO.aInfo.innerHTML= info_str.replaceAll("\n", "<br>");
       glowAlarm(NEW_str ? 4 : 1);
-      saveAlarms();
+      saveAlarms(); //with NEW_str, 'save' must to happen
     }
   });
 } //editAlarmInfo()
@@ -1299,14 +1309,13 @@ function editAlarmTime(NEW_str) {
           }
           pop_Time_T_Mtitle(alarmNow_obj.time);
           setT_Mcountdown();
-          if (!disabler_mode && (alarmInst_el==active_aI_el || !active_aI_el)) {
-//            stopRinger(); //if needed
+          if (!disabler_mode && !active_aI_el) {
             setAlarm(alarmInst_el);
           } else if (!autsrt_mode && !NEW_str) {
             saveAlarms();
           }
           if (autsrt_mode) {
-            autsrtAlarms("requery");
+            autsrtAlarms("useTop");
             if (!NEW_str) saveAlarms();
           }
           if (NEW_str) editAlarmInfo(NEW_str, NEW_str);
@@ -1352,19 +1361,21 @@ function setT_Mcountdown(aI_el =alarmInst_el, preview_str ="preview") {
 function updateAlarms(mnt_n) {
   var autoTurn_flag;
   aI_arr.forEach(aI_el  => {
-    aI_el.T_M_ctdn_m+= mnt_n;
-    if (alarm_flag && aI_el==active_aI_el) alarm_ctdn_m= aI_el.T_M_ctdn_m;
+    if (aI_el.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
+      aI_el.T_M_ctdn_m+= mnt_n;
+      if (alarm_flag && aI_el==active_aI_el) alarm_ctdn_m= aI_el.T_M_ctdn_m;
 
-    if (aI_el.T_M_ctdn_m < 1) {
-      classEl(aI_el, "expired");
-      setT_Mcountdown(aI_el, "preview_forceTurnover");
-      if (autsrt_mode) autoTurn_flag= true;
-    }
+      if (aI_el.T_M_ctdn_m < 1) {
+        classEl(aI_el, "expired");
+        setT_Mcountdown(aI_el, "preview_forceTurnover");
+        if (autsrt_mode) autoTurn_flag= true;
+      }
 
-    if (aI_el.T_M) {
-//tbd //skip draw for active alarm (since its hidden)? or dont bother checking, just draw it..
-      aI_el.ELO.aT_Minus.textContent= g_untilStr(aI_el.T_M_ctdn_m);
-    }
+      if (aI_el.T_M) {
+        //skip draw for active alarm (since its hidden)? or dont bother checking //so what, just draw it..
+        aI_el.ELO.aT_Minus.textContent= g_untilStr(aI_el.T_M_ctdn_m);
+      }
+    } //skip not visible
   });
 
   if (alarm_flag) {
@@ -1394,7 +1405,8 @@ function addAlarm() {
 function exec_addAlarm() {
   var clAlrmInst_el= template_alarmInst_el.cloneNode(true); //clone
   add_instanceHelpers(clAlrmInst_el);
-  alarmsCont_el.appendChild(clAlrmInst_el); //add
+  alarmsCont_el.appendChild(clAlrmInst_el); //add to DOM
+  aI_arr.push(clAlrmInst_el); //add to aI_arr
   if (disabler_mode) disablerAlarm(clAlrmInst_el);
   alarmInst_el= clAlrmInst_el;
 } //exec_addAlarm()
@@ -1431,7 +1443,7 @@ function importAlarm() {
     }
     if (ct) {
       play_sound("bell", ct, 1400); //1400, bell is longish clip
-      if (autsrt_mode) autsrtAlarms("requery");
+      if (autsrt_mode) autsrtAlarms("useTop");
       saveAlarms();
     }
   });
@@ -1447,7 +1459,11 @@ function deleteAlarm() {
 } //deleteAlarm()
 
 function exec_deleteAlarm() {
-  alarmInst_el.remove();
+  alarmInst_el.remove(); //from DOM
+
+  //aI_arr= aI_arr.filter(aI_el => aI_el != alarmInst_el); //remove from aI_arr
+  aI_arr.splice(g_idx(alarmInst_el), 1); //remove from aI_arr
+
   if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
   saveAlarms();
   alarmInst_el= undefined;
@@ -1745,9 +1761,7 @@ console.log("bad alarm time", alarm_str)
     alarm_flag= false;
     alarm_ctdn_m= 0;
 
-//    stopRinger(); //if needed
     showEl(alarmStatus_el, false);
-
     showEl(clockMarker_el, false);
 
     play_sound("slam");
@@ -1780,24 +1794,21 @@ function checkMarker() {
   }
 } //checkMarker()
 
-function get_aIList() {
-  return alarmsCont_el.querySelectorAll("div.alarmInstance");
-} //get_aIList()
-
 function saveAlarms() {
   var saveAlarms_arr= [];
-  var a_obj;
-  var info_str;
-  var aI_NL= get_aIList();
-  aI_arr= [...aI_NL];
-  aI_arr.forEach(aI_el => {
-    a_obj= {t: aI_el.ELO.aTime.textContent};
-    if (info_str= aI_el.ELO.aInfo.innerHTML) a_obj.i= info_str;
-    if (aI_el.classList.contains("alarm-active")) a_obj.a= 1;
-    if (aI_el.T_M) a_obj.T_M= 1;
-    if (disabler_mode ? !aI_el.querySelector("input").checked : !aI_el.checkVisibility()) a_obj.d= 1;
-    saveAlarms_arr.push(a_obj);
-  });
+  if (aI_arr.length) {
+    var a_obj;
+    var info_str;
+    aI_arr.forEach(aI_el => {
+      a_obj= {t: aI_el.ELO.aTime.textContent};
+      if (info_str= aI_el.ELO.aInfo.innerHTML) a_obj.i= info_str;
+      if (aI_el.classList.contains("alarm-active")) a_obj.a= 1;
+      if (aI_el.T_M) a_obj.T_M= 1;
+      if (disabler_mode ? !aI_el.querySelector("input").checked : !aI_el.checkVisibility()) a_obj.d= 1;
+      saveAlarms_arr.push(a_obj);
+    });
+  }
+//console.trace("saveAlarms",saveAlarms_arr)
   localStorage.setItem("alarms", JSON.stringify(saveAlarms_arr));
 } //saveAlarms()
 
@@ -1812,14 +1823,10 @@ function sortAlarms(evt) {
   }
 } //sortAlarms()
 
-function exec_sortAlarms(requery_flag) {
-  if (requery_flag) {
-    var aI_NL= get_aIList();
-    aI_arr= [...aI_NL];
-  }
+function exec_sortAlarms() {
   aI_arr
     .sort((a, b) => a.T_M_ctdn_m > b.T_M_ctdn_m ? 1 : -1)
-    .forEach(aI_el => alarmsCont_el.appendChild(aI_el))
+    .forEach(aI_el => alarmsCont_el.appendChild(aI_el)) //reorder in DOM
   ;
   if (active_aI_el) active_aI_el.after(alarmStatus_el);
 
@@ -1834,9 +1841,7 @@ var disabler_mode;
 var preserved_autsrt_mode;
 
 function toggleDisabler() {
-  if (!disabler_mode) { //turn disabler on}
-    if (alarm_flag && active_aI_el) setAlarm(false);
-
+  if (!disabler_mode) { //turn disabler mode on}
     showEl(autoSort_el, false);
     if (autsrt_mode) {
       preserved_autsrt_mode= true;
@@ -1844,15 +1849,17 @@ function toggleDisabler() {
       exec_setAutosortMode();
     }
 
+    if (alarm_flag && active_aI_el) setAlarm(false);
+
     if (wakeLockObj) setWakeLock(); //off
     showEl(wlEnable_el, false);
 
-  } else { //turn disabler off
+  } else { //turn disabler mode off
     showEl(autoSort_el);
     if (preserved_autsrt_mode) {
       preserved_autsrt_mode= undefined;
       autsrt_mode= true;
-      exec_setAutosortMode();
+      //exec_setAutosortMode(); //startAlarms() will do this
     }
 
     showEl(wlEnable_el);
@@ -1876,7 +1883,7 @@ function startDragAlarms() {
   // Add event listeners for drag and drop events
   alarmsCont_el.addEventListener("dragstart", dragStart);
   document.addEventListener("dragover", dragOver);
-  document.addEventListener("drop", drop); //user can drop anywhere, listening only on dragList only doesnt cut it
+  document.addEventListener("drop", drop); //user can drop anywhere, listening only on dragList doesnt cut it
   document.addEventListener("click", evt => {if (dragAl_el) clear("fully"); }); //recover after a failed drop
 
   function dragStart(evt) {
@@ -1884,10 +1891,11 @@ function startDragAlarms() {
 
     dragAl_el= evt.target;
     classEl(dragAl_el, "dragging");
-    //evt.dataTransfer.effectAllowed= "move"; //what does this even do? seems unneeded for reorder
+    //evt.dataTransfer.effectAllowed= "move"; //what does this even do? unnecessary for this reorder functionality
 
     var ct= 0;
-    get_aIList().forEach(aI_el => {if (aI_el.checkVisibility()) aI_el.d_index= ct++; }); //current order, set .d_index for each alarm
+    aI_arr.forEach(aI_el => {if (aI_el.checkVisibility()) aI_el.d_index= ct++; }); //current order, set .d_index for each alarm
+    // .d_index is only accurate up until the drop, it must be popped upon every dragStart
   } //dragStart()
 
   function dragOver(evt) {
@@ -1934,16 +1942,22 @@ function startDragAlarms() {
 
     evt.preventDefault();
     var dropOn_el= prev_dragOver_el; //not actual the dropOn_el, but this allows user to make drop even with imprecise drop
-    //.. if user drops outside of window, no drop event at all
+    //.. if user drops outside of window, no drop event at all, accept this fact
     if (dropOn_el) {
       if (dropOn_el == trash_el) {
         alarmInst_el= dragAl_el;
         exec_deleteAlarm();
 
       } else if (dropOn_el.classList.contains("dropAbove") || dropOn_el.classList.contains("dropBelow")) {
-        if (dropOn_el.classList.contains("dropAbove")) dropOn_el.before(dragAl_el);
+
+        var chg_n= dropOn_el.classList.contains("dropAbove") ? -1 : 1;
+        //move in DOM..
+        if (chg_n == -1) dropOn_el.before(dragAl_el);
         else dropOn_el.after(dragAl_el);
 
+        //move in aI_arr..
+        aI_arr.splice(g_idx(dragAl_el), 1); //remove from aI_arr
+        aI_arr.splice(g_idx(dropOn_el) +chg_n, 0, dragAl_el); //add back to aI_arr in new position
         if (active_aI_el) active_aI_el.after(alarmStatus_el);
 
         saveAlarms();
@@ -1964,6 +1978,10 @@ function startDragAlarms() {
 
   //dragndrop
 } //startDragAlarms()
+
+function g_idx(aI_el) { //get the index of aI_el in aI_arr
+  return aI_arr.findIndex(aIel => aIel == aI_el);
+} //get_aIArrIndex()
 
 
 var ringerButs_el= document.querySelector("div#ringerButs");
@@ -2294,7 +2312,7 @@ var jm= {
 
   }, //_customHooks
 
-  //utils
+  //jm utils
   _mouseHandler: function(el, clk_cb) { //default is "click", but can cutomize, eg. "Overlay_mousedown"
     var act_str;
     if (typeof(el) == "string") {
