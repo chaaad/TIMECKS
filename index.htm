@@ -1368,7 +1368,7 @@ function setT_Mcountdown(aI_el =alarmInst_el, preview_str ="preview") {
 } //setT_Mcountdown()
 
 function updateAlarms(mnt_n) {
-  if (!vis_ct)) return; //-->
+  if (!vis_ct) return; //-->
   var autoTurnover_flag;
   [...aI_NL].forEach(aI_el  => {
     if (aI_el.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
