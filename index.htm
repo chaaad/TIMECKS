@@ -851,7 +851,7 @@ function advancedClock() { //+1 clock minute
   degO.minutes+= m_inc;
   drawHands();
 
-  if (aI_arr.length) updateAlarms(-1);
+  updateAlarms(-1);
 
   if (pcDraft_str= localStorage.getItem("importedAlarm")) importAlarm();
   //.. like a poll, for "importedAlarm" in localStorage
@@ -962,7 +962,7 @@ function g_fmatSDM() { //formatted sync_diff_ms string, eg. "dif+12"
 } //g_fmatSDM()
 function log_aI(str ="") {
   var arr= [];
-  aI_arr.forEach(aI_el  => arr.push(aI_el.aId()));
+  [...aI_NL].forEach(aI_el  => arr.push(aI_el.aId()));
   console.log(str, arr)
 } //log_aI()
 
@@ -1183,7 +1183,7 @@ function autsrtAlarms(useTop_flag) { //sort alarms, and activate top alarm
 } //autsrtAlarms()
 
 function autoActivateAlarm(useTop_flag) { //auto-activate top alarm
-  var topAI_el= aI_arr.find(aI_el => aI_el.checkVisibility()); //skip disabled
+  var topAI_el= get_topAlarm();
   if (topAI_el && topAI_el!=active_aI_el && (!active_aI_el || useTop_flag)) { //useTop_flag, override existing active_aI_el
     setAlarm(topAI_el);
   } //else console.trace("autoActivateAlarm didnt fire, active_aI_el", active_aI_el) ////////////////////////
@@ -1193,10 +1193,10 @@ var alarm_flag;
 var alarm_ctdn_m;
 var alarm_dtO;
 var hTimO;
-var aI_arr;
+
+var aI_NL; //from .getElementsByClassName(), dynamic nodeList
 
 function startAlarms() {
-  aI_arr= [];
   disblr_ct= 0;
   alarmsCont_el.innerHTML= "";
 
@@ -1216,13 +1216,18 @@ function startAlarms() {
 
     if (disabler_mode) disablerAlarm(aInst_el, a_obj.d);
     else if (a_obj.d) showEl(aInst_el, false);
-
-    aI_arr.push(aInst_el);
   });
+
+  aI_NL= alarmsCont_el.getElementsByClassName("alarmInstance");
 
   if (autsrt_mode) exec_setAutosortMode();
   else if (alarmInst_el && !disabler_mode) setAlarm(alarmInst_el); //active on init
 } //startAlarms()
+
+function get_topAlarm() {
+  if (aI_NL.length) return [...aI_NL].find(aI_el => aI_el.checkVisibility()); //skip disabled
+}
+
 
 var disblr_ct;
 function disablerAlarm(aI_el, dsbl_flag) {
@@ -1359,8 +1364,9 @@ function setT_Mcountdown(aI_el =alarmInst_el, preview_str ="preview") {
 } //setT_Mcountdown()
 
 function updateAlarms(mnt_n) {
+  if (!get_topAlarm()) return; //-->
   var autoTurn_flag;
-  aI_arr.forEach(aI_el  => {
+  [...aI_NL].forEach(aI_el  => {
     if (aI_el.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
       aI_el.T_M_ctdn_m+= mnt_n;
       if (alarm_flag && aI_el==active_aI_el) alarm_ctdn_m= aI_el.T_M_ctdn_m;
@@ -1406,7 +1412,6 @@ function exec_addAlarm() {
   var clAlrmInst_el= template_alarmInst_el.cloneNode(true); //clone
   add_instanceHelpers(clAlrmInst_el);
   alarmsCont_el.appendChild(clAlrmInst_el); //add to DOM
-  aI_arr.push(clAlrmInst_el); //add to aI_arr
   if (disabler_mode) disablerAlarm(clAlrmInst_el);
   alarmInst_el= clAlrmInst_el;
 } //exec_addAlarm()
@@ -1459,9 +1464,6 @@ function deleteAlarm() {
 
 function exec_deleteAlarm() {
   alarmInst_el.remove(); //from DOM
-
-  //aI_arr= aI_arr.filter(aI_el => aI_el != alarmInst_el); //remove from aI_arr
-  move_aIArrEl(alarmInst_el); //remove from aI_arr
 
   if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
   saveAlarms();
@@ -1795,10 +1797,10 @@ function checkMarker() {
 
 function saveAlarms() {
   var saveAlarms_arr= [];
-  if (aI_arr.length) {
+  if (aI_NL.length) {
     var a_obj;
     var info_str;
-    aI_arr.forEach(aI_el => {
+    [...aI_NL].forEach(aI_el => {
       a_obj= {t: aI_el.ELO.aTime.textContent};
       if (info_str= aI_el.ELO.aInfo.innerHTML) a_obj.i= info_str;
       if (aI_el.classList.contains("alarm-active")) a_obj.a= 1;
@@ -1823,7 +1825,8 @@ function sortAlarms(evt) {
 } //sortAlarms()
 
 function exec_sortAlarms() {
-  aI_arr
+  if (!get_topAlarm()) return; //-->
+  [...aI_NL]
     .sort((a, b) => a.T_M_ctdn_m > b.T_M_ctdn_m ? 1 : -1)
     .forEach(aI_el => alarmsCont_el.appendChild(aI_el)) //reorder in DOM
   ;
@@ -1893,7 +1896,7 @@ function startDragAlarms() {
     //evt.dataTransfer.effectAllowed= "move"; //what does this even do? unnecessary for this reorder functionality
 
     var ct= 0;
-    aI_arr.forEach(aI_el => {if (aI_el.checkVisibility()) aI_el.d_index= ct++; }); //current order, set .d_index for each alarm
+    [...aI_NL].forEach(aI_el => {if (aI_el.checkVisibility()) aI_el.d_index= ct++; }); //current order, set .d_index for each alarm
     // .d_index is only accurate up until the drop, it must be popped upon every dragStart
   } //dragStart()
 
@@ -1949,13 +1952,9 @@ function startDragAlarms() {
 
       } else if (dropOn_el.classList.contains("dropAbove") || dropOn_el.classList.contains("dropBelow")) {
 
-        var chg_n= dropOn_el.classList.contains("dropAbove") ? 0 : 1;
         //move in DOM..
-        if (chg_n == 0) dropOn_el.before(dragAl_el);
+        if (dropOn_el.classList.contains("dropAbove")) dropOn_el.before(dragAl_el);
         else dropOn_el.after(dragAl_el);
-
-        //move in aI_arr..
-        move_aIArrEl(dragAl_el, dropOn_el, chg_n); //move in aI_arr
 
         if (active_aI_el) active_aI_el.after(alarmStatus_el);
 
@@ -1977,26 +1976,6 @@ function startDragAlarms() {
 
   //dragndrop
 } //startDragAlarms()
-
-
-function move_aIArrEl(aI_el, destAI_el, destChg_n =0) { //if no destAI_el, just delete
-  var idx= g_idx(aI_el);
-  if (idx >= 0) {
-    aI_arr.splice(idx, 1); //remove from aI_arr
-    if (destAI_el) {
-      var dest_idx= g_idx(destAI_el);
-      dest_idx= dest_idx>=0 ? dest_idx +destChg_n : aI_arr.length;
-      //.. if destAI_el not found, append to aI_arr (so accidental delete not possible, just a failed move)
-      aI_arr.splice(dest_idx, 0, aI_el); //add back to aI_arr
-      idx= dest_idx; //to be returned
-    }
-  }
-  return idx; //returns current index of aI_el
-} //move_aIArrEl()
-
-function g_idx(aI_el) { //get the index of aI_el in aI_arr
-  return aI_arr.findIndex(aIel => aIel == aI_el);
-} //g_idx()
 
 
 var ringerButs_el= document.querySelector("div#ringerButs");
