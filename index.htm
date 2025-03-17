@@ -1433,8 +1433,7 @@ function importAlarm() {
         ct++;
         exec_addAlarm();
 
-        //tid= spl_ar[1]
-        var html_str= spl_ar[2] +' <br>' +spl_ar[0];
+        var html_str= spl_ar[2] +' <br>' +spl_ar[0] +" " +spl_ar[1];
         alarmInst_el.ELO.aInfo.innerHTML= html_str;
         pop_Time_T_Mtitle(alarmNow_obj.time);
         setT_Mcountdown(alarmInst_el);
