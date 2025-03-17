@@ -960,11 +960,14 @@ function g_fmatSDM() { //formatted sync_diff_ms string, eg. "dif+12"
   if (sync_diff_ms > 0) str+= "+";
   return str +sync_diff_ms;
 } //g_fmatSDM()
-function log_aI(str ="") {
+function aId(aI_el) {
+  return aI_el.$dEls.Info.textContent; //not really an id, but good for debugging
+} //aId()
+function log_aIs(str ="") {
   var arr= [];
-  [...aI_NL].forEach(aI_el  => arr.push(aI_el.aId()));
+  [...aI_NL].forEach(aI_el  => arr.push(aId(aI_el)));
   console.log(str, arr)
-} //log_aI()
+} //log_aIs()
 
 var body_el= document.querySelector("body");
 
@@ -1166,18 +1169,18 @@ function startAlarms() {
   alarmsCont_el.innerHTML= "";
 
   var alarms_json= localStorage.getItem("alarms");
-  var alarms_arr= [{t:"12:00 AM"}]; //empty default
-  if (alarms_json) try {alarms_arr= JSON.parse(alarms_json); } catch (err) {}
+  var storedAl_arr= [{t:"12:00 AM"}]; //empty default
+  if (alarms_json) try {storedAl_arr= JSON.parse(alarms_json); } catch (err) {}
 
-  alarms_arr.forEach(a_obj => {
+  storedAl_arr.forEach(a_obj => {
     aInst_el= template_alarmInst_el.cloneNode(true); //clone
     alarmsCont_el.appendChild(aInst_el); //add
     add_instanceHelpers(aInst_el);
-    aInst_el.ELO.aInfo.innerHTML= a_obj.i || "";
+    aInst_el.$dEls.Info.innerHTML= a_obj.i || "";
     pop_Time_T_Mtitle(a_obj.t, aInst_el);
     setT_Mcountdown(aInst_el);
     if (a_obj.a) alarmInst_el= aInst_el; //active
-    if (a_obj.T_M) toggleAlarmT_Minus(aInst_el); //init turn on
+    if (a_obj.t_m) toggleAlarmT_Minus(aInst_el); //init turn on
 
     if (disabler_mode) disablerAlarm(aInst_el, a_obj.d);
     else if (a_obj.d) showEl(aInst_el, false);
@@ -1231,25 +1234,24 @@ function disablerAlarm(aI_el, dsbl_flag) {
   var checked_str= dsbl_flag ? "" : " checked";
   classEl(aI_el, "disabledInstance", !!dsbl_flag); //in classEl(), flag of undefined will default to true
 
-  aI_el.ELO.aActivate.insertAdjacentHTML(
+  aI_el.$dEls.Activate.insertAdjacentHTML(
   "afterend",
   `<div class="checkbox-wrapper-18" title="Enable/Disable"><input type="checkbox" id="chkbx_${disblr_ct}"${checked_str}/><label for="chkbx_${disblr_ct}"></label></div>`
   );
-  showEl(aI_el.ELO.aActivate, false);
+  showEl(aI_el.$dEls.Activate, false);
   disblr_ct++;
 } //disablerAlarm()
 
 
 function add_instanceHelpers(aI_el) { //.dataset only stores strings
   //breaks html/js laws, but as far as js only goes, an element is just an object
-  aI_el.ELO= {
-    aInfo: aI_el.querySelector("div.alarmInfo"),
-    aActivate: aI_el.querySelector("span.alarmActivate"),
-    aTime: aI_el.querySelector("span.alarmTime"),
-    aT_Minus: aI_el.querySelector("span.alarmT_Minus"),
-    aDelete: aI_el.querySelector("span.delAlarmBut")
+  aI_el.$d= {}; //.data
+  aI_el.$dEls= { //pointers to sub els
+    Activate: aI_el.querySelector("span.alarmActivate"),
+    Info: aI_el.querySelector("div.alarmInfo"),
+    Time: aI_el.querySelector("span.alarmTime"),
+    T_Minus: aI_el.querySelector("span.alarmT_Minus")
   };
-  aI_el.aId= function() {return aI_el.ELO.aInfo.textContent; }; //not really an id, but good for debugging
 } //add_instanceHelpers()
 
 function glowAlarm(s =1, aI_el =alarmInst_el) {
@@ -1270,8 +1272,8 @@ function scrolltoAlarm(activeAlarm_flag) {
 
 
 function editAlarmInfo(info_str, NEW_str) {
-  var t_str= alarmInst_el.ELO.aTime.textContent;
-  if (!info_str) info_str= alarmInst_el.ELO.aInfo.innerHTML.replaceAll("<br>", "\n");
+  var t_str= alarmInst_el.$dEls.Time.textContent;
+  if (!info_str) info_str= alarmInst_el.$dEls.Info.innerHTML.replaceAll("<br>", "\n");
   jm.prompt_textarea('Alarm info (html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
     if (!NEW_str && (resp==null || resp==info_str)) return; //-->
     info_str= (resp || "").trim();
@@ -1280,7 +1282,7 @@ function editAlarmInfo(info_str, NEW_str) {
         editAlarmInfo(info_str, NEW_str); //try again (and we dont throw away what you typed in)
       });
     } else {
-      alarmInst_el.ELO.aInfo.innerHTML= info_str.replaceAll("\n", "<br>");
+      alarmInst_el.$dEls.Info.innerHTML= info_str.replaceAll("\n", "<br>");
       glowAlarm(NEW_str ? 4 : 1);
       saveAlarms(); //with NEW_str, 'save' must to happen
     }
@@ -1288,7 +1290,7 @@ function editAlarmInfo(info_str, NEW_str) {
 } //editAlarmInfo()
 
 function editAlarmTime(NEW_str) {
-  var alarm_str= NEW_str ? "12:00" : alarmInst_el.ELO.aTime.textContent;
+  var alarm_str= NEW_str ? "12:00" : alarmInst_el.$dEls.Time.textContent;
   var livePreview_el;
 
   function pop_prompt() {
@@ -1590,33 +1592,32 @@ function proc_alarmTimeText(input_str, param) { //returns truthy if raw_str is g
 
 
 function toggleAlarmT_Minus(aI_el =alarmInst_el) {
-  var flag= !aI_el.T_M; //toggle
-//console.log("toggleAlarmT_Minus", aI_el.aId(), flag)
+  var flag= !aI_el.$d.t_m; //toggle
   if (!flag) { //turn T_M off
     showT_Mel(aI_el, false);
   } else { //turn T_M on
     showT_Mel(aI_el);
   }
-  aI_el.T_M= flag;
+  aI_el.$d.t_m= flag;
 } //toggleAlarmT_Minus()
 
 function pop_Time_T_Mtitle(str, aI_el =alarmInst_el) {
-  aI_el.ELO.aTime.textContent= str;
-  aI_el.ELO.aT_Minus.title= str +alarmRoot_el.dataset.tminusTitle;
+  aI_el.$dEls.Time.textContent= str;
+  aI_el.$dEls.T_Minus.title= str +alarmRoot_el.dataset.tminusTitle;
 } //pop_Time_T_Mtitle()
 
 function showT_Mel(aI_el, flag =true) {
-  showEl(aI_el.ELO.aT_Minus, flag ? "inline-block" : false);
-  showEl(aI_el.ELO.aTime, !flag ? "inline-block" : false);
+  showEl(aI_el.$dEls.Time, !flag ? "inline-block" : false);
+  showEl(aI_el.$dEls.T_Minus, flag ? "inline-block" : false);
 } //showT_Mel()
 
 function setT_Mcountdown(aI_el =alarmInst_el, preview_str ="preview") {
-  var alarmNow_obj= proc_alarmTimeText(aI_el.ELO.aTime.textContent, preview_str);
+  var alarmNow_obj= proc_alarmTimeText(aI_el.$dEls.Time.textContent, preview_str);
   if (alarmNow_obj) {
     var ms= alarmNow_obj.ms -new Date();
     if (ms < 60000) ms= 60000; //minimum of 1 minute
-    aI_el.T_M_ctdn_m= Math.ceil(ms /60000);
-    aI_el.ELO.aT_Minus.textContent= g_untilStr(aI_el.T_M_ctdn_m);
+    aI_el.$d.ctdn_m= Math.ceil(ms /60000);
+    aI_el.$dEls.T_Minus.textContent= g_untilStr(aI_el.$d.ctdn_m);
   }
 } //setT_Mcountdown()
 
@@ -1650,7 +1651,7 @@ function importAlarm() {
         exec_addAlarm();
 
         var html_str= spl_ar[2] +' <br>' +spl_ar[0] +" " +spl_ar[1];
-        alarmInst_el.ELO.aInfo.innerHTML= html_str;
+        alarmInst_el.$dEls.Info.innerHTML= html_str;
         pop_Time_T_Mtitle(alarmNow_obj.time);
         setT_Mcountdown(alarmInst_el);
         glowAlarm(4);
@@ -1685,8 +1686,8 @@ function exec_deleteAlarm() {
 
 
 function g_promStr(str, t_str) {
-  if (!str) str= alarmInst_el.ELO.aInfo.innerHTML.replaceAll("<br>", " | ").substring(0, 40);
-  if (!t_str) t_str= alarmInst_el.ELO.aTime.textContent;
+  if (!str) str= alarmInst_el.$dEls.Info.innerHTML.replaceAll("<br>", " | ").substring(0, 40);
+  if (!t_str) t_str= alarmInst_el.$dEls.Time.textContent;
   return 'Alarm info:<b>' +str +'</b><br>Time:<b class="livePreview">' +t_str +'</b>';
 } //g_promStr()
 
@@ -1694,7 +1695,7 @@ function g_promStr(str, t_str) {
 function setAlarm(aI_el) {
   var flag= !!aI_el; //to boolean
   if (flag) {
-    var alarm_str= aI_el.ELO.aTime.textContent;
+    var alarm_str= aI_el.$dEls.Time.textContent;
     var alarmNow_obj= proc_alarmTimeText(alarm_str);
     if (!alarmNow_obj) {
       flag= false;
@@ -1703,16 +1704,16 @@ console.log("bad alarm time", alarm_str)
   } //flag
 
   if (active_aI_el) { //prev alarm off
-//console.log("setAlarm,flag,  active_aI_el", active_aI_el.aId() )
+//console.log("setAlarm,flag,  active_aI_el", aId(active_aI_el) )
     classEl(active_aI_el, "alarm-active", false);
     classEl(active_aI_el, "expired", false);
-    if (active_aI_el.T_M) showT_Mel(active_aI_el);
+    if (active_aI_el.$d.t_m) showT_Mel(active_aI_el);
   }
 
   if (flag) { //alarm on
     active_aI_el= aI_el;
     alarm_flag= true;
-    alarm_ctdn_m= aI_el.T_M_ctdn_m;
+    alarm_ctdn_m= aI_el.$d.ctdn_m;
     alarmCountdown_el.textContent= g_untilStr(alarm_ctdn_m);
 
     classEl(aI_el, "alarm-active");
@@ -1750,18 +1751,18 @@ function updateAlarms(mnt_n) {
   var autoTurnover_flag;
   [...aI_NL].forEach(aI_el  => {
     if (aI_el.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
-      aI_el.T_M_ctdn_m+= mnt_n;
-      if (alarm_flag && aI_el==active_aI_el) alarm_ctdn_m= aI_el.T_M_ctdn_m;
+      aI_el.$d.ctdn_m+= mnt_n;
+      if (alarm_flag && aI_el==active_aI_el) alarm_ctdn_m= aI_el.$d.ctdn_m;
 
-      if (aI_el.T_M_ctdn_m < 1) {
+      if (aI_el.$d.ctdn_m < 1) {
         classEl(aI_el, "expired");
         setT_Mcountdown(aI_el, "preview_forceTurnover");
         if (autsrt_mode) autoTurnover_flag= true;
       }
 
-      if (aI_el.T_M) {
+      if (aI_el.$d.t_m) {
         //skip draw for active alarm (since its hidden)? or dont bother checking //so what, just draw it..
-        aI_el.ELO.aT_Minus.textContent= g_untilStr(aI_el.T_M_ctdn_m);
+        aI_el.$dEls.T_Minus.textContent= g_untilStr(aI_el.$d.ctdn_m);
       }
     } //skip not visible
   });
@@ -1812,7 +1813,7 @@ function sortAlarms(evt) {
 function exec_sortAlarms() {
   if (!vis_ct) return; //-->
   [...aI_NL]
-    .sort((a, b) => a.T_M_ctdn_m > b.T_M_ctdn_m ? 1 : -1)
+    .sort((a, b) => a.$d.ctdn_m > b.$d.ctdn_m ? 1 : -1)
     .forEach(aI_el => alarmsCont_el.appendChild(aI_el)) //reorder in DOM
   ;
   if (active_aI_el) active_aI_el.after(alarmStatus_el);
@@ -1870,10 +1871,10 @@ function saveAlarms() {
     var a_obj;
     var info_str;
     [...aI_NL].forEach(aI_el => {
-      a_obj= {t: aI_el.ELO.aTime.textContent};
-      if (info_str= aI_el.ELO.aInfo.innerHTML) a_obj.i= info_str;
+      a_obj= {t: aI_el.$dEls.Time.textContent};
+      if (info_str= aI_el.$dEls.Info.innerHTML) a_obj.i= info_str;
       if (aI_el.classList.contains("alarm-active")) a_obj.a= 1;
-      if (aI_el.T_M) a_obj.T_M= 1;
+      if (aI_el.$d.t_m) a_obj.t_m= 1;
 
       if (disabler_mode ? !aI_el.querySelector("input").checked : !aI_el.checkVisibility()) a_obj.d= 1;
       else vis_ct++;
@@ -1881,7 +1882,7 @@ function saveAlarms() {
       saveAl_arr.push(a_obj);
     });
   }
-//console.trace("saveAlarms",saveAlarms_arr)
+//console.trace("saveAlarms",savestoredAl_arr)
   localStorage.setItem("alarms", JSON.stringify(saveAl_arr));
 } //saveAlarms()
 
@@ -1907,8 +1908,9 @@ function startDragAlarms() {
     //evt.dataTransfer.effectAllowed= "move"; //what does this even do? unnecessary for this reorder functionality
 
     var ct= 0;
-    [...aI_NL].forEach(aI_el => {if (aI_el.checkVisibility()) aI_el.d_index= ct++; }); //current order, set .d_index for each alarm
-    // .d_index is only accurate up until the drop, it must be popped upon every dragStart
+    [...aI_NL].forEach(aI_el => {if (aI_el.checkVisibility()) aI_el.$d.d_idx= ct++; }); //drag index
+    //.. current order, set .d_idx for each alarm
+    // .d_idx is only accurate up until the drop, it must be popped upon every dragStart
   } //dragStart()
 
   function dragOver(evt) {
@@ -1940,9 +1942,9 @@ function startDragAlarms() {
         const boundingRect= dragOvAl_el.getBoundingClientRect();
         const offset_y= boundingRect.y +(boundingRect.height /2);
         if (evt.clientY-offset_y < 0) {
-          if (dragOvAl_el.d_index-1 != dragAl_el.d_index) classEl(dragOvAl_el, "dropAbove");
+          if (dragOvAl_el.$d.d_idx-1 != dragAl_el.$d.d_idx) classEl(dragOvAl_el, "dropAbove");
         } else {
-          if (dragOvAl_el.d_index+1 != dragAl_el.d_index) classEl(dragOvAl_el, "dropBelow");
+          if (dragOvAl_el.$d.d_idx+1 != dragAl_el.$d.d_idx) classEl(dragOvAl_el, "dropBelow");
         }
 
         prev_dragOver_el= dragOvAl_el;
