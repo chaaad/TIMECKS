@@ -1172,6 +1172,8 @@ function startAlarms() {
   var storedAl_arr= [{t:"12:00 AM"}]; //empty default
   if (alarms_json) try {storedAl_arr= JSON.parse(alarms_json); } catch (err) {}
 
+  //storedAl_arr is closest thing to a data model in this app
+  //is totally temporary, rest of the time, data is solely in the DOM
   storedAl_arr.forEach(a_obj => {
     aInst_el= template_alarmInst_el.cloneNode(true); //clone
     alarmsCont_el.appendChild(aInst_el); //add
@@ -1866,7 +1868,7 @@ function get_topAlarm() {
 
 function saveAlarms() {
   vis_ct= 0;
-  var saveAl_arr= [];
+  var saveAl_arr= []; //another temporary data model
   if (aI_NL.length) {
     var a_obj;
     var info_str;
