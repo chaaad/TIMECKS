@@ -2431,7 +2431,7 @@ function urlImportALarm(q_str) { //import from via url querystring, stores "impo
     var exported_str= usp.get(action_str); // ?export=WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123
     if (!exported_str) return; //-->
     var split_arr= exported_str.split("|");
-    if (split_arr[1] == "PC" { //qualify //only PC can import
+    if (split_arr[1] == "PC") { //qualify //only PC can import
       fClick_flag= false;
 
       exported_str= action_str +"|" +exported_str;
