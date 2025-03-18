@@ -204,6 +204,10 @@ div#alarm {
       margin-bottom: 8px;
       opacity: 50%;
       letter-spacing: 0.5px;
+
+      .PC {
+        color: orangered;
+      }
     }
 
     span.alarmActivate {
@@ -1266,10 +1270,10 @@ function glowAlarm(s =1, aI_el =alarmInst_el) {
 var scrollParam= {behavior:"smooth", block:"center"};
 
 function scrolltoAlarm(activeAlarm_flag) {
-  var important_el;
-  if (!activeAlarm_flag) important_el= alarmsCont_el.querySelector("div.expired");
-  if (!important_el) important_el= active_aI_el;
-  if (important_el) important_el.scrollIntoView(scrollParam);
+  var chosen_el;
+  if (!activeAlarm_flag) chosen_el= alarmsCont_el.querySelector("div.expired");
+  if (!chosen_el) chosen_el= active_aI_el;
+  if (chosen_el) chosen_el.scrollIntoView(scrollParam);
 } //scrolltoAlarm()
 
 
@@ -1652,7 +1656,7 @@ function importAlarm() {
         ct++;
         exec_addAlarm();
 
-        var html_str= spl_ar[2] +' <br>' +spl_ar[0] +" " +spl_ar[1];
+        var html_str= '<div class="PC">' +spl_ar[2] +'</div> ' +spl_ar[0] +" " +spl_ar[1];
         alarmInst_el.$dEls.Info.innerHTML= html_str;
         pop_Time_T_Mtitle(alarmNow_obj.time);
         setT_Mcountdown(alarmInst_el);
