@@ -1643,7 +1643,7 @@ function exec_addAlarm() {
 
 
 function importAlarm(imported_str) {
-  localStorage.removeItem("importedAlarm");
+  localStorage.setItem("importedAlarm", "");
 
   var action_str;
   var spl_ar;
@@ -1654,7 +1654,7 @@ function importAlarm(imported_str) {
   imported_str.split("\n").forEach(item_str => {
     spl_ar= item_str.split("|");
 
-    //export|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123
+    //export|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123 //to test, can paste right into console "Local storage"
     //0      1               2  3                    4 5
     action_str= spl_ar[0]; //export, exportDelete
     if (spl_ar[2] == "PC") { //qualify
@@ -1663,7 +1663,7 @@ function importAlarm(imported_str) {
         time_str= spl_ar[1]; //WED 5/5 12:34pm
         tSpl_ar= time_str.split(" ");
         if (alarmNow_obj= proc_alarmTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -20`, "preview")) { // -20 minutes
-        add_ct++;
+          add_ct++;
           exec_addAlarm();
 
           var html_str= `${tSpl_ar[0]}<br><b>${spl_ar[3]}</b> ${spl_ar[4]} <b class="PC_tid" title="?">${spl_ar[5]}</b>`;
@@ -1671,19 +1671,22 @@ function importAlarm(imported_str) {
           pop_Time_T_Mtitle(alarmNow_obj.time);
           setT_Mcountdown(alarmInst_el);
           glowAlarm(4);
-
-        } else if (action_str == "exportDelete") {
-          //exportDelete|123|PC
-          //0            1   2
-          let tid= spl_ar[1];
-          let delTid_el= [...alarmsCont_el.querySelectorAll("span.PC_tid")]
-            .find(span_el => span_el.textContent == tid)
-          ;
-          if (delTid_el) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
-            alarmInst_el= delTid_el.closest("div.alarmInstance");
-            exec_delAlarm();
-          }
         }
+
+      } else if (action_str == "exportDelete") {
+        //exportDelete|123|PC
+        //0            1   2
+        let tid= spl_ar[1];
+        let delTid_el= [...alarmsCont_el.querySelectorAll("b.PC_tid")]
+          .find(span_el => span_el.textContent == tid)
+        ;
+
+        if (delTid_el) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
+          del_ct++;
+          alarmInst_el= delTid_el.closest("div.alarmInstance");
+          exec_delAlarm();
+        } //else error msg?
+
       } //action_str
     } //PC
   });
@@ -2424,11 +2427,13 @@ function urlImportALarm(q_str) { //import from via url querystring, stores "impo
   //.. this is a url based endpoint, not really a webpage, self closes
   if (!q_str) return; //-->
   var usp= new URLSearchParams(q_str);
-  action("export");
-  action("exportDelete");
+
+  //for local testing// file:///C:/Users/chaaad/Documents/GitHub/TIMECKS/index.htm
+  action("export");  // ?export=WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123
+  action("exportDelete"); //?exportDelete=123|PC
 
   function action(action_str) {
-    var exported_str= usp.get(action_str); // ?export=WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123
+    var exported_str= usp.get(action_str);
     if (!exported_str) return; //-->
     var split_arr= exported_str.split("|");
     if (split_arr[1] == "PC") { //qualify //only PC can import
