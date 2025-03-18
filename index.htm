@@ -205,7 +205,7 @@ div#alarm {
       opacity: 50%;
       letter-spacing: 0.5px;
 
-      .PC {
+      .PC_tid {
         color: orangered;
       }
     }
@@ -1080,8 +1080,9 @@ alarmsCont_el.addEventListener("click", evt => {
     if (targ_el.classList.contains("alarmActivate")) {
       setAlarm(alarmInst_el==active_aI_el?false:alarmInst_el); //toggle
 
-    } else if (targ_el.classList.contains("alarmInfo")) {
-      editAlarmInfo();
+    } else if (targ_el.closest("div.alarmInfo")) {
+      if (targ_el.classList.contains("PC_tid")) linkPC(targ_el);
+      else editAlarmInfo();
 
     } else if (targ_el.classList.contains("alarmT")) {
       stopPressTimer();
@@ -1656,7 +1657,7 @@ function importAlarm() {
         ct++;
         exec_addAlarm();
 
-        var html_str= '<div class="PC">' +spl_ar[2] +'</div> ' +spl_ar[0] +" " +spl_ar[1];
+        var html_str= spl_ar[2] +'<br><b>' +spl_ar[0] +'</b> <b class="PC_tid">' +spl_ar[1] +'</b>';
         alarmInst_el.$dEls.Info.innerHTML= html_str;
         pop_Time_T_Mtitle(alarmNow_obj.time);
         setT_Mcountdown(alarmInst_el);
@@ -1692,7 +1693,11 @@ function exec_deleteAlarm() {
 
 
 function g_promStr(str, t_str) {
-  if (!str) str= alarmInst_el.$dEls.Info.innerHTML.replaceAll("<br>", " | ").substring(0, 40);
+  if (!str) {
+    str= alarmInst_el.$dEls.Info.innerHTML.replaceAll("<br>", " | ");
+    var tmp_doc= new DOMParser().parseFromString(str, 'text/html');
+    str= (tmp_doc.body.textContent || "").substring(0, 40);
+  }
   if (!t_str) t_str= alarmInst_el.$dEls.Time.textContent;
   return 'Alarm info:<b>' +str +'</b><br>Time:<b class="livePreview">' +t_str +'</b>';
 } //g_promStr()
@@ -2079,6 +2084,13 @@ function g_untilStr(m, h) {
   return str || "0";
 } //g_untilStr()
 
+function linkPC(tid_el) {
+  var tid= tid_el.textContent;
+  var lgid= tid.split("-")[0];
+  var tname= tid_el.closest("div.alarmInfo").querySelector("b").textContent; //tree up then down
+  //div.alarmInfo will contain 2 <b>, 1st will be teamname, 2nd will be tid with <b class="PC_tid">
+  jm.alert(`PennantChase<br>lg${lgid} ${tname}<a href="https://www.pennantchase.com/lgTeamLineup.aspx?tid=${tid}&lgid=${lgid}" target="_blank">Lineup</a>`);
+} //linkPC()
 
 function play_sound(ac_key, repeat_n =1, step_ms =750) {
   if (repeat_n == 1) {
