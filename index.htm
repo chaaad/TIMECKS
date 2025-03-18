@@ -1657,7 +1657,7 @@ function importAlarm() {
         ct++;
         exec_addAlarm();
 
-        var html_str= spl_ar[2] +'<br><b>' +spl_ar[0] +'</b> <b class="PC_tid">' +spl_ar[1] +'</b>';
+        var html_str= spl_ar[2] +'<br><b>' +spl_ar[0] +'</b> <b class="PC_tid" title="?">' +spl_ar[1] +'</b>';
         alarmInst_el.$dEls.Info.innerHTML= html_str;
         pop_Time_T_Mtitle(alarmNow_obj.time);
         setT_Mcountdown(alarmInst_el);
@@ -1665,7 +1665,7 @@ function importAlarm() {
       }
     }
     if (ct) {
-      play_sound("bell", ct, 1400); //1400, bell is longish clip
+      play_sound("bell", ct, 1500); //1400, bell is longish clip
       if (autsrt_mode) autsrtAlarms("useTop");
       saveAlarms();
     }
