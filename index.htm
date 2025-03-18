@@ -848,7 +848,6 @@ function drawDay(dtO, h24) {
 
 var sync_diff_ms; //can debug in console
 var unthrottle_flag;
-var pcDraft_str;
 
 function advancedClock() { //+1 clock minute
   degO.hours+= h_inc;
@@ -857,7 +856,8 @@ function advancedClock() { //+1 clock minute
 
   updateAlarms(-1);
 
-  if (pcDraft_str= localStorage.getItem("importedAlarm")) importAlarm();
+  var imported_str;
+  if (imported_str= localStorage.getItem("importedAlarm")) importAlarm(imported_str);
   //.. like a poll, for "importedAlarm" in localStorage
 
   var sync_dtO= new Date();
@@ -1285,7 +1285,7 @@ function editAlarmInfo(info_str, NEW_str) {
     if (!NEW_str && (resp==null || resp==info_str)) return; //-->
     info_str= (resp || "").trim();
     if (info_str.length > 80) {
-      jm.error("Info length is up to 80 chars. Your text is " +info_str.length +" chars", () => {
+      jm.error(`Info length is up to 80 chars. Your text is ${info_str.length} chars`, () => {
         editAlarmInfo(info_str, NEW_str); //try again (and we dont throw away what you typed in)
       });
     } else {
@@ -1427,12 +1427,12 @@ function proc_alarmTimeText(input_str, param) { //returns truthy if raw_str is g
     var sgn_num= offsetMod_str=="+" ? 1 : -1;
 
     if (ofsO.m) {
-      if (ofsO.m > 59) return err("ahead minutes:<b>" +ofsO.m +"</b>max is 59"); //-->
+      if (ofsO.m > 59) return err(`ahead minutes:<b>${ofsO.m}</b>max is 59`); //-->
       time_ms+= sgn_num *ofsO.m *60000; //60*1000 //add mns
     }
     if (ofsO.h) {
       let max_h= ofsO.m ? 23 : 24; //max 24 hrs ahead
-      if (ofsO.h > max_h) return err("ahead hours:<b>" +ofsO.h +"</b>max is " +max_h); //-->
+      if (ofsO.h > max_h) return err(`ahead hours:<b>${ofsO.h}</b>max is ${max_h}`); //-->
       time_ms+= sgn_num *ofsO.h *3600000; //60*60*1000 //add hrs
     }
 
@@ -1445,7 +1445,7 @@ function proc_alarmTimeText(input_str, param) { //returns truthy if raw_str is g
 
   } else { //no offset given, derive for ahead_str
     let ahead_ms= time_dtO -new Date();
-    ahead_str= "(in: " +g_untilStr(Math.ceil(ahead_ms /60000)) +")";
+    ahead_str= `(in: ${g_untilStr(Math.ceil(ahead_ms /60000))})`;
   }
 
   function g_procRawTime(str) {
@@ -1642,40 +1642,65 @@ function exec_addAlarm() {
 } //exec_addAlarm()
 
 
-function importAlarm() {
+function importAlarm(imported_str) {
   localStorage.removeItem("importedAlarm");
-  var spl_ar;
-  var alarmNow_obj;
-  var ct= 0;
-  pcDraft_str.split("\n").forEach(pcTm_str => {
-    spl_ar= pcTm_str.split("|");
-    if (spl_ar.length == 5) { //cursory test
-//console.log("pcTm_str, split",spl_ar);
-// ?pc_draft=Schenectady%20Mohawk%20Giants|508-11|WED|3/12|6:53pm
-//      0                                   1     2     3   4
-      if (alarmNow_obj= proc_alarmTimeText(spl_ar[3] +" " +spl_ar[4] +"-20", "preview")) { // -20 minutes
-        ct++;
-        exec_addAlarm();
 
-        var html_str= spl_ar[2] +'<br><b>' +spl_ar[0] +'</b> <b class="PC_tid" title="?">' +spl_ar[1] +'</b>';
-        alarmInst_el.$dEls.Info.innerHTML= html_str;
-        pop_Time_T_Mtitle(alarmNow_obj.time);
-        setT_Mcountdown(alarmInst_el);
-        glowAlarm(4);
-      }
-    }
-    if (ct) {
-      play_sound("bell", ct, 1500); //1400, bell is longish clip
-      if (autsrt_mode) autsrtAlarms("useTop");
-      saveAlarms();
-    }
+  var action_str;
+  var spl_ar;
+  var time_str, tSpl_ar;
+  var alarmNow_obj;
+  var add_ct= 0;
+  var del_ct= 0;
+  imported_str.split("\n").forEach(item_str => {
+    spl_ar= item_str.split("|");
+
+    //export|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123
+    //0      1               2  3                    4 5
+    action_str= spl_ar[0]; //export, exportDelete
+    if (spl_ar[2] == "PC") { //qualify
+//console.log("item_str, split",spl_ar);
+      if (action_str == "export") {
+        time_str= spl_ar[1]; //WED 5/5 12:34pm
+        tSpl_ar= time_str.split(" ");
+        if (alarmNow_obj= proc_alarmTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -20`, "preview")) { // -20 minutes
+        add_ct++;
+          exec_addAlarm();
+
+          var html_str= `${tSpl_ar[0]}<br><b>${spl_ar[3]}</b> ${spl_ar[4]} <b class="PC_tid" title="?">${spl_ar[5]}</b>`;
+          alarmInst_el.$dEls.Info.innerHTML= html_str;
+          pop_Time_T_Mtitle(alarmNow_obj.time);
+          setT_Mcountdown(alarmInst_el);
+          glowAlarm(4);
+
+        } else if (action_str == "exportDelete") {
+          //exportDelete|123|PC
+          //0            1   2
+          let tid= spl_ar[1];
+          let delTid_el= [...alarmsCont_el.querySelectorAll("span.PC_tid")]
+            .find(span_el => span_el.textContent == tid)
+          ;
+          if (delTid_el) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
+            alarmInst_el= delTid_el.closest("div.alarmInstance");
+            exec_delAlarm();
+          }
+        }
+      } //action_str
+    } //PC
   });
+
+  if (add_ct) play_sound("bell", add_ct, 1500); //1400, bell is longish clip
+  if (del_ct) play_sound("trsh", del_ct, 1000);
+  //when both add_ct and del_ct, sounds might fail
+
+  if (add_ct || del_ct) {
+    if (autsrt_mode) autsrtAlarms("useTop");
+    saveAlarms();
+  }
 } //importAlarm()
 
 
 function deleteAlarm() {
   var prom_str= g_promStr();
-
   jm.agree('Delete?<br>' +prom_str, 0, resp => {
     if (resp != true) return; //null or false //-->
     exec_deleteAlarm();
@@ -1683,13 +1708,17 @@ function deleteAlarm() {
 } //deleteAlarm()
 
 function exec_deleteAlarm() {
-  alarmInst_el.remove(); //from DOM
-
-  if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
+  exec_delAlarm();
   saveAlarms();
-  alarmInst_el= undefined;
   play_sound("trsh");
 } //exec_deleteAlarm()
+
+function exec_delAlarm() {
+  if (!alarmInst_el) return;
+  alarmInst_el.remove(); //from DOM
+  if (alarmInst_el == active_aI_el) setAlarm(false); //if alarm was on, turn off
+  alarmInst_el= undefined;
+} //exec_delAlarm()
 
 
 function g_promStr(str, t_str) {
@@ -1871,7 +1900,7 @@ function autoActivateAlarm(useTop_flag) { //auto-activate top alarm
 } //autoActivateAlarm()
 
 function get_topAlarm() {
-  if (aI_NL.length) return [...aI_NL].find(aI_el => aI_el.checkVisibility()); //skip disabled
+  if (vis_ct) return [...aI_NL].find(aI_el => aI_el.checkVisibility()); //skip disabled
 } //get_topAlarm()
 
 
@@ -2391,23 +2420,33 @@ if (fClick_flag) { //satisfy browser requirement to allow play-sound
 }
 
 
-function urlImportALarm(q_str) { //import from pC via url querystring, stores "importedAlarm" in localstorage
+function urlImportALarm(q_str) { //import from via url querystring, stores "importedAlarm" in localstorage
   //.. this is a url based endpoint, not really a webpage, self closes
   if (!q_str) return; //-->
   var usp= new URLSearchParams(q_str);
-  var pcDrft_str= usp.get("pc_draft"); // ?pc_draft=New%20York%20Yankees|123|WED|5/5|12:34pm
-  if (pcDrft_str && pcDrft_str.split("|").length==5) { //cursory test
-    fClick_flag= false;
+  action("export");
+  action("exportDelete");
 
-    var prev_pcDrft_str= localStorage.getItem("importedAlarm"); //allow multiple
-    if (prev_pcDrft_str) {
-      if (prev_pcDrft_str.includes(pcDrft_str)) pcDrft_str= ""; //dupe, ignore
-      else pcDrft_str= prev_pcDrft_str +"\n" +pcDrft_str; //append
+  function action(action_str) {
+    var exported_str= usp.get(action_str); // ?export=WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123
+    if (!exported_str) return; //-->
+    var split_arr= exported_str.split("|");
+    if (split_arr[1] == "PC" { //qualify //only PC can import
+      fClick_flag= false;
+
+      exported_str= action_str +"|" +exported_str;
+      var prevImport_str= localStorage.getItem("importedAlarm"); //allow multiple
+      if (prevImport_str) {
+        if (prevImport_str.includes(exported_str)) exported_str= ""; //dupe, ignore
+        else exported_str= prevImport_str +"\n" +exported_str; //append
+      }
+
+      if (exported_str) localStorage.setItem("importedAlarm", exported_str);
     }
-
-    if (pcDrft_str) localStorage.setItem("importedAlarm", pcDrft_str);
-    window.close();
   }
+
+  if (fClick_flag == false) window.close();
+
 } //urlImportALarm()
 
 </script>
