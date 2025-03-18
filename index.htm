@@ -1022,7 +1022,7 @@ document.querySelector("div#topButtons").addEventListener("click", evt => {
   } else if (targ_el == autoSort_el) {
     setAutosortMode();
   } else if (targ_el == sort_el) {
-    sortAlarms();
+    sortAlarms(evt);
   } else if (targ_el.id == "addAlarmBut") {
     addAlarm();
   }
