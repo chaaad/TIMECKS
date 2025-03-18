@@ -745,6 +745,16 @@ var audioClips= {
 
 var clockFace_el= document.querySelector("DIV#clockFace");
 
+var hand_els= {
+  hourH: clockFace_el.querySelector("div#hourHand"),
+  minuteH: clockFace_el.querySelector("div#minuteHand")
+};
+var dayOfWeek_el= clockFace_el.querySelector("h3");
+var monthDay_el= clockFace_el.querySelector("div#dtDisplay");
+
+var clockMarker_el= clockFace_el.querySelector("div.marker");
+showEl(clockMarker_el, false);
+
 function drawClock() {
   var rotate_n= 0;
   for (var i=0; i<30; i++) {
@@ -775,18 +785,6 @@ function drawClock() {
   }
 } //drawClock()
 
-drawClock(); //init
-
-
-var hand_els= {
-  hourH: clockFace_el.querySelector("div#hourHand"),
-  minuteH: clockFace_el.querySelector("div#minuteHand")
-};
-var dayOfWeek_el= clockFace_el.querySelector("h3");
-var monthDay_el= document.getElementById("dtDisplay");
-
-var clockMarker_el= clockFace_el.querySelector("div.marker");
-showEl(clockMarker_el, false);
 
 var degO= {};
 var h_inc= 360 /720;
@@ -2416,6 +2414,7 @@ var fClick_flag= true;
 urlImportALarm(window.location.search);
 if (fClick_flag) { //satisfy browser requirement to allow play-sound
   jm.alert("Click to start", () => {
+    drawClock();
     startClock();
     startAlarms();
     startDragAlarms();
