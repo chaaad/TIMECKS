@@ -238,6 +238,16 @@ div#alarm {
       padding-top: 1px; /*compensate for the fonts being slightly diff height*/
     }
 
+    &.soon {
+      div.alarmInfo {
+        background: #ddf;
+        opacity: 100%;
+      }
+      span.alarmTime {
+        opacity: 50%;
+      }
+    }
+
     &.alarm-active {
       div.alarmInfo {
         background: black;
@@ -274,8 +284,12 @@ div#alarm {
   div.disablableContainer {
     div.alarmInfo {
       color: white;
-      background: black;
+      background: #666;
       opacity: 100%;
+    }
+
+    .soon div.alarmInfo {
+      background: darkblue;
     }
 
     div.disabledInstance {
@@ -1644,8 +1658,16 @@ function setT_Mcountdown(aI_el =alarmInst_el, preview_str ="preview") {
     if (ms < 60000) ms= 60000; //minimum of 1 minute
     aI_el.$d.ctdn_m= Math.ceil(ms /60000);
     aI_el.$dEls.T_Minus.textContent= g_untilStr(aI_el.$d.ctdn_m);
+    checkSoon(aI_el);
   }
 } //setT_Mcountdown()
+
+function checkSoon(aI_el) {
+  var soon_flag= aI_el.$d.ctdn_m < 720;
+  if (aI_el.$d.s == soon_flag) return; //-->
+  classEl(aI_el, "soon", soon_flag);
+  aI_el.$d.s= soon_flag; //.$d.s, 'soon', session var, not saved
+} //checkSoon()
 
 
 function addAlarm() {
@@ -1810,11 +1832,14 @@ console.log("bad alarm time", alarm_str)
 
 function updateAlarms(mnt_n) {
   if (!vis_ct) return; //-->
+
   var autoTurnover_flag;
   [...aI_NL].forEach(aI_el  => {
     if (aI_el.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
       aI_el.$d.ctdn_m+= mnt_n;
       if (alarm_flag && aI_el==active_aI_el) alarm_ctdn_m= aI_el.$d.ctdn_m;
+
+      checkSoon(aI_el);
 
       if (aI_el.$d.ctdn_m < 1) {
         classEl(aI_el, "expired");
