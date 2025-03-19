@@ -1031,7 +1031,7 @@ document.querySelector("div#topButtons").addEventListener("click", evt => {
 });
 
 
-//long click (long press)
+//long click (longpress)
 var longpress_flag;
 var press_timerId;
 
@@ -1041,6 +1041,7 @@ function stopPressTimer() {
   press_timerId= undefined;
 }
 
+//longpress
 alarmsCont_el.addEventListener("mousedown", evt => {
   var targ_el= evt.target;
   if (targ_el.classList.contains("alarmT")) {
@@ -1051,20 +1052,46 @@ alarmsCont_el.addEventListener("mousedown", evt => {
       if (c_alarmInst_el == active_aI_el) return jm.error('Cant change time/countdown view on active alarm'); //-->
       longpress_flag= true; //this will prevent regular click handler
       alarmInst_el= c_alarmInst_el;
-      toggleAlarmT_Minus();
+      setAlarmT_Minus(alarmInst_el, !alarmInst_el.$d.t_m, "persist"); //toggle
       play_sound("clik");
       saveAlarms();
     }, 1000);
   }
 });
 
-alarmsCont_el.addEventListener("mouseout", stopPressTimer);
+
+//timehover
+alarmsCont_el.addEventListener("mouseover", evt => {
+  var targ_el= evt.target;
+  if (targ_el.classList.contains("alarmT")) {
+    var aI_el= targ_el.closest("div.alarmInstance");
+    if (aI_el==active_aI_el || aI_el.$d.t_h) return; //-->  //active or already hovered, skip
+    setAlarmT_Minus(aI_el, !aI_el.$d.t_m); //toggle, but only temporary
+    aI_el.$d.t_h= true; //hover on
+  }
+});
+
+alarmsCont_el.addEventListener("mouseout", evt => {
+  //longpress
+  stopPressTimer();
+
+  //timehover
+  var targ_el= evt.target;
+  if (targ_el.classList.contains("alarmT")) {
+    var aI_el= targ_el.closest("div.alarmInstance");
+    if (!aI_el.$d.t_h) return; //-->  //already unhovered, skip
+    setAlarmT_Minus(aI_el, aI_el.$d.t_m); //untoggle, was temporary anyway
+    aI_el.$d.t_h= false; //hover off
+  }
+});
+
+//alarm //longpress
 alarmsCont_el.addEventListener("dragstart", () => {
   stopRinger(); //if needed
   stopPressTimer();
 });
 
-
+//alarm (for alarmT, longpress)
 alarmsCont_el.addEventListener("click", evt => {
   var targ_el= evt.target;
 
@@ -1103,7 +1130,6 @@ alarmsCont_el.addEventListener("click", evt => {
   } else if (targ_el.closest("div#ringerOff")) {
     stopRinger();
   }
-
 });
 
 
@@ -1185,7 +1211,7 @@ function startAlarms() {
     pop_Time_T_Mtitle(a_obj.t, aInst_el);
     setT_Mcountdown(aInst_el);
     if (a_obj.a) alarmInst_el= aInst_el; //active
-    if (a_obj.t_m) toggleAlarmT_Minus(aInst_el); //init turn on
+    if (a_obj.t_m) setAlarmT_Minus(aInst_el, true, "persist"); //init turn on
 
     if (disabler_mode) disablerAlarm(aInst_el, a_obj.d);
     else if (a_obj.d) showEl(aInst_el, false);
@@ -1596,24 +1622,19 @@ function proc_alarmTimeText(input_str, param) { //returns truthy if raw_str is g
 } //proc_alarmTimeText()
 
 
-function toggleAlarmT_Minus(aI_el =alarmInst_el) {
-  var flag= !aI_el.$d.t_m; //toggle
-  if (!flag) { //turn T_M off
-    showT_Mel(aI_el, false);
-  } else { //turn T_M on
-    showT_Mel(aI_el);
-  }
-  aI_el.$d.t_m= flag;
-} //toggleAlarmT_Minus()
+function setAlarmT_Minus(aI_el, flag, persist_flag) {
+  showT_Mel(aI_el, flag);
+  if (persist_flag) aI_el.$d.t_m= flag;
+} //setAlarmT_Minus()
 
 function pop_Time_T_Mtitle(str, aI_el =alarmInst_el) {
   aI_el.$dEls.Time.textContent= str;
   aI_el.$dEls.T_Minus.title= str +alarmRoot_el.dataset.tminusTitle;
 } //pop_Time_T_Mtitle()
 
-function showT_Mel(aI_el, flag =true) {
-  showEl(aI_el.$dEls.Time, !flag ? "inline-block" : false);
+function showT_Mel(aI_el, flag) {
   showEl(aI_el.$dEls.T_Minus, flag ? "inline-block" : false);
+  showEl(aI_el.$dEls.Time, !flag ? "inline-block" : false);
 } //showT_Mel()
 
 function setT_Mcountdown(aI_el =alarmInst_el, preview_str ="preview") {
@@ -1912,12 +1933,12 @@ function saveAlarms() {
     var a_obj;
     var info_str;
     [...aI_NL].forEach(aI_el => {
-      a_obj= {t: aI_el.$dEls.Time.textContent};
+      a_obj= {t: aI_el.$dEls.Time.textContent}; //time
       if (info_str= aI_el.$dEls.Info.innerHTML) a_obj.i= info_str;
-      if (aI_el.classList.contains("alarm-active")) a_obj.a= 1;
-      if (aI_el.$d.t_m) a_obj.t_m= 1;
+      if (aI_el.classList.contains("alarm-active")) a_obj.a= 1; //active alarm
+      if (aI_el.$d.t_m) a_obj.t_m= 1; //T_Minus
 
-      if (disabler_mode ? !aI_el.querySelector("input").checked : !aI_el.checkVisibility()) a_obj.d= 1;
+      if (disabler_mode ? !aI_el.querySelector("input").checked : !aI_el.checkVisibility()) a_obj.d= 1; //disabled
       else vis_ct++;
 
       saveAl_arr.push(a_obj);
