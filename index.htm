@@ -230,7 +230,7 @@ div#alarm {
       background: black;
     }
 
-    span.alarmT_Minus {
+    span.alarmCountdown {
       font-size: larger;
       font-weight: 800;
       color: darkolivegreen;
@@ -248,7 +248,7 @@ div#alarm {
       }
     }
 
-    &.alarm-active {
+    &.alarmActive {
       div.alarmInfo {
         background: black;
         color:white;
@@ -300,9 +300,9 @@ div#alarm {
     }
   }
 
-  div#alarmCountdown {}
+  div#activeCountdown {}
 
-  div#alarmStatus {
+  div#activeStatus {
     margin-bottom: 16px;
 
     div#ringerButs {
@@ -666,7 +666,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   <div id="trashCan" class="button squareButton" title="Trash (drop unwanted alarm here)">🗑</div>
 </div>
 
-<div id="alarm" data-tminus-title=" (Long press for time view)">
+<div id="alarm">
 
   <div id="alarmTemplates">
     <div class="alarmInstance" draggable="true">
@@ -674,14 +674,14 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
       <span class="alarmActivate button squareButton" title="On/Off">⏹</span>
       <span class="alarmT alarmTime" title="Edit time (Long press for countdown view)"></span>
-      <span class="alarmT alarmT_Minus"></span>
+      <span class="alarmT alarmCountdown" title="Edit time (Long press for time view)"></span>
       <span class="delAlarmBut closeButton" title="Delete"></span>
     </div>
   </div>
 
   <div id="alarmsContainer">
-    <div id="alarmStatus">
-      <div id="alarmCountdown" class="countdown"></div>
+    <div id="activeStatus">
+      <div id="activeCountdown" class="countdown"></div>
       <div id="ringerButs">
         <div id="ringerOff" class="button">OFF</div>
         <div id="ringerSnooze" class="button">
@@ -976,8 +976,8 @@ function g_fmatSDM() { //formatted sync_diff_ms string, eg. "dif+12"
   if (sync_diff_ms > 0) str+= "+";
   return str +sync_diff_ms;
 } //g_fmatSDM()
-function aId(aI_el) {
-  return aI_el.$dEls.Info.textContent; //not really an id, but good for debugging
+function aId(aI_el) { //not really an id, but good for debugging
+  return aI_el.$dEls.Info.textContent +" " +aI_el.$dEls.Ctdn.textContent;
 } //aId()
 function log_aIs(str ="") {
   var arr= [];
@@ -999,7 +999,7 @@ var trash_el= document.querySelector("div#trashCan");
 
 var alarmTemplates_el= document.querySelector("div#alarmTemplates");
 showEl(alarmTemplates_el, false);
-showEl(alarmTemplates_el.querySelector("span.alarmT_Minus"), false);
+showEl(alarmTemplates_el.querySelector("span.alarmCountdown"), false);
 
 var alarmsCont_el= document.querySelector("div#alarmsContainer");
 
@@ -1007,9 +1007,9 @@ var template_alarmInst_el= alarmTemplates_el.querySelector("div.alarmInstance");
 var alarmInst_el;
 var active_aI_el;
 
-var alarmStatus_el= document.querySelector("div#alarmStatus");
-showEl(alarmStatus_el, false);
-var alarmCountdown_el= alarmStatus_el.querySelector("div#alarmCountdown");
+var activeStatus_el= document.querySelector("div#activeStatus");
+showEl(activeStatus_el, false);
+var activeCountdown_el= activeStatus_el.querySelector("div#activeCountdown");
 
 var wlEnable_el= document.querySelector("div#wakeLockEnable");
 
@@ -1066,7 +1066,7 @@ alarmsCont_el.addEventListener("mousedown", evt => {
       if (c_alarmInst_el == active_aI_el) return jm.error('Cant change time/countdown view on active alarm'); //-->
       longpress_flag= true; //this will prevent regular click handler
       alarmInst_el= c_alarmInst_el;
-      setAlarmT_Minus(alarmInst_el, !alarmInst_el.$d.t_m, "persist"); //toggle
+      setTimeOrCtdn(alarmInst_el, !alarmInst_el.$d.c, "persist"); //toggle
       play_sound("clik");
       saveAlarms();
     }, 1000);
@@ -1080,7 +1080,7 @@ alarmsCont_el.addEventListener("mouseover", evt => {
   if (targ_el.classList.contains("alarmT")) {
     var aI_el= targ_el.closest("div.alarmInstance");
     if (aI_el==active_aI_el || aI_el.$d.t_h) return; //-->  //active or already hovered, skip
-    setAlarmT_Minus(aI_el, !aI_el.$d.t_m); //toggle, but only temporary
+    setTimeOrCtdn(aI_el, !aI_el.$d.c); //toggle, but only temporary
     aI_el.$d.t_h= true; //hover on
   }
 });
@@ -1094,7 +1094,7 @@ alarmsCont_el.addEventListener("mouseout", evt => {
   if (targ_el.classList.contains("alarmT")) {
     var aI_el= targ_el.closest("div.alarmInstance");
     if (!aI_el.$d.t_h) return; //-->  //already unhovered, skip
-    setAlarmT_Minus(aI_el, aI_el.$d.t_m); //untoggle, was temporary anyway
+    setTimeOrCtdn(aI_el, aI_el.$d.c); //untoggle, was temporary anyway
     aI_el.$d.t_h= false; //hover off
   }
 });
@@ -1210,6 +1210,7 @@ function startAlarms() {
   disblr_ct= 0;
   vis_ct= 0;
   alarmsCont_el.innerHTML= "";
+  alarmInst_el= undefined;
 
   var alarms_json= localStorage.getItem("alarms");
   var storedAl_arr= [{t:"12:00 AM"}]; //empty default
@@ -1221,14 +1222,14 @@ function startAlarms() {
     aInst_el= template_alarmInst_el.cloneNode(true); //clone
     alarmsCont_el.appendChild(aInst_el); //add
     add_instanceHelpers(aInst_el);
-    aInst_el.$dEls.Info.innerHTML= a_obj.i || "";
-    pop_Time_T_Mtitle(a_obj.t, aInst_el);
-    setT_Mcountdown(aInst_el);
-    if (a_obj.a) alarmInst_el= aInst_el; //active
-    if (a_obj.t_m) setAlarmT_Minus(aInst_el, true, "persist"); //init turn on
+    aInst_el.$dEls.Info.innerHTML= a_obj.i || ""; //alarm info
+    aInst_el.$dEls.Time.textContent= a_obj.t; //alarm time
+    setAlarmCtdn(aInst_el);
+    if (a_obj.a) alarmInst_el= aInst_el; //alarm active
+    if (a_obj.c) setTimeOrCtdn(aInst_el, true, "persist"); //init alarm countdown view
 
-    if (disabler_mode) disablerAlarm(aInst_el, a_obj.d);
-    else if (a_obj.d) showEl(aInst_el, false);
+    if (disabler_mode) disablerAlarm(aInst_el, a_obj.d); //disabler mode
+    else if (a_obj.d) showEl(aInst_el, false); //alarm disabled
     else vis_ct++;
   });
 
@@ -1295,7 +1296,7 @@ function add_instanceHelpers(aI_el) { //.dataset only stores strings
     Activate: aI_el.querySelector("span.alarmActivate"),
     Info: aI_el.querySelector("div.alarmInfo"),
     Time: aI_el.querySelector("span.alarmTime"),
-    T_Minus: aI_el.querySelector("span.alarmT_Minus")
+    Ctdn: aI_el.querySelector("span.alarmCountdown")
   };
 } //add_instanceHelpers()
 
@@ -1372,8 +1373,10 @@ function editAlarmTime(NEW_str) {
             exec_addAlarm();
             play_sound("bell");
           }
-          pop_Time_T_Mtitle(alarmNow_obj.time);
-          setT_Mcountdown();
+
+          alarmInst_el.$dEls.Time.textContent= alarmNow_obj.time;
+          setAlarmCtdn();
+//console.log("timeedit", aId(alarmInst_el)); //debug1
           if (!disabler_mode && !active_aI_el) {
             setAlarm(alarmInst_el);
           } else if (!autsrt_mode && !NEW_str) {
@@ -1636,31 +1639,26 @@ function proc_alarmTimeText(input_str, param) { //returns truthy if raw_str is g
 } //proc_alarmTimeText()
 
 
-function setAlarmT_Minus(aI_el, flag, persist_flag) {
-  showT_Mel(aI_el, flag);
-  if (persist_flag) aI_el.$d.t_m= flag;
-} //setAlarmT_Minus()
+function setTimeOrCtdn(aI_el, flag, persist_flag) {
+  alarmCtdnView(aI_el, flag);
+  if (persist_flag) aI_el.$d.c= flag;
+} //setTimeOrCtdn()
 
-function pop_Time_T_Mtitle(str, aI_el =alarmInst_el) {
-  aI_el.$dEls.Time.textContent= str;
-  aI_el.$dEls.T_Minus.title= str +alarmRoot_el.dataset.tminusTitle;
-} //pop_Time_T_Mtitle()
-
-function showT_Mel(aI_el, flag) {
-  showEl(aI_el.$dEls.T_Minus, flag ? "inline-block" : false);
+function alarmCtdnView(aI_el, flag) {
+  showEl(aI_el.$dEls.Ctdn, flag ? "inline-block" : false);
   showEl(aI_el.$dEls.Time, !flag ? "inline-block" : false);
-} //showT_Mel()
+} //alarmCtdnView()
 
-function setT_Mcountdown(aI_el =alarmInst_el, preview_str ="preview") {
+function setAlarmCtdn(aI_el =alarmInst_el, preview_str ="preview") {
   var alarmNow_obj= proc_alarmTimeText(aI_el.$dEls.Time.textContent, preview_str);
   if (alarmNow_obj) {
     var ms= alarmNow_obj.ms -new Date();
     if (ms < 60000) ms= 60000; //minimum of 1 minute
     aI_el.$d.ctdn_m= Math.ceil(ms /60000);
-    aI_el.$dEls.T_Minus.textContent= g_untilStr(aI_el.$d.ctdn_m);
+    aI_el.$dEls.Ctdn.textContent= g_untilStr(aI_el.$d.ctdn_m);
     checkSoon(aI_el);
   }
-} //setT_Mcountdown()
+} //setAlarmCtdn()
 
 function checkSoon(aI_el) {
   var soon_flag= aI_el.$d.ctdn_m < 720;
@@ -1709,8 +1707,8 @@ function importAlarm(imported_str) {
 
           var html_str= `${tSpl_ar[0]}<br><b>${spl_ar[3]}</b> ${spl_ar[4]} <b class="PC_tid" title="?">${spl_ar[5]}</b>`;
           alarmInst_el.$dEls.Info.innerHTML= html_str;
-          pop_Time_T_Mtitle(alarmNow_obj.time);
-          setT_Mcountdown(alarmInst_el);
+          alarmInst_el.$dEls.Time.textContent= alarmNow_obj.time;
+          setAlarmCtdn();
           glowAlarm(4);
         }
 
@@ -1788,23 +1786,21 @@ console.log("bad alarm time", alarm_str)
   } //flag
 
   if (active_aI_el) { //prev alarm off
-//console.log("setAlarm,flag,  active_aI_el", aId(active_aI_el) )
-    classEl(active_aI_el, "alarm-active", false);
+    classEl(active_aI_el, "alarmActive", false);
     classEl(active_aI_el, "expired", false);
-    if (active_aI_el.$d.t_m) showT_Mel(active_aI_el);
+    if (active_aI_el.$d.c) alarmCtdnView(active_aI_el);
   }
 
   if (flag) { //alarm on
     active_aI_el= aI_el;
     alarm_flag= true;
     alarm_ctdn_m= aI_el.$d.ctdn_m;
-    alarmCountdown_el.textContent= g_untilStr(alarm_ctdn_m);
-
-    classEl(aI_el, "alarm-active");
-    aI_el.after(alarmStatus_el);
-    showEl(alarmStatus_el);
-    showEl(alarmCountdown_el);
-    showT_Mel(aI_el, false); //if needed
+    activeCountdown_el.textContent= g_untilStr(alarm_ctdn_m);
+    classEl(aI_el, "alarmActive");
+    aI_el.after(activeStatus_el);
+    showEl(activeStatus_el);
+    showEl(activeCountdown_el);
+    alarmCtdnView(aI_el, false); //if needed
 
     clockMarker_el.mkr_val= undefined;
     checkMarker();
@@ -1813,12 +1809,14 @@ console.log("bad alarm time", alarm_str)
     if (!wakeLockObj) setWakeLock(); //on
     scrolltoAlarm();
 
+//console.log("setalarm on", aId(aI_el)); //debug1
+
   } else { //alarm off
     active_aI_el= undefined;
     alarm_flag= false;
     alarm_ctdn_m= 0;
 
-    showEl(alarmStatus_el, false);
+    showEl(activeStatus_el, false);
     showEl(clockMarker_el, false);
 
     play_sound("slam");
@@ -1834,6 +1832,7 @@ function updateAlarms(mnt_n) {
   if (!vis_ct) return; //-->
 
   var autoTurnover_flag;
+  var until_str;
   [...aI_NL].forEach(aI_el  => {
     if (aI_el.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
       aI_el.$d.ctdn_m+= mnt_n;
@@ -1843,24 +1842,24 @@ function updateAlarms(mnt_n) {
 
       if (aI_el.$d.ctdn_m < 1) {
         classEl(aI_el, "expired");
-        setT_Mcountdown(aI_el, "preview_forceTurnover");
+        setAlarmCtdn(aI_el, "preview_forceTurnover");
         if (autsrt_mode) autoTurnover_flag= true;
       }
 
-      if (aI_el.$d.t_m) {
-        //skip draw for active alarm (since its hidden)? or dont bother checking //so what, just draw it..
-        aI_el.$dEls.T_Minus.textContent= g_untilStr(aI_el.$d.ctdn_m);
-      }
+      until_str= g_untilStr(aI_el.$d.ctdn_m);
+      if (until_str != aI_el.$dEls.Ctdn.textContent) aI_el.$dEls.Ctdn.textContent= until_str;
+      //.. alarms 1+ days, dont need to re-render every minute
+
     } //skip not visible
   });
 
   if (alarm_flag) {
     if (alarm_ctdn_m < 1) { //end alarm countdown
       alarm_flag= false;
-      showEl(alarmCountdown_el, false);
+      showEl(activeCountdown_el, false);
       startRinger();
     } else {
-      alarmCountdown_el.textContent= g_untilStr(alarm_ctdn_m);
+      activeCountdown_el.textContent= g_untilStr(alarm_ctdn_m);
       checkMarker();
     }
 
@@ -1903,7 +1902,7 @@ function exec_sortAlarms() {
     .sort((a, b) => a.$d.ctdn_m > b.$d.ctdn_m ? 1 : -1)
     .forEach(aI_el => alarmsCont_el.appendChild(aI_el)) //reorder in DOM
   ;
-  if (active_aI_el) active_aI_el.after(alarmStatus_el);
+  if (active_aI_el) active_aI_el.after(activeStatus_el);
 
   scrolltoAlarm();
 
@@ -1960,8 +1959,8 @@ function saveAlarms() {
     [...aI_NL].forEach(aI_el => {
       a_obj= {t: aI_el.$dEls.Time.textContent}; //time
       if (info_str= aI_el.$dEls.Info.innerHTML) a_obj.i= info_str;
-      if (aI_el.classList.contains("alarm-active")) a_obj.a= 1; //active alarm
-      if (aI_el.$d.t_m) a_obj.t_m= 1; //T_Minus
+      if (aI_el.classList.contains("alarmActive")) a_obj.a= 1; //active
+      if (aI_el.$d.c) a_obj.c= 1; //countdown view
 
       if (disabler_mode ? !aI_el.querySelector("input").checked : !aI_el.checkVisibility()) a_obj.d= 1; //disabled
       else vis_ct++;
@@ -2056,7 +2055,7 @@ function startDragAlarms() {
         if (dropOn_el.classList.contains("dropAbove")) dropOn_el.before(dragAl_el);
         else dropOn_el.after(dragAl_el);
 
-        if (active_aI_el) active_aI_el.after(alarmStatus_el);
+        if (active_aI_el) active_aI_el.after(activeStatus_el);
 
         saveAlarms();
       }
@@ -2117,7 +2116,7 @@ function stopRinger(snooze_flag, snooze_n) {
 
   } else { //ringer off
     if (ring_flag) play_sound("slam"); //ringer-off slam
-    showEl(alarmStatus_el, false);
+    showEl(activeStatus_el, false);
     showEl(ringerButs_el, false);
     snooze_ctdn_m= 0; //if needed
     classEl(ringerSnooze_el, "but-active", false); //if needed
