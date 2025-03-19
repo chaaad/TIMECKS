@@ -1891,7 +1891,7 @@ var autsrt_mode= localStorage.getItem("autsrt_mode") == "true"; //localStorage, 
 
 function setAutosortMode() {
   jm.state(
-    'Auto Sort Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by time. Also, the first alarm will always self-activate',
+    'Auto Sort Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by deadline. Also, if no alarm is active, the first alarm will self-activate',
     autsrt_mode,
     resp => {
       if (resp==null || resp==autsrt_mode) return;
