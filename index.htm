@@ -2047,9 +2047,9 @@ function alarms_import(imported_str) {
     } //PC
   });
 
-  if (add_arr.length) sound_play("bell", add_ct, 1500); //1400, bell is longish clip
-  if (del_arr.length) sound_play("trsh", del_ct, 1000);
-  //when both add_ct and del_ct, sounds might fail
+  sound_play("bell", add_arr, 1500); //1400, bell is longish clip
+  sound_play("trsh", del_arr, 1000);
+  //when both add and de, sounds prob mess up
 
   if (add_arr.length || del_arr.length) {
     if (autsrt_mode) {
@@ -2174,6 +2174,9 @@ function PClink(tid_EL) {
 } //PClink()
 
 function sound_play(ac_key, repeat_n =1, step_ms =750) {
+  if (typeof(repeat_n) == "object") repeat_n= repeat_n.length; //repeat_n. passed in an arr
+  if (!repeat_n) return; //-->
+
   if (repeat_n == 1) {
     audioClips[ac_key].play();
     return; //-->
