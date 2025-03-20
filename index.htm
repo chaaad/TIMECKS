@@ -1997,6 +1997,8 @@ function alarms_import(imported_str) {
   var spl_ar;
   var time_str, tSpl_ar;
   var alarmNow_obj;
+  var html_str;
+  var k_str; //keeper
   var add_ct= 0;
   var del_ct= 0;
   imported_str.split("\n").forEach(item_str => {
@@ -2014,8 +2016,10 @@ function alarms_import(imported_str) {
           add_ct++;
           alrm_execAdd();
 
-          var html_str= `${tSpl_ar[0]}<br><b>${spl_ar[3]}</b> ${spl_ar[4]} <b class="PC_tid" title="?">${spl_ar[5]}</b>`;
+          k_str= spl_ar[4] ? " (K)" : "";
+          html_str= `${tSpl_ar[0]}<br><b>${spl_ar[3]}</b>${k_str} <b class="PC_tid" title="?">${spl_ar[5]}</b>`;
           alarmInst_EL.$E.Info.innerHTML= html_str;
+
           alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
           alrm_setCountdown();
           alrm_glow(4);
