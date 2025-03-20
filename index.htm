@@ -850,7 +850,8 @@ function clock_start() {
 
 var monthDay_str;
 function clock_drawDay(dtO, h24) {
-  dayOfWeek_EL.textContent= dtO.toLocaleDateString("en-US", {weekday:"short"}).toUpperCase(); //eg. "Tue" .. "TUE"
+  dayOfWeek_EL.textContent= dtO.toLocaleDateString("en-US", {weekday:"short"}).toUpperCase();
+  //eg. "Tue" .. "TUE"
 
   monthDay_str= (dtO.getMonth()+1) +"/" +dtO.getDate(); //0-11 (+1), 1-31
   monthDay_EL.textContent= monthDay_str;
@@ -965,6 +966,18 @@ console.log("JUMP clock ahead 1 minute", g_fmatTime(sync_dtO), g_fmatSDM())
 
   return true; //advanced, yes
 } //clock_advance()
+
+function clock_checkMarker() {
+  var marker_value= Math.floor(active_ctdn_m /720); //0 1 2+
+  if (marker_value != clockMarker_EL.mkr_val) {
+    if (clockMarker_EL.mkr_val == undefined) { //init
+      clockMarker_EL.style.transform= "translate(-50%, -50%) rotate(" +(30*hTimO.h +0.5*hTimO.m) +"deg)";
+    }
+    showEl(clockMarker_EL, active_ctdn_m<1440 ? "block" : false);
+    classEl(clockMarker_EL, "on", active_ctdn_m<720);
+    clockMarker_EL.mkr_val= marker_value;
+  }
+} //clock_checkMarker()
 
 //debug utils (console.log)
 function g_fmatTime(dtO =new Date()) { //formatted time string, eg. "@11:48:22.005" //shows ms
@@ -1276,17 +1289,136 @@ function disablerMode_toggle() {
 
 } //disablerMode_toggle()
 
-function alrm_drawDisablerMode(aI_EL, dsbl_flag) {
-  var checked_str= dsbl_flag ? "" : " checked";
-  classEl(aI_EL, "disabledInstance", !!dsbl_flag); //in classEl(), flag of undefined will default to true
 
-  aI_EL.$EL.Activate.insertAdjacentHTML(
-  "afterend",
-  `<div class="checkbox-wrapper-18" title="Enable/Disable"><input type="checkbox" id="chkbx_${disblr_ct}"${checked_str}/><label for="chkbx_${disblr_ct}"></label></div>`
+
+var autsrt_mode= localStorage.getItem("autsrt_mode") == "true"; //localStorage, will be string "true", "false"
+
+function autosortMode_set() { //from UI
+  jm.state(
+    'Auto Sort Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by deadline. Also, if no alarm is active, the first alarm will self-activate',
+    autsrt_mode,
+    resp => {
+      if (resp==null || resp==autsrt_mode) return;
+      autsrt_mode= resp;
+      autosortMode_execSet();
+      localStorage.setItem("autsrt_mode", autsrt_mode);
+    }
   );
-  showEl(aI_EL.$EL.Activate, false);
-  disblr_ct++;
-} //alrm_drawDisablerMode()
+} //autosortMode_set()
+
+function autosortMode_execSet() { //on or off
+  var displ_v= autsrt_mode ? false : undefined;
+  showEl(sort_EL, displ_v);
+  classEl(autoSort_EL, "on", autsrt_mode);
+  if (autsrt_mode) {
+    alarms_execSort();
+    alrm_autoActivate();
+  }
+} //autosortMode_execSet()
+
+
+function dragAlarms_start() {
+  //dragndrop
+  //adapted from: https://www.w3resource.com/javascript-exercises/event/javascript-event-handling-exercise-6.php
+
+  var dragAl_EL;
+  var prev_dragOver_EL;
+
+  // Add event listeners for drag and drop events
+  alarmsCont_EL.addEventListener("dragstart", dragStart);
+  document.addEventListener("dragover", dragOver);
+  document.addEventListener("drop", drop); //user can drop anywhere, listening only on dragList doesnt cut it
+  document.addEventListener("click", evt => {if (dragAl_EL) clear("fully"); }); //recover after a failed drop
+
+  function dragStart(evt) {
+    if (dragAl_EL) clear("fully"); //recover after a failed drop
+
+    dragAl_EL= evt.target;
+    classEl(dragAl_EL, "dragging");
+    //evt.dataTransfer.effectAllowed= "move"; //what does this even do? unnecessary for this reorder functionality
+
+    var ct= 0;
+    [...aI_NL].forEach(aI_EL => {if (aI_EL.checkVisibility()) aI_EL.$d.d_idx= ct++; }); //drag index
+    //.. current order, set .d_idx for each alarm
+    // .d_idx is only accurate up until the drop, it must be popped upon every dragStart
+  } //dragStart()
+
+  function dragOver(evt) {
+    if (!dragAl_EL) return; //-->
+
+    evt.preventDefault();
+    var dragOver_EL= evt.target;
+    var dragOvAl_EL;
+
+    if (dragOver_EL == trash_EL) { //trash can
+      if (dragOver_EL == prev_dragOver_EL) return; //-->
+      if (prev_dragOver_EL) clear();
+      classEl(dragOver_EL, "dropTrash");
+
+      prev_dragOver_EL= dragOver_EL;
+
+    } else { //not trashcan
+      if (prev_dragOver_EL && prev_dragOver_EL == trash_EL) { //trash can
+        clear();
+        prev_dragOver_EL= undefined;
+      }
+
+      if (autsrt_mode) return; //-->{
+      if (dragOvAl_EL= dragOver_EL.closest("div.alarmInstance")) { //alarm instance (reorder)
+        if (prev_dragOver_EL) clear();
+        if (dragOvAl_EL == dragAl_EL) return; //-->
+        //evt.dataTransfer.dropEffect= "move"; //what does this do? seems unneeded for reorder
+
+        const boundingRect= dragOvAl_EL.getBoundingClientRect();
+        const offset_y= boundingRect.y +(boundingRect.height /2);
+        if (evt.clientY-offset_y < 0) {
+          if (dragOvAl_EL.$d.d_idx-1 != dragAl_EL.$d.d_idx) classEl(dragOvAl_EL, "dropAbove");
+        } else {
+          if (dragOvAl_EL.$d.d_idx+1 != dragAl_EL.$d.d_idx) classEl(dragOvAl_EL, "dropBelow");
+        }
+
+        prev_dragOver_EL= dragOvAl_EL;
+      }
+    }
+  } //dragOver()
+
+  function drop(evt) {
+    if (!dragAl_EL) return; //-->
+
+    evt.preventDefault();
+    var dropOn_EL= prev_dragOver_EL; //not actual the dropOn_EL, but this allows user to make drop even with imprecise drop
+    //.. if user drops outside of window, no drop event at all, accept this fact
+    if (dropOn_EL) {
+      if (dropOn_EL == trash_EL) {
+        alarmInst_EL= dragAl_EL;
+        alrm_execDelete();
+
+      } else if (dropOn_EL.classList.contains("dropAbove") || dropOn_EL.classList.contains("dropBelow")) {
+
+        //move in DOM..
+        if (dropOn_EL.classList.contains("dropAbove")) dropOn_EL.before(dragAl_EL);
+        else dropOn_EL.after(dragAl_EL);
+
+        if (active_aI_EL) active_aI_EL.after(activeStatus_EL);
+
+        alarms_save();
+      }
+    }
+
+    clear("fully");
+  } //drop()
+
+  function clear(fully_flag) { //if not fully, just clear dragOver's class
+    if (prev_dragOver_EL) prev_dragOver_EL.classList.remove("dropAbove", "dropBelow", "dropTrash");
+    if (fully_flag) {
+      if (dragAl_EL) classEl(dragAl_EL, "dragging", false);
+      dragAl_EL= undefined;
+      prev_dragOver_EL= undefined;
+    }
+  } //clear()
+
+  //dragndrop
+} //dragAlarms_start()
 
 
 function alrm_addInstHelpers(aI_EL) { //.dataset only stores strings
@@ -1299,6 +1431,18 @@ function alrm_addInstHelpers(aI_EL) { //.dataset only stores strings
     Ctdn: aI_EL.querySelector("span.alarmCountdown")
   };
 } //alrm_addInstHelpers()
+
+function alrm_drawDisablerMode(aI_EL, dsbl_flag) {
+  var checked_str= dsbl_flag ? "" : " checked";
+  classEl(aI_EL, "disabledInstance", !!dsbl_flag); //in classEl(), flag of undefined will default to true
+
+  aI_EL.$EL.Activate.insertAdjacentHTML(
+  "afterend",
+  `<div class="checkbox-wrapper-18" title="Enable/Disable"><input type="checkbox" id="chkbx_${disblr_ct}"${checked_str}/><label for="chkbx_${disblr_ct}"></label></div>`
+  );
+  showEl(aI_EL.$EL.Activate, false);
+  disblr_ct++;
+} //alrm_drawDisablerMode()
 
 function alrm_glow(s =1, aI_EL =alarmInst_EL) {
   aI_EL.scrollIntoView(scrollParam);
@@ -1681,70 +1825,6 @@ function alrm_execAdd() { //add 1
   alarmInst_EL= clAlrmInst_EL;
 } //alrm_execAdd()
 
-
-function alarms_import(imported_str) {
-  localStorage.setItem("importedAlarm", "");
-
-  var action_str;
-  var spl_ar;
-  var time_str, tSpl_ar;
-  var alarmNow_obj;
-  var add_ct= 0;
-  var del_ct= 0;
-  imported_str.split("\n").forEach(item_str => {
-    spl_ar= item_str.split("|");
-
-    //export|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123 //to test, can paste right into console "Local storage"
-    //0      1               2  3                    4 5
-    action_str= spl_ar[0]; //export, exportDelete
-    if (spl_ar[2] == "PC") { //qualify
-//console.log("item_str",item_str,"split",spl_ar);
-      if (action_str == "export") {
-        time_str= spl_ar[1]; //WED 5/5 12:34pm
-        tSpl_ar= time_str.split(" ");
-        if (alarmNow_obj= alrm_procTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -20`, "preview")) { // -20 minutes
-          add_ct++;
-          alrm_execAdd();
-
-          var html_str= `${tSpl_ar[0]}<br><b>${spl_ar[3]}</b> ${spl_ar[4]} <b class="PC_tid" title="?">${spl_ar[5]}</b>`;
-          alarmInst_EL.$EL.Info.innerHTML= html_str;
-          alarmInst_EL.$EL.Time.textContent= alarmNow_obj.time;
-          alrm_setCountdown();
-          alrm_glow(4);
-        }
-
-      } else if (action_str == "exportDelete") {
-        //exportDelete|123|PC
-        //0            1   2
-        let tid= spl_ar[1];
-        let delTid_EL= [...alarmsCont_EL.querySelectorAll("b.PC_tid")]
-          .find(span_EL => span_EL.textContent == tid)
-        ;
-
-        if (delTid_EL) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
-          del_ct++;
-          alarmInst_EL= delTid_EL.closest("div.alarmInstance");
-          alrm_exeDel();
-        } //else error msg?
-
-      } //action_str
-    } //PC
-  });
-
-  if (add_ct) sound_play("bell", add_ct, 1500); //1400, bell is longish clip
-  if (del_ct) sound_play("trsh", del_ct, 1000);
-  //when both add_ct and del_ct, sounds might fail
-
-  if (add_ct || del_ct) {
-    if (autsrt_mode) {
-      alarms_execSort();
-      alrm_autoActivate();
-    }
-    alarms_save();
-  }
-} //alarms_import()
-
-
 function alrm_delete() { //from UI
   var prom_str= g_promStr();
   jm.agree('Delete?<br>' +prom_str, 0, resp => {
@@ -1875,18 +1955,14 @@ function alarms_update(mnt_n) {
   if (autoTurnover_flag) alarms_execSort();
 } //alarms_update()
 
-function clock_checkMarker() {
-  var marker_value= Math.floor(active_ctdn_m /720); //0 1 2+
-  if (marker_value != clockMarker_EL.mkr_val) {
-    if (clockMarker_EL.mkr_val == undefined) { //init
-      clockMarker_EL.style.transform= "translate(-50%, -50%) rotate(" +(30*hTimO.h +0.5*hTimO.m) +"deg)";
-    }
-    showEl(clockMarker_EL, active_ctdn_m<1440 ? "block" : false);
-    classEl(clockMarker_EL, "on", active_ctdn_m<720);
-    clockMarker_EL.mkr_val= marker_value;
+function alrm_autoActivate(overrideTop_aI_EL) { //auto-activate top alarm
+  if (!vis_ct) return; //-->
+  var topAI_EL=    [...aI_NL].find(aI_EL => aI_EL.checkVisibility()); //skip disabled
+  if (topAI_EL && topAI_EL!=active_aI_EL && (!active_aI_EL || topAI_EL==overrideTop_aI_EL)) {
+  //  obvious     redundant                 dont override active, unless it is the override
+    alrm_set(topAI_EL);
   }
-} //clock_checkMarker()
-
+} //alrm_autoActivate()
 
 function alarms_sort(evt) { //from UI
   if (evt.ctrlKey) {
@@ -1913,40 +1989,67 @@ function alarms_execSort() {
   sound_play("clik");
 } //alarms_execSort()
 
+function alarms_import(imported_str) {
+  localStorage.setItem("importedAlarm", "");
 
-var autsrt_mode= localStorage.getItem("autsrt_mode") == "true"; //localStorage, will be string "true", "false"
+  var action_str;
+  var spl_ar;
+  var time_str, tSpl_ar;
+  var alarmNow_obj;
+  var add_ct= 0;
+  var del_ct= 0;
+  imported_str.split("\n").forEach(item_str => {
+    spl_ar= item_str.split("|");
 
-function autosortMode_set() { //from UI
-  jm.state(
-    'Auto Sort Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by deadline. Also, if no alarm is active, the first alarm will self-activate',
-    autsrt_mode,
-    resp => {
-      if (resp==null || resp==autsrt_mode) return;
-      autsrt_mode= resp;
-      autosortMode_execSet();
-      localStorage.setItem("autsrt_mode", autsrt_mode);
+    //export|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123 //to test, can paste right into console "Local storage"
+    //0      1               2  3                    4 5
+    action_str= spl_ar[0]; //export, exportDelete
+    if (spl_ar[2] == "PC") { //qualify
+//console.log("item_str",item_str,"split",spl_ar);
+      if (action_str == "export") {
+        time_str= spl_ar[1]; //WED 5/5 12:34pm
+        tSpl_ar= time_str.split(" ");
+        if (alarmNow_obj= alrm_procTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -20`, "preview")) { // -20 minutes
+          add_ct++;
+          alrm_execAdd();
+
+          var html_str= `${tSpl_ar[0]}<br><b>${spl_ar[3]}</b> ${spl_ar[4]} <b class="PC_tid" title="?">${spl_ar[5]}</b>`;
+          alarmInst_EL.$EL.Info.innerHTML= html_str;
+          alarmInst_EL.$EL.Time.textContent= alarmNow_obj.time;
+          alrm_setCountdown();
+          alrm_glow(4);
+        }
+
+      } else if (action_str == "exportDelete") {
+        //exportDelete|123|PC
+        //0            1   2
+        let tid= spl_ar[1];
+        let delTid_EL= [...alarmsCont_EL.querySelectorAll("b.PC_tid")]
+          .find(span_EL => span_EL.textContent == tid)
+        ;
+
+        if (delTid_EL) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
+          del_ct++;
+          alarmInst_EL= delTid_EL.closest("div.alarmInstance");
+          alrm_exeDel();
+        } //else error msg?
+
+      } //action_str
+    } //PC
+  });
+
+  if (add_ct) sound_play("bell", add_ct, 1500); //1400, bell is longish clip
+  if (del_ct) sound_play("trsh", del_ct, 1000);
+  //when both add_ct and del_ct, sounds might fail
+
+  if (add_ct || del_ct) {
+    if (autsrt_mode) {
+      alarms_execSort();
+      alrm_autoActivate();
     }
-  );
-} //autosortMode_set()
-
-function autosortMode_execSet() { //on or off
-  var displ_v= autsrt_mode ? false : undefined;
-  showEl(sort_EL, displ_v);
-  classEl(autoSort_EL, "on", autsrt_mode);
-  if (autsrt_mode) {
-    alarms_execSort();
-    alrm_autoActivate();
+    alarms_save();
   }
-} //autosortMode_execSet()
-
-function alrm_autoActivate(overrideTop_aI_EL) { //auto-activate top alarm
-  if (!vis_ct) return; //-->
-  var topAI_EL=    [...aI_NL].find(aI_EL => aI_EL.checkVisibility()); //skip disabled
-  if (topAI_EL && topAI_EL!=active_aI_EL && (!active_aI_EL || topAI_EL==overrideTop_aI_EL)) {
-  //  obvious     redundant                 dont override active, unless it is the override
-    alrm_set(topAI_EL);
-  }
-} //alrm_autoActivate()
+} //alarms_import()
 
 function alarms_save() {
   vis_ct= 0;
@@ -1969,110 +2072,6 @@ function alarms_save() {
 //console.trace("alarms_save",savestoredAl_arr)
   localStorage.setItem("alarms", JSON.stringify(saveAl_arr));
 } //alarms_save()
-
-
-function dragAlarms_start() {
-  //dragndrop
-  //adapted from: https://www.w3resource.com/javascript-exercises/event/javascript-event-handling-exercise-6.php
-
-  var dragAl_EL;
-  var prev_dragOver_EL;
-
-  // Add event listeners for drag and drop events
-  alarmsCont_EL.addEventListener("dragstart", dragStart);
-  document.addEventListener("dragover", dragOver);
-  document.addEventListener("drop", drop); //user can drop anywhere, listening only on dragList doesnt cut it
-  document.addEventListener("click", evt => {if (dragAl_EL) clear("fully"); }); //recover after a failed drop
-
-  function dragStart(evt) {
-    if (dragAl_EL) clear("fully"); //recover after a failed drop
-
-    dragAl_EL= evt.target;
-    classEl(dragAl_EL, "dragging");
-    //evt.dataTransfer.effectAllowed= "move"; //what does this even do? unnecessary for this reorder functionality
-
-    var ct= 0;
-    [...aI_NL].forEach(aI_EL => {if (aI_EL.checkVisibility()) aI_EL.$d.d_idx= ct++; }); //drag index
-    //.. current order, set .d_idx for each alarm
-    // .d_idx is only accurate up until the drop, it must be popped upon every dragStart
-  } //dragStart()
-
-  function dragOver(evt) {
-    if (!dragAl_EL) return; //-->
-
-    evt.preventDefault();
-    var dragOver_EL= evt.target;
-    var dragOvAl_EL;
-
-    if (dragOver_EL == trash_EL) { //trash can
-      if (dragOver_EL == prev_dragOver_EL) return; //-->
-      if (prev_dragOver_EL) clear();
-      classEl(dragOver_EL, "dropTrash");
-
-      prev_dragOver_EL= dragOver_EL;
-
-    } else { //not trashcan
-      if (prev_dragOver_EL && prev_dragOver_EL == trash_EL) { //trash can
-        clear();
-        prev_dragOver_EL= undefined;
-      }
-
-      if (autsrt_mode) return; //-->{
-      if (dragOvAl_EL= dragOver_EL.closest("div.alarmInstance")) { //alarm instance (reorder)
-        if (prev_dragOver_EL) clear();
-        if (dragOvAl_EL == dragAl_EL) return; //-->
-        //evt.dataTransfer.dropEffect= "move"; //what does this do? seems unneeded for reorder
-
-        const boundingRect= dragOvAl_EL.getBoundingClientRect();
-        const offset_y= boundingRect.y +(boundingRect.height /2);
-        if (evt.clientY-offset_y < 0) {
-          if (dragOvAl_EL.$d.d_idx-1 != dragAl_EL.$d.d_idx) classEl(dragOvAl_EL, "dropAbove");
-        } else {
-          if (dragOvAl_EL.$d.d_idx+1 != dragAl_EL.$d.d_idx) classEl(dragOvAl_EL, "dropBelow");
-        }
-
-        prev_dragOver_EL= dragOvAl_EL;
-      }
-    }
-  } //dragOver()
-
-  function drop(evt) {
-    if (!dragAl_EL) return; //-->
-
-    evt.preventDefault();
-    var dropOn_EL= prev_dragOver_EL; //not actual the dropOn_EL, but this allows user to make drop even with imprecise drop
-    //.. if user drops outside of window, no drop event at all, accept this fact
-    if (dropOn_EL) {
-      if (dropOn_EL == trash_EL) {
-        alarmInst_EL= dragAl_EL;
-        alrm_execDelete();
-
-      } else if (dropOn_EL.classList.contains("dropAbove") || dropOn_EL.classList.contains("dropBelow")) {
-
-        //move in DOM..
-        if (dropOn_EL.classList.contains("dropAbove")) dropOn_EL.before(dragAl_EL);
-        else dropOn_EL.after(dragAl_EL);
-
-        if (active_aI_EL) active_aI_EL.after(activeStatus_EL);
-
-        alarms_save();
-      }
-    }
-
-    clear("fully");
-  } //drop()
-
-  function clear(fully_flag) { //if not fully, just clear dragOver's class
-    if (prev_dragOver_EL) prev_dragOver_EL.classList.remove("dropAbove", "dropBelow", "dropTrash");
-    if (fully_flag) {
-      if (dragAl_EL) classEl(dragAl_EL, "dragging", false);
-      dragAl_EL= undefined;
-      prev_dragOver_EL= undefined;
-    }
-  } //clear()
-
-  //dragndrop
-} //dragAlarms_start()
 
 
 var ringerButs_EL= document.querySelector("div#ringerButs");
@@ -2458,9 +2457,9 @@ urlAlarms_import(window.location.search);
 if (fClick_flag) { //satisfy browser requirement to allow play-sound
   jm.alert("Click to start", () => {
     clock_draw();
+    dragAlarms_start();
     clock_start();
     alarms_start();
-    dragAlarms_start();
   });
 }
 
