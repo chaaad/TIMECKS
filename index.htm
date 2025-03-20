@@ -1532,7 +1532,7 @@ function alrm_editTime(NEW_str) {
           }
           if (autsrt_mode) {
             alarms_execSort();
-            alrm_autoActivate(alarmInst_EL);
+            alrm_autoActivate([alarmInst_EL]);
             if (!NEW_str) alarms_save();
           }
           if (NEW_str) alrm_editInfo(NEW_str, NEW_str);
@@ -1959,11 +1959,11 @@ function alarms_update(mnt_n) {
   if (autoTurnover_flag) alarms_execSort();
 } //alarms_update()
 
-function alrm_autoActivate(overrideTop_aI_EL) { //auto-activate top alarm
+function alrm_autoActivate(override_arr =[]) { //auto-activate top alarm
   if (!vis_ct) return; //-->
   var topAI_EL=    [...aI_NL].find(aI_EL => aI_EL.checkVisibility()); //skip disabled
-  if (topAI_EL && topAI_EL!=active_aI_EL && (!active_aI_EL || topAI_EL==overrideTop_aI_EL)) {
-  //  obvious     redundant                 dont override active, unless it is the override
+  if (topAI_EL && topAI_EL!=active_aI_EL && (!active_aI_EL || override_arr.includes(topAI_EL))) {
+  //  obvious     redundant                 dont override active, unless its in override_arr
     alrm_set(topAI_EL);
   }
 } //alrm_autoActivate()
@@ -2002,11 +2002,10 @@ function alarms_import(imported_str) {
   var alarmNow_obj;
   var html_str;
   var k_str; //keeper
-  var add_ct= 0;
-  var del_ct= 0;
+  var add_arr= [];
+  var del_arr= [];
   imported_str.split("\n").forEach(item_str => {
     spl_ar= item_str.split("|");
-
     //export|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123 //to test, can paste right into console "Local storage"
     //0      1               2  3                    4 5
     action_str= spl_ar[0]; //export, exportDelete
@@ -2016,7 +2015,6 @@ function alarms_import(imported_str) {
         time_str= spl_ar[1]; //WED 5/5 12:34pm
         tSpl_ar= time_str.split(" ");
         if (alarmNow_obj= alrm_procTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -20`, "preview")) { // -20 minutes
-          add_ct++;
           alrm_execAdd();
 
           k_str= spl_ar[4] ? " (K)" : "";
@@ -2026,6 +2024,7 @@ function alarms_import(imported_str) {
           alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
           alrm_setCountdown();
           alrm_glow(4);
+          add_arr.push(alarmInst_EL);
         }
 
       } else if (action_str == "exportDelete") {
@@ -2037,7 +2036,7 @@ function alarms_import(imported_str) {
         ;
 
         if (delTid_EL) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
-          del_ct++;
+          del_arr.push(delTid_EL);
           alarmInst_EL= delTid_EL.closest("div.alarmInstance");
           alrm_exeDel();
         } //else error msg?
@@ -2046,14 +2045,14 @@ function alarms_import(imported_str) {
     } //PC
   });
 
-  if (add_ct) sound_play("bell", add_ct, 1500); //1400, bell is longish clip
-  if (del_ct) sound_play("trsh", del_ct, 1000);
+  if (add_arr.length) sound_play("bell", add_ct, 1500); //1400, bell is longish clip
+  if (del_arr.length) sound_play("trsh", del_ct, 1000);
   //when both add_ct and del_ct, sounds might fail
 
-  if (add_ct || del_ct) {
+  if (add_arr.length || del_arr.length) {
     if (autsrt_mode) {
       alarms_execSort();
-      alrm_autoActivate();
+      alrm_autoActivate(add_arr);
     }
     alarms_save();
   }
