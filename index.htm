@@ -1080,7 +1080,7 @@ alarmsCont_EL.addEventListener("mousedown", evt => {
       if (c_alarmInst_EL == active_aI_EL) return jm.error('Cant change time/countdown view on active alarm'); //-->
       longPress_flag= true; //this will prevent regular click handler
       alarmInst_EL= c_alarmInst_EL;
-      alrm_setTorC(alarmInst_EL, !alarmInst_EL.$D.c, "persist"); //toggle
+      alrm_setTorC(alarmInst_EL, !alarmInst_EL.$D.vu_cd, "persist"); //toggle
       sound_play("clik");
       alarms_save();
     }, 1000);
@@ -1093,9 +1093,9 @@ alarmsCont_EL.addEventListener("mouseover", evt => {
   var targ_EL= evt.target;
   if (targ_EL.classList.contains("alarmT")) {
     var aI_EL= targ_EL.closest("div.alarmInstance");
-    if (aI_EL==active_aI_EL || aI_EL.$D.t_h) return; //-->  //active or already hovered, skip
-    alrm_setTorC(aI_EL, !aI_EL.$D.c); //toggle, but only temporary
-    aI_EL.$D.t_h= true; //hover on
+    if (aI_EL==active_aI_EL || aI_EL.$D.t_hov) return; //-->  //active or already hovered, skip
+    alrm_setTorC(aI_EL, !aI_EL.$D.vu_cd); //toggle, but only temporary
+    aI_EL.$D.t_hov= true; //hover on
   }
 });
 
@@ -1107,9 +1107,9 @@ alarmsCont_EL.addEventListener("mouseout", evt => {
   var targ_EL= evt.target;
   if (targ_EL.classList.contains("alarmT")) {
     var aI_EL= targ_EL.closest("div.alarmInstance");
-    if (!aI_EL.$D.t_h) return; //-->  //already unhovered, skip
-    alrm_setTorC(aI_EL, aI_EL.$D.c); //untoggle, was temporary anyway
-    aI_EL.$D.t_h= false; //hover off
+    if (!aI_EL.$D.t_hov) return; //-->  //already unhovered, skip
+    alrm_setTorC(aI_EL, aI_EL.$D.vu_cd); //untoggle, was temporary anyway
+    aI_EL.$D.t_hov= false; //hover off
   }
 });
 
@@ -1787,7 +1787,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
 
 function alrm_setTorC(aI_EL, flag, persist_flag) {
   alrm_setCtdnView(aI_EL, flag);
-  if (persist_flag) aI_EL.$D.c= flag;
+  if (persist_flag) aI_EL.$D.vu_cd= flag;
 } //alrm_setTorC()
 
 function alrm_setCtdnView(aI_EL, flag) {
@@ -1873,7 +1873,7 @@ console.log("bad alarm time", alrm_str)
   if (active_aI_EL) { //prev alarm off
     classEl(active_aI_EL, "alarmActive", false);
     classEl(active_aI_EL, "expired", false);
-    if (active_aI_EL.$D.c) alrm_setCtdnView(active_aI_EL);
+    if (active_aI_EL.$D.vu_cd) alrm_setCtdnView(active_aI_EL);
   }
 
   if (flag) { //alarm on
@@ -2062,7 +2062,7 @@ function alarms_save() {
       a_obj= {t: aI_EL.$E.Time.textContent}; //time
       if (info_str= aI_EL.$E.Info.innerHTML) a_obj.i= info_str;
       if (aI_EL.classList.contains("alarmActive")) a_obj.a= 1; //active
-      if (aI_EL.$D.c) a_obj.c= 1; //countdown view
+      if (aI_EL.$D.vu_cd) a_obj.c= 1; //countdown view
 
       if (disabler_mode ? !aI_EL.querySelector("input").checked : !aI_EL.checkVisibility()) a_obj.d= 1; //disabled
       else vis_ct++;
