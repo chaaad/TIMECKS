@@ -813,7 +813,7 @@ var start_dtO;
 var clock_elapse_ms; //what we want the time to be, when compared to Date.now() we get sync_diff_ms
 var clock_hr24;
 var clock_ctdn_m;
-var inc_ms; //variable increment
+var inc_ms= 60000; //default 1 minute (flex)
 
 var clockMarker_n;
 
@@ -824,7 +824,8 @@ function clock_drawHands() {
 
 function clock_start() {
   start_dtO= new Date();
-  console.log("clock_start", start_dtO.toLocaleTimeString());
+console.log("clock_start", start_dtO.toLocaleTimeString());
+  clock_elapse_ms= start_dtO.getTime();
   sound_play("clik");
 
   clock_hr24= start_dtO.getHours();
@@ -838,16 +839,24 @@ function clock_start() {
   var minute_ms= start_dtO.getSeconds()*1000 +start_dtO.getMilliseconds();
   var topOfMinute_ms= 60000 -minute_ms;
   setTimeout(() => {
-    inc_ms= 60000; //default 1 minute (flex)
-    clock_elapse_ms= start_dtO.getTime() +topOfMinute_ms;
+    clock_elapse_ms+= topOfMinute_ms;//inc (1st min)
     clock_advance(); //1st
+
+    var imported_str;
+
     mainloop(); //kickoff
 
     function mainloop() { //self-recursing
       setTimeout(() => {
         clock_elapse_ms+= 60000; //inc (fixed)
-        if (clock_advance()) mainloop(); //recurse-->
-      }, inc_ms); //inc (flex)
+        clock_advance();
+
+        if (imported_str= localStorage.getItem("importedAlarm")) alarms_import(imported_str);
+        //.. like a poll, for "importedAlarm" in localStorage
+
+        mainloop(); //recurse-->
+
+      }, inc_ms);
     } //mainloop()
 
   }, topOfMinute_ms);
@@ -867,100 +876,77 @@ function clock_drawDay(dtO, h24) {
 
 
 var sync_diff_ms; //can debug in console
-var unthrottle_flag;
+var throttled_flag;
 
 function clock_advance() { //+1 clock minute
+  var sync_dtO= new Date();
+
   degO.hours+= h_inc;
   degO.minutes+= m_inc;
   clock_drawHands();
 
-  alarms_update(-1);
-
-  var imported_str;
-  if (imported_str= localStorage.getItem("importedAlarm")) alarms_import(imported_str);
-  //.. like a poll, for "importedAlarm" in localStorage
-
-  var sync_dtO= new Date();
-  sync_diff_ms= clock_elapse_ms -sync_dtO.getTime();
-
-  //slept
-  if (sync_diff_ms <= -120000 ) { //extremely slow, 2 or more minutes (prob from sleep)
-    var diff_m= Math.floor(sync_diff_ms /60000);
-    //.. note: Math.floor returns lower integer, with negative number, the absolute is the higher integer
-    if (active_flag) {
-      alarms_update(diff_m);  //subtract (sync_diff_ms is negative)
-      if (!wakeLock_OBJ && !document.hidden) wakeLock_toggle(); //on
-
-    } else if (snooze_ctdn_m) {
-      snooze_ctdn_m+= diff_m; //subtract (sync_diff_ms is negative)
-      if (snooze_ctdn_m < 0) snooze_ctdn_m= 0;
-      snooze_check();
-    }
-    console.log("SLEPT", g_fmatTime(sync_dtO), g_fmatSDM())
-    clock_start(); //restart
-    return false; //abort //-->
-    //.. and no mainloop, like clearTimeout for a self-cursing fn
-  }
-
-
   clock_ctdn_m--; //inc-
-  //.. simpler than.. (.getMinutes, then compensate if clock lil slow)
   if (clock_ctdn_m < 1) { //top of hr
-    //.. uneffected if clock lil slow
     clock_ctdn_m= 60; //wrap (reset)
 
     //dst
     clock_hr24= (clock_hr24+1) %24; //inc wrap
-    let hrs24= sync_dtO.getHours();
-    if (sync_diff_ms > 0) hrs24= (hrs24+1) %24; //inc wrap
-    //.. if clock lil fast (before the actual minute), compensate actual +1hr
+
+    var draw_dtO;
+    var now_hrs24= sync_dtO.getHours();
+    if (sync_dtO.getMinutes() > 30) {
+      //.. now minutes should be 0 or lil ahead, if slow, eg. 59, now_hrs24 +1
+      now_hrs24= (now_hrs24 +1) %24; //inc wrap
+      draw_dtO= new Date(sync_dtO.getTime() +60 *60000); //add semi-arbitrary amount, 1 hr
+    }
 
     //https://www.timeanddate.com/time/dst/transition.html
-    if (clock_hr24 != hrs24) { //DST change?
-      let diff_hr= hrs24- clock_hr24; // +- 1
-      console.log("DST change", diff_hr, g_fmatTime(sync_dtO), g_fmatSDM(), hrs24, clock_hr24)
+    var diff_hr= now_hrs24 -clock_hr24; // -1 0 +1
+    if (diff_hr) { //DST change?
+      console.log("DST change", diff_hr, g_fmatDtO(sync_dtO), g_fmatSDM(), now_hrs24, clock_hr24)
       sound_play("clik");
       degO.hours+= diff_hr *h_inc *60;
       clock_drawHands();
-      clock_hr24= hrs24; //reset
+      clock_hr24= now_hrs24; //reset
       //.. 2am bacomes 3am (forward) or 1am (back)
     } //DST change
 
     //am/pm, monthday
-    if (hrs24 %12 == 0) clock_drawDay(sync_dtO, hrs24); //noon or midnite
+    if (clock_hr24 %12 == 0) clock_drawDay(draw_dtO || sync_dtO, clock_hr24); //noon or midnite
     //.. uneffected by DST change (which happens at '2am')
 
-//console.log("TOP OF HR", g_fmatTime(sync_dtO))
+//console.log("TOP OF HR", g_fmatDtO(sync_dtO))
   } //top of hr
 
 
-  //inc_ms adjust
+  sync_diff_ms= clock_elapse_ms -sync_dtO.getTime();
   if (sync_diff_ms) { //not 0
 
-    if (sync_diff_ms <= -60000 ) { //very slow, 1-2 minute (prob from throttling)
-      //.. prob doesnt happen, hope not
-console.log("JUMP clock ahead 1 minute", g_fmatTime(sync_dtO), g_fmatSDM())
+    if (sync_diff_ms <= -60000 ) { //very slow, 1+ minute behind
+      //.. prob from sleep, maybe throttling
+      //.. can be called as many times as necessary to catch up
+console.log("JUMP clock ahead 1 minute", g_fmatDtO(sync_dtO), g_fmatSDM())
       sound_play("clik");
-      clock_elapse_ms+= 60000; //big adjust
-      clock_advance(); //add clock minute
-      //.. orig mainloop fires
+      clock_elapse_ms+= 60000; //add 1 clock min
+      clock_advance();
 
-    } else if (sync_diff_ms>100 || unthrottle_flag) { //unthrottle or unthrottle+1min
-      inc_ms= 60000 +sync_diff_ms; //big adjust +, then small adjust -
-      if (sync_diff_ms > 100) {
-        unthrottle_flag= true;
+    } else if (sync_diff_ms>100 || throttled_flag) { //fast (or throt stage 2)
+      if (!throttled_flag) { //throt stage 1/2
+        throttled_flag= true;
+        inc_ms= 60000 +sync_diff_ms; //get back in sync
         classEl(hand_ELs.minuteH, "throt");
         sound_play("clik", 2, 500);
-//console.log("unthrot", g_fmatTime(sync_dtO), g_fmatSDM(), inc_ms)
-      } else {
-        unthrottle_flag= false;
-        classEl(hand_ELs.minuteH, "throt", false);
         if (active_flag && !wakeLock_OBJ && !document.hidden) wakeLock_toggle(); //on
+//console.log("throt", g_fmatDtO(sync_dtO), g_fmatSDM())
+      } else { //throt stage 2/2
+        throttled_flag= false;
+        inc_ms= 60000; //reset
+        classEl(hand_ELs.minuteH, "throt", false);
       }
 
     } else { //tweak inc_ms
-      inc_ms+= sync_diff_ms; //small adjust //swerving, but dont go off the road
-      if (inc_ms < 30000) inc_ms= 30000; //not too small
+      inc_ms+= sync_diff_ms; //tiny swerves, trying to achieve a sync_diff_ms of 0
+      if (inc_ms < 1000) inc_ms= 1000; //not too small
     }
 
     //when browser throttled, mainloop 'minute' can be slow (over 7 secs seen), also screen rendering paused
@@ -968,10 +954,11 @@ console.log("JUMP clock ahead 1 minute", g_fmatTime(sync_dtO), g_fmatSDM())
 
     //when system sleeps, everything stops
 
-//console.log("advanced Clock",  g_fmatTime(sync_dtO), g_fmatSDM(), inc_ms )
+//console.log("advanced Clock",  g_fmatDtO(sync_dtO), g_fmatSDM(), inc_ms )
   } //sync_diff_ms
 
-  return true; //advanced, yes
+  alarms_update(-1);
+
 } //clock_advance()
 
 function clock_checkMarker() {
@@ -986,10 +973,10 @@ function clock_checkMarker() {
 } //clock_checkMarker()
 
 //debug utils (console.log)
-function g_fmatTime(dtO =new Date()) { //formatted time string, eg. "@11:48:22.005" //shows ms
+function g_fmatDtO(dtO =new Date()) { //formatted time string, eg. "@11:48:22.005" //shows ms
   return "@" +(dtO.getHours()%12||12) +":" +dtO.toISOString().substring(14, 23);
   //.. toISOString(), eg. "2011-10-05T14:48:22.005Z"
-} //g_fmatTime()
+} //g_fmatDtO()
 function g_fmatSDM() { //formatted sync_diff_ms string, eg. "dif+12"
   var str= "dif";
   if (sync_diff_ms > 0) str+= "+";
