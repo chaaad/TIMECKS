@@ -877,6 +877,7 @@ function clock_drawDay(dtO, h24) {
 
 var sync_diff_ms; //can debug in console
 var throttled_flag;
+var reqWL_flag;
 
 function clock_advance() { //+1 clock minute
   var sync_dtO= new Date();
@@ -929,6 +930,7 @@ console.log("JUMP clock ahead 1 minute", g_fmatDtO(sync_dtO), g_fmatSDM())
       sound_play("clik");
       clock_elapse_ms+= 60000; //add 1 clock min
       clock_advance();
+      reqWL_flag= true;
 
     } else if (sync_diff_ms>100 || throttled_flag) { //fast (or throt stage 2)
       if (!throttled_flag) { //throt stage 1/2
@@ -936,13 +938,13 @@ console.log("JUMP clock ahead 1 minute", g_fmatDtO(sync_dtO), g_fmatSDM())
         inc_ms= 60000 +sync_diff_ms; //get back in sync
         classEl(hand_ELs.minuteH, "throt");
         sound_play("clik", 2, 500);
-        if (active_flag && !wakeLock_OBJ && !document.hidden) wakeLock_toggle(); //on
 //console.log("throt", g_fmatDtO(sync_dtO), g_fmatSDM())
       } else { //throt stage 2/2
         throttled_flag= false;
         inc_ms= 60000; //reset
         classEl(hand_ELs.minuteH, "throt", false);
       }
+      reqWL_flag= true;
 
     } else { //tweak inc_ms
       inc_ms+= sync_diff_ms; //tiny swerves, trying to achieve a sync_diff_ms of 0
@@ -953,6 +955,11 @@ console.log("JUMP clock ahead 1 minute", g_fmatDtO(sync_dtO), g_fmatSDM())
     //https://developer.mozilla.org/en-US/docs/Web/API/Window/setTimeout#reasons_for_delays_longer_than_specified
 
     //when system sleeps, everything stops
+
+    if (reqWL_flag && active_flag && !wakeLock_OBJ && !document.hidden) {
+      wakeLock_toggle(); //on
+      reqWL_flag= false;
+    }
 
 //console.log("advanced Clock",  g_fmatDtO(sync_dtO), g_fmatSDM(), inc_ms )
   } //sync_diff_ms
