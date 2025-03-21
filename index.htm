@@ -956,9 +956,9 @@ console.log("JUMP clock ahead 1 minute", g_fmatDtO(sync_dtO), g_fmatSDM())
 
     //when system sleeps, everything stops
 
-    if (reqWL_flag && active_flag && !wakeLock_OBJ && !document.hidden) {
-      wakeLock_toggle(); //on
+    if (reqWL_flag) {
       reqWL_flag= false;
+      if (active_flag && !wakeLock_OBJ && !document.hidden) wakeLock_toggle(); //on
     }
 
 //console.log("advanced Clock",  g_fmatDtO(sync_dtO), g_fmatSDM(), inc_ms )
