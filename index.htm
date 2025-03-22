@@ -402,6 +402,9 @@ div#clockFace {
   div.hands.throt::before {
     background: blue;
   }
+  div.hands.slept::before {
+    background: red;
+  }
 
   div#minuteHand {
     transition: transform 1s linear;
@@ -882,7 +885,8 @@ function clock_drawDay(dtO, h24) {
 
 
 var sync_diff_ms; //can debug in console
-var throttled_flag;
+var clock_throt_flag;
+var clock_jump_ct= 0;
 
 function clock_advance() { //+1 clock minute
   var sync_dtO= new Date();
@@ -901,6 +905,7 @@ function clock_advance() { //+1 clock minute
     var draw_dtO;
     var now_hrs24= sync_dtO.getHours();
     if (sync_dtO.getMinutes() > 30) {
+console.log("hr correction +1, minute (should be 0)", sync_dtO.getMinutes(), g_fmatDtO(sync_dtO))
       //.. now minutes should be 0 or lil ahead, if slow, eg. 59, now_hrs24 +1
       now_hrs24= (now_hrs24 +1) %24; //inc wrap
       draw_dtO= new Date(sync_dtO.getTime() +60 *60000); //add semi-arbitrary amount, 1 hr
@@ -910,6 +915,7 @@ function clock_advance() { //+1 clock minute
     var diff_hr= now_hrs24 -clock_hr24; // -1 0 +1
     if (diff_hr) { //DST change?
       console.log("DST change", diff_hr, g_fmatDtO(sync_dtO), g_fmatSDM(), now_hrs24, clock_hr24)
+//DST change -1 @3:00:00.013 dif-20 15 16
       sound_play("clik");
       degO.hours+= diff_hr *h_inc *60;
       clock_drawHands();
@@ -924,34 +930,53 @@ function clock_advance() { //+1 clock minute
 //console.log("TOP OF HR", g_fmatDtO(sync_dtO))
   } //top of hr
 
+  alarms_update(-1);
 
   sync_diff_ms= clock_elapse_ms -sync_dtO.getTime();
   if (sync_diff_ms) { //not 0
 
+    //sleep
     if (sync_diff_ms <= -60000 ) { //very slow, 1+ minute behind
       //.. prob from sleep, maybe throttling
-      //.. can be called as many times as necessary to catch up
-console.log("JUMP clock ahead 1 minute", g_fmatDtO(sync_dtO), g_fmatSDM())
-      sound_play("clik");
+      clock_jump_ct++;
       clock_elapse_ms+= 60000; //add 1 clock min
       clock_advance();
+      //.. can be called as many times as necessary to catch up
 
-    } else if (sync_diff_ms>100 || throttled_flag) { //fast (or throt stage 2)
-      if (!throttled_flag) { //throt stage 1/2
-        throttled_flag= true;
+    } else if (clock_jump_ct) {
+      if (clock_jump_ct > 0) { //unsleep stage 1/2
+//console.log("clock slept, jump", clock_jump_ct, "min", g_fmatDtO(sync_dtO), g_fmatSDM())
         inc_ms= 60000 +sync_diff_ms; //get back in sync
-        classEl(hand_ELs.minuteH, "throt");
-        sound_play("clik", 2, 500);
-//console.log("throt", g_fmatDtO(sync_dtO), g_fmatSDM())
-      } else { //throt stage 2/2
-        throttled_flag= false;
-        inc_ms= 60000; //reset
-        classEl(hand_ELs.minuteH, "throt", false);
+        sound_play("clik", clock_jump_ct, 500);
+        clock_jump_ct= -1;
+        classEl(hand_ELs.minuteH, "slept");
+
+      } else { //unsleep stage 2/2
+        inc_ms= 60000; //reest
+        clock_jump_ct= 0;
+        classEl(hand_ELs.minuteH, "slept", false);
       }
 
+
+  //throttle
+  } else if (sync_diff_ms>100 || clock_throt_flag) { //fast (or throt stage 2)
+      if (!clock_throt_flag) { //throt stage 1/2
+        clock_throt_flag= true;
+        classEl(hand_ELs.minuteH, "throt");
+        sound_play("clik", 2, 500);
+        inc_ms= 60000 +sync_diff_ms; //get back in sync
+//console.log("clock throt", g_fmatDtO(sync_dtO), g_fmatSDM())
+
+      } else { //throt stage 2/2
+        clock_throt_flag= false;
+        classEl(hand_ELs.minuteH, "throt", false);
+        inc_ms= 60000; //reset
+      }
+
+
     } else { //tweak inc_ms
-      inc_ms+= sync_diff_ms; //tiny swerves, trying to achieve a sync_diff_ms of 0
-      if (inc_ms < 1000) inc_ms= 1000; //not too small
+      inc_ms+= sync_diff_ms; //tiny swerves, always trying to achieve sync_diff_ms of 0
+      if (inc_ms < 1000) inc_ms= 1000; //not too small, nrn
     }
 
     //when browser throttled, mainloop 'minute' can be slow (over 7 secs seen), also screen rendering paused
@@ -961,8 +986,6 @@ console.log("JUMP clock ahead 1 minute", g_fmatDtO(sync_dtO), g_fmatSDM())
 
 //console.log("advanced Clock",  g_fmatDtO(sync_dtO), g_fmatSDM(), inc_ms )
   } //sync_diff_ms
-
-  alarms_update(-1);
 
 } //clock_advance()
 
