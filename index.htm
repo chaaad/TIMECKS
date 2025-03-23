@@ -1163,15 +1163,17 @@ showEl(msgHeader_EL, false);
 var msgDelAllBut_EL= msgHeader_EL.querySelector("span.msgDeleteBut");
 msgDelAllBut_EL.title= "Delete all messages";
 
+//message
 msgCont_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
   if (targ_EL == msgDelAllBut_EL) {
     //////add a confirm? ////tbd
-    msgCont_EL.querySelectorAll("div.msgInstance").forEach(el => el.remove());
+    msgCont_EL.querySelectorAll("div.msgInstance").forEach(m_el => message_remove(m_el));
     showEl(msgHeader_EL, false);
     //hide header
 
   } else if (targ_EL.classList.contains("msgDeleteBut")) {
+    message_remove(targ_EL.closest("div.msgInstance"));
     targ_EL.closest("div.msgInstance").remove();
     if (!msgCont_EL.querySelectorAll("div.msgInstance").length) showEl(msgHeader_EL, false);
   }
@@ -2041,6 +2043,12 @@ console.log("bad alarm time", alrm_str)
   if (!autsrt_mode) alarms_save();
 } //alrm_set()
 
+function alrm_expireMsg(aI_EL) {
+  var alStrO= g_alStrO(aI_EL);
+  var msg_EL= message_add("Alarm expired: " +alStrO.tim +" | " +alStrO.inf, "pink");
+  msg_EL.$exp_aI_EL= aI_EL;
+} //alrm_expireMsg()
+
 
 function alarms_update(mnt_n) {
   if (!vis_ct) return; //-->
@@ -2057,6 +2065,7 @@ function alarms_update(mnt_n) {
       if (aI_EL.$D.ctdn_m < 1) {
         classEl(aI_EL, "expired");
         alrm_setCountdown(aI_EL, "preview_forceTurnover");
+        if (aI_EL != active_aI_EL) alrm_expireMsg(aI_EL);
         if (autsrt_mode) autoTurnover_flag= true;
       }
 
@@ -2289,6 +2298,7 @@ function g_untilStr(m, h) {
   return str || "0";
 } //g_untilStr()
 
+
 function PClink(tid_EL) {
   var tid= tid_EL.textContent;
   var lgid= tid.split("-")[0];
@@ -2296,6 +2306,7 @@ function PClink(tid_EL) {
   //div.alarmInfo will contain 2 <b>, 1st will be teamname, 2nd will be tid with <b class="PC_tid">
   jm.alert(`PennantChase<br>lg${lgid} ${tname}<a href="https://www.pennantchase.com/lgTeamLineup.aspx?tid=${tid}&lgid=${lgid}" target="_blank">Lineup</a>`);
 } //PClink()
+
 
 function message_add(str, bgColor_str) {
   showEl(msgHeader_EL);
@@ -2305,6 +2316,14 @@ function message_add(str, bgColor_str) {
   if (bgColor_str) msg_EL.style.background= bgColor_str;
   return msg_EL; //bonus get
 } //smessage_add()
+
+function message_remove(msg_EL) {
+  var exp_aI_EL;
+  if (exp_aI_EL= msg_EL.$exp_aI_EL) classEl(exp_aI_EL, "expired", false);
+
+  msg_EL.remove();
+} //message_remove()
+
 
 function sound_play(ac_key, repeat_n =1, step_ms =750) {
   if (typeof(repeat_n) == "object") repeat_n= repeat_n.length; //repeat_n. passed in an arr
@@ -2641,14 +2660,10 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
 
 function restart() { //post sleep
   var elapsed_minutes= Math.floor(sync_diff_ms /60000); //negative
-  var alStrO;
   [...aI_NL].forEach(aI_EL  => {
     if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
       aI_EL.$D.ctdn_m+= elapsed_minutes; //negative
-      if (aI_EL.$D.ctdn_m < 1) {
-        alStrO= g_alStrO(aI_EL);
-        message_add("Alarm missed: " +alStrO.tim +" | " +alStrO.inf, "pink");
-      }
+      if (aI_EL.$D.ctdn_m < 1) alrm_expireMsg(aI_EL);
     } //skip not visible
   });
 
