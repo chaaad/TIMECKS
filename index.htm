@@ -973,7 +973,7 @@ function clock_advance() { //+1 clock minute
 
     } else if (clock_jump_ct) { //not 0
       if (clock_jump_ct > 0) { //postsleep stage 2/3
-console.log("clock slept, jump", clock_jump_ct, "min", g_fmatDtO(sync_dtO), g_fmatSDM()) //debug
+//console.log("clock slept, jump", clock_jump_ct, "min", g_fmatDtO(sync_dtO), g_fmatSDM()) //debug
         inc_ms= 60000 +sync_diff_ms; //get back in sync
         sound_play("clik", (clock_jump_ct>3 ? 3 : clock_jump_ct), 500);
         clock_jump_ct= -1; //stage 3
@@ -996,7 +996,7 @@ console.log("clock slept, jump", clock_jump_ct, "min", g_fmatDtO(sync_dtO), g_fm
         classEl(hand_ELs.minuteH, "throt");
         sound_play("clik", 2, 500);
         inc_ms= 60000 +sync_diff_ms; //get back in sync
-console.log("clock throt", g_fmatDtO(sync_dtO), g_fmatSDM()) //debug
+//console.log("clock throt", g_fmatDtO(sync_dtO), g_fmatSDM()) //debug
         return; //skip ToH //-->
 
       } else { //postthrot stage 2/2
