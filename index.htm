@@ -376,9 +376,10 @@ div#alarm {
   }
 
   div#wakeLockEnable {
-    float: right;
-    margin-right: 0;
     line-height: 24px;
+    position: fixed;
+    right: 4px;
+    bottom: 4px;
 
     &.on {
       background-color: lightskyblue;
@@ -861,7 +862,7 @@ function clock_drawSyncHands() { //temp hands positions based on sync_diff_ms, c
   clock_drawHands({ //draw mn hand at precise mn position (not usual whole mn)
     hr: cf_degO.hr -cf_h_inc *diff_m,
     mn: cf_degO.mn -cf_m_inc *diff_m
-  }); //sleep/throttle actually make mn hand more accurate lol
+  }); //sleep/throttle actually makes mn hand more accurate lol
   if (sync_diff_ms < 0) return; //clock was behind //-->
 
   //clock was ahead
