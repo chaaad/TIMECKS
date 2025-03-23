@@ -201,6 +201,17 @@ div#topButtons {
   }
 }
 
+div#wakeLockEnable {
+  line-height: 24px;
+  position: fixed;
+  right: 4px;
+  bottom: 4px;
+
+  &.on {
+    background-color: lightskyblue;
+  }
+}
+
 div#msgContainer {
   position: fixed;
   left: 70px;
@@ -217,6 +228,7 @@ div#alarm {
   font-size: larger;
   padding: 8px;
   position: relative;
+  margin-bottom: 40px; /*so its possible for wakelock button to not overlay anything */
 
   div.alarmInstance {
     margin-bottom: 20px;
@@ -373,17 +385,6 @@ div#alarm {
     font-size: larger;
     font-weight: 800;
     color: cornflowerblue;
-  }
-
-  div#wakeLockEnable {
-    line-height: 24px;
-    position: fixed;
-    right: 4px;
-    bottom: 4px;
-
-    &.on {
-      background-color: lightskyblue;
-    }
   }
 
 } /*alarm*/
@@ -741,9 +742,9 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     </div>
   </div>
 
-  <div id="wakeLockEnable" class="button squareButton" title="Wake Lock">🔒</div>
 </div>
 
+<div id="wakeLockEnable" class="button squareButton" title="Wake Lock">🔒</div>
 
 
 <div id="clockFace">
