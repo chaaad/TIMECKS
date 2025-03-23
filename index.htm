@@ -60,35 +60,6 @@ i {
   }
 }
 
-div#topButtons {
-  position: fixed;
-
-  div {
-    line-height: 22px;
-  }
-
-  .on {
-    color: chartreuse;
-  }
-
-  .down {
-    background: chartreuse;
-  }
-
-  div#trashCan {
-    font-size: xx-large;
-    line-height: 20px;
-    border-color: lightgray;
-    cursor: default;
-    background: white;
-
-    &.dropTrash {
-      background: cyan;
-    }
-  }
-}
-
-
 /*adapted from: https://codepen.io/ndeniche/pen/rNPjmg
 */
 .closeButton {
@@ -124,6 +95,17 @@ div#topButtons {
   &::after {
     transform: rotate(-45deg);
   }
+
+  &.big { /*test*/
+    transform: scale(3);
+    background: pink;
+
+  }
+
+  &.small {
+    transform: scale(0.66);
+  }
+
 } /*closeButton*/
 
 
@@ -177,6 +159,59 @@ div#topButtons {
 }
 /*checkbox*/
 
+div.textBox {
+  max-width: 290px;
+  overflow: auto;
+  font-size: medium;
+  font-weight: 600;
+  background: #eee;
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  opacity: 50%;
+  letter-spacing: 0.5px;
+}
+
+
+div#topButtons {
+  position: fixed;
+
+  div {
+    line-height: 22px;
+  }
+
+  .on {
+    color: chartreuse;
+  }
+
+  .down {
+    background: chartreuse;
+  }
+
+  div#trashCan {
+    font-size: xx-large;
+    line-height: 20px;
+    border-color: lightgray;
+    cursor: default;
+    background: white;
+
+    &.dropTrash {
+      background: cyan;
+    }
+  }
+}
+
+div#msgContainer {
+  position: fixed;
+  left: 70px;
+  top: 14px;
+  width: 300px;
+
+  div.msgInstance {
+    background: gold;
+  }
+}
+
 div#alarm {
   float: right;
   font-size: larger;
@@ -194,16 +229,6 @@ div#alarm {
     }
 
     div.alarmInfo {
-      max-width: 290px;
-      overflow: auto;
-      font-size: medium;
-      font-weight: 600;
-      background: #eee;
-      padding: 8px;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      opacity: 50%;
-      letter-spacing: 0.5px;
 
       .PC_tid {
         color: orangered;
@@ -665,6 +690,23 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <body>
 
+<div id="templates">
+
+  <div class="alarmInstance" draggable="true">
+    <div class="textBox alarmInfo" title="Edit info"></div>
+    <span class="alarmActivate button squareButton" title="On/Off">⏹</span>
+    <span class="alarmT alarmTime" title="Edit time (LONG PRESS for time-view as default)"></span>
+    <span class="alarmT alarmCountdown" title="Edit time (LONG PRESS for countdown-view as default)"></span>
+    <span class="alarmDeleteBut closeButton" title="Delete"></span>
+  </div>
+
+  <div class="textBox msgInstance">
+    <span class="msgDeleteBut closeButton small" title="Delete msessage"></span>
+    <div class="msgInfo"></div>
+  </div>
+
+</div>
+
 <div id="topButtons">
   <div id="editStgsBut" class="button squareButton" title="Settings (snooze duration)">︙</div>
   <div id="diasablerModeBut" class="button squareButton" title="Disabler Mode">D</div>
@@ -674,19 +716,9 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   <div id="trashCan" class="button squareButton" title="Trash (drop unwanted alarm here)">🗑</div>
 </div>
 
+<div id="msgContainer"></div>
+
 <div id="alarm">
-
-  <div id="alarmTemplates">
-    <div class="alarmInstance" draggable="true">
-      <div class="alarmInfo" title="Edit info"></div>
-
-      <span class="alarmActivate button squareButton" title="On/Off">⏹</span>
-      <span class="alarmT alarmTime" title="Edit time (LONG PRESS for time-view as default)"></span>
-      <span class="alarmT alarmCountdown" title="Edit time (LONG PRESS for countdown-view as default)"></span>
-      <span class="delAlarmBut closeButton" title="Delete"></span>
-    </div>
-  </div>
-
   <div id="alarmsContainer">
     <div id="activeStatus">
       <div id="activeCountdown" class="countdown"></div>
@@ -825,8 +857,20 @@ function clock_drawHands() {
   hand_ELs.minuteH.style.transform= "rotate(" +degO.minutes +"deg)";
 } //clock_drawHands()
 
+/*///////////////
+var dbg_m, dbg_h;
+function dbgdate() {
+  var dtO= new Date();
+  if (dbg_m) dtO.setMinutes(dtO.getMinutes() +dbg_m);
+  if (dbg_h) dtO.setHours(dtO.getHours() +dbg_h);
+  return dtO;
+}
+*////////////////
+
 function clock_start() {
   start_dtO= new Date();
+  //start_dtO= dbgdate();
+
 console.log("clock_start", start_dtO.toLocaleTimeString());
   clock_elapse_ms= start_dtO.getTime();
   sound_play("clik");
@@ -852,7 +896,7 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
     function mainloop() { //self-recursing
       setTimeout(() => {
         clock_elapse_ms+= 60000; //inc (fixed)
-        clock_advance();
+        if (clock_advance()) return; //abort mainloop
 
         if (imported_str= localStorage.getItem("importedAlarm")) alarms_import(imported_str);
         //.. like a poll, for "importedAlarm" in localStorage
@@ -870,6 +914,7 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
 
   }, topOfMinute_ms);
 
+  clock_ToH_flag= undefined;
   clock_drawDay(start_dtO, clock_hr24);
 } //clock_start()
 
@@ -884,12 +929,16 @@ function clock_drawDay(dtO, h24) {
 } //clock_drawDay()
 
 
+var sync_dtO;
 var sync_diff_ms; //can debug in console
+
 var clock_throt_flag;
 var clock_jump_ct= 0;
+var clock_ToH_flag;
 
 function clock_advance() { //+1 clock minute
-  var sync_dtO= new Date();
+  sync_dtO= new Date();
+  //sync_dtO= dbgdate();
 
   degO.hours+= h_inc;
   degO.minutes+= m_inc;
@@ -898,35 +947,8 @@ function clock_advance() { //+1 clock minute
   clock_ctdn_m--; //inc-
   if (clock_ctdn_m < 1) { //top of hr
     clock_ctdn_m= 60; //wrap (reset)
-
-    //dst
     clock_hr24= (clock_hr24+1) %24; //inc wrap
-
-    var draw_dtO;
-    var now_hrs24= sync_dtO.getHours();
-    if (sync_dtO.getMinutes() > 30) {
-console.log("hr correction +1, minute (should be 0)", sync_dtO.getMinutes(), g_fmatDtO(sync_dtO))
-      //.. now minutes should be 0 or lil ahead, if slow, eg. 59, now_hrs24 +1
-      now_hrs24= (now_hrs24 +1) %24; //inc wrap
-      draw_dtO= new Date(sync_dtO.getTime() +60 *60000); //add semi-arbitrary amount, 1 hr
-    }
-
-    //https://www.timeanddate.com/time/dst/transition.html
-    var diff_hr= now_hrs24 -clock_hr24; // -1 0 +1
-    if (diff_hr) { //DST change?
-      console.log("DST change", diff_hr, g_fmatDtO(sync_dtO), g_fmatSDM(), now_hrs24, clock_hr24)
-//DST change -1 @3:00:00.013 dif-20 15 16
-      sound_play("clik");
-      degO.hours+= diff_hr *h_inc *60;
-      clock_drawHands();
-      clock_hr24= now_hrs24; //reset
-      //.. 2am bacomes 3am (forward) or 1am (back)
-    } //DST change
-
-    //am/pm, monthday
-    if (clock_hr24 %12 == 0) clock_drawDay(draw_dtO || sync_dtO, clock_hr24); //noon or midnite
-    //.. uneffected by DST change (which happens at '2am')
-
+    clock_ToH_flag= true;
 //console.log("TOP OF HR", g_fmatDtO(sync_dtO))
   } //top of hr
 
@@ -935,49 +957,62 @@ console.log("hr correction +1, minute (should be 0)", sync_dtO.getMinutes(), g_f
   sync_diff_ms= clock_elapse_ms -sync_dtO.getTime();
   if (sync_diff_ms) { //not 0
 
-    //sleep
-    if (sync_diff_ms <= -60000 ) { //very slow, 1+ minute behind
-      //.. prob from sleep, maybe throttling
-      clock_jump_ct++;
+    //post sleep
+    if (sync_diff_ms <= -60000 ) { //very slow, 1 or more minute behind
+
+      if (sync_diff_ms <= -3600000 ) { //extremely slow, 1 or more hour behind
+        restart();
+        return "abort_mainloop"; ////-->
+      }
+
+      //jump 1 minute
+      clock_jump_ct++;  //postsleep stage 1/3
       clock_elapse_ms+= 60000; //add 1 clock min
-      clock_advance();
-      //.. can be called as many times as necessary to catch up
+      clock_advance(); //.. can be called as many times as necessary to catch up (up to an hour)
+      return; //skip ToH //-->
 
-    } else if (clock_jump_ct) {
-      if (clock_jump_ct > 0) { //unsleep stage 1/2
-//console.log("clock slept, jump", clock_jump_ct, "min", g_fmatDtO(sync_dtO), g_fmatSDM())
+    } else if (clock_jump_ct) { //not 0
+      if (clock_jump_ct > 0) { //postsleep stage 2/3
+console.log("clock slept, jump", clock_jump_ct, "min", g_fmatDtO(sync_dtO), g_fmatSDM()) //debug
         inc_ms= 60000 +sync_diff_ms; //get back in sync
-        sound_play("clik", clock_jump_ct, 500);
-        clock_jump_ct= -1;
+        sound_play("clik", (clock_jump_ct>3 ? 3 : clock_jump_ct), 500);
+        clock_jump_ct= -1; //stage 3
         classEl(hand_ELs.minuteH, "slept");
+        return; //skip ToH //-->
 
-      } else { //unsleep stage 2/2
+      } else { //postsleep stage 3/3
         inc_ms= 60000; //reest
         clock_jump_ct= 0;
         classEl(hand_ELs.minuteH, "slept", false);
       }
 
 
-  //throttle
-  } else if (sync_diff_ms>100 || clock_throt_flag) { //fast (or throt stage 2)
-      if (!clock_throt_flag) { //throt stage 1/2
-        clock_throt_flag= true;
+    //post throttle
+    //what happens is that during throttle, the mainloop runs lil slow, so inc_ms goes lower to try to run mainloop quicker
+    //when throttle ends, this low inc_ms makes the next sync actually ahead!
+    } else if (sync_diff_ms>100 || clock_throt_flag) { //fast (or throt stage 2)
+      if (!clock_throt_flag) { //postthrot stage 1/2
+        clock_throt_flag= true; //stage 2
         classEl(hand_ELs.minuteH, "throt");
         sound_play("clik", 2, 500);
         inc_ms= 60000 +sync_diff_ms; //get back in sync
-//console.log("clock throt", g_fmatDtO(sync_dtO), g_fmatSDM())
+console.log("clock throt", g_fmatDtO(sync_dtO), g_fmatSDM()) //debug
+        return; //skip ToH //-->
 
-      } else { //throt stage 2/2
+      } else { //postthrot stage 2/2
         clock_throt_flag= false;
         classEl(hand_ELs.minuteH, "throt", false);
         inc_ms= 60000; //reset
       }
 
 
+    //normal
     } else { //tweak inc_ms
       inc_ms+= sync_diff_ms; //tiny swerves, always trying to achieve sync_diff_ms of 0
       if (inc_ms < 1000) inc_ms= 1000; //not too small, nrn
     }
+
+    clock_checkToH();
 
     //when browser throttled, mainloop 'minute' can be slow (over 7 secs seen), also screen rendering paused
     //https://developer.mozilla.org/en-US/docs/Web/API/Window/setTimeout#reasons_for_delays_longer_than_specified
@@ -989,8 +1024,43 @@ console.log("hr correction +1, minute (should be 0)", sync_dtO.getMinutes(), g_f
 
 } //clock_advance()
 
+function clock_checkToH() {
+  if (!clock_ToH_flag) return;
+  clock_ToH_flag= false;
+
+  var toh_dtO= new Date(sync_dtO); //from real time
+  if (toh_dtO.getMinutes() > 30) toh_dtO.setHours(toh_dtO.getHours() +1);
+  //.. minutes should be 0 or lil more, otherwise real time is behind, eg. 59
+  //.. test of > 30, gives plenty of wiggle room
+  //.. will also take care of midnite, toh_dtO will go to next day
+
+  //note: dst change doesnt affect dateobj epoch ms (and clock_elapse_ms), dst change can be detected by using .getHours()
+
+  //DST change?
+  var now_hr24= toh_dtO.getHours();
+  var diff_hrs= now_hr24 -clock_hr24; //now_hr24 and clock_hr24 should be the same, execept if dst
+  if (diff_hrs) { //-1 0 1
+    //https://www.timeanddate.com/time/dst/transition.html
+    console.log("DST change", diff_hrs, g_fmatDtO(sync_dtO)); //DST change -1 @3:00:00.013
+
+    //2am bacomes 3am (forward) or 1am (back) ..
+    degO.hours+= diff_hrs *h_inc *60;
+    clock_drawHands();
+
+    clock_hr24+= diff_hrs; //reset
+    //.. no overflow concerns, dst change happens at 2am
+
+    sound_play("clik");
+  } //DST change
+
+  //am/pm, monthday
+  if (clock_hr24 %12 == 0) clock_drawDay(toh_dtO, clock_hr24); //noon or midnite
+  //.. no interaction w DST change
+} //clock_checkToH()
+
 function clock_checkMarker() {
   var marker_n= Math.floor(active_ctdn_m /720); //0 1 2+
+  if (marker_n > 2) marker_n= 2;
   if (marker_n == clockMarker_n) return; //-->
   if (clockMarker_EL.mkr_val == undefined) { //init
     clockMarker_EL.style.transform= "translate(-50%, -50%) rotate(" +(30*hTimO.h +0.5*hTimO.m) +"deg)";
@@ -1031,13 +1101,18 @@ var sort_EL= document.querySelector("div#sortBut");
 //var add_EL= document.querySelector("div#addAlarmBut");
 var trash_EL= document.querySelector("div#trashCan");
 
-var alarmTemplates_EL= document.querySelector("div#alarmTemplates");
-showEl(alarmTemplates_EL, false);
-showEl(alarmTemplates_EL.querySelector("span.alarmCountdown"), false);
+var templates_EL= document.querySelector("div#templates");
+showEl(templates_EL, false);
+showEl(templates_EL.querySelector("span.alarmCountdown"), false);
+
+
+var msgCont_EL= document.querySelector("div#msgContainer");
+var template_msgInst_EL= templates_EL.querySelector("div.msgInstance");
+
 
 var alarmsCont_EL= document.querySelector("div#alarmsContainer");
 
-var template_alarmInst_EL= alarmTemplates_EL.querySelector("div.alarmInstance");
+var template_alarmInst_EL= templates_EL.querySelector("div.alarmInstance");
 var alarmInst_EL;
 var active_aI_EL;
 
@@ -1075,6 +1150,30 @@ document.querySelector("div#topButtons").addEventListener("click", evt => {
     alarms_sort(evt);
   } else if (targ_EL.id == "addAlarmBut") {
     alrm_add();
+  }
+});
+
+
+//create Message Header
+var msgHeader_EL= message_add("Messages");
+msgHeader_EL.classList.remove("msgInstance"); //no longer a commoner
+//msgHeader_EL.style.cssText= "background:slategrey; color:white; ";
+showEl(msgHeader_EL, false);
+
+var msgDelAllBut_EL= msgHeader_EL.querySelector("span.msgDeleteBut");
+msgDelAllBut_EL.title= "Delete all messages";
+
+msgCont_EL.addEventListener("click", evt => {
+  var targ_EL= evt.target;
+  if (targ_EL == msgDelAllBut_EL) {
+    //////add a confirm? ////tbd
+    msgCont_EL.querySelectorAll("div.msgInstance").forEach(el => el.remove());
+    showEl(msgHeader_EL, false);
+    //hide header
+
+  } else if (targ_EL.classList.contains("msgDeleteBut")) {
+    targ_EL.closest("div.msgInstance").remove();
+    if (!msgCont_EL.querySelectorAll("div.msgInstance").length) showEl(msgHeader_EL, false);
   }
 });
 
@@ -1162,7 +1261,7 @@ alarmsCont_EL.addEventListener("click", evt => {
       if (longPress_flag) return false; //-->
       alrm_editTime();
 
-    } else if (targ_EL.classList.contains("delAlarmBut")) {
+    } else if (targ_EL.classList.contains("alarmDeleteBut")) {
       alrm_delete();
 
     } else if (targ_EL.tagName == "INPUT") { //disabler checkbox (there can only 1 input el in alarmInstance)
@@ -1285,9 +1384,8 @@ function disablerMode_toggle() {
       preserved_autsrt_mode= true;
       autsrt_mode= false;
       autosortMode_execSet();
+      alrm_clear();
     }
-
-    if (active_flag && active_aI_EL) alrm_set(false);
 
     if (wakeLock_OBJ) wakeLock_toggle(); //off
     showEl(wlEnable_EL, false);
@@ -1338,7 +1436,7 @@ function autosortMode_execSet() { //on or off
 } //autosortMode_execSet()
 
 
-function dragAlarms_start() {
+function alarmsDrag_start() {
   //dragndrop
   //adapted from: https://www.w3resource.com/javascript-exercises/event/javascript-event-handling-exercise-6.php
 
@@ -1439,7 +1537,7 @@ function dragAlarms_start() {
   } //clear()
 
   //dragndrop
-} //dragAlarms_start()
+} //alarmsDrag_start()
 
 
 function alrm_addHelpers(aI_EL) { //.dataset only stores strings
@@ -1869,15 +1967,26 @@ function alrm_exeDel() {
 
 
 function g_promStr(str, t_str) {
-  if (!str) {
-    str= alarmInst_EL.$E.Info.innerHTML.replaceAll("<br>", " | ");
-    var tmp_doc= new DOMParser().parseFromString(str, 'text/html');
-    str= (tmp_doc.body.textContent || "").substring(0, 40);
-  }
-  if (!t_str) t_str= alarmInst_EL.$E.Time.textContent;
-  return 'Alarm info:<b>' +str +'</b><br>Time:<b class="livePreview">' +t_str +'</b>';
+  var alStrO;
+  if (!str || !t_str) alStrO= g_alStrO(alarmInst_EL);
+  return `Alarm info:<b>${str || alStrO.inf}</b><br>Time:<b class="livePreview">${t_str || alStrO.tim}</b>`;
 } //g_promStr()
 
+function g_alStrO(aI_EL) {
+  var str= aI_EL.$E.Info.innerHTML.replaceAll("<br>", " | ");
+  var tmp_doc= new DOMParser().parseFromString(str, 'text/html');
+  str= (tmp_doc.body.textContent || "").substring(0, 40);
+  return {
+    inf: str,
+    tim: aI_EL.$E.Time.textContent
+  };
+} //g_alStrO()
+
+
+function alrm_clear() { //use this to clear, alrm_set(false) does more than just clear
+  action_flag= undefined;
+  active_aI_EL= undefined;
+} //alrm_clear()
 
 function alrm_set(aI_EL, button_flag) {
 //console.trace("alrm_set", aI_EL?aId(aI_EL):aI_EL)
@@ -2056,7 +2165,7 @@ function alarms_import(imported_str) {
           del_arr.push(delTid_EL);
           alarmInst_EL= delTid_EL.closest("div.alarmInstance");
           alrm_exeDel();
-        } //else error msg?
+        } //else error messg?
 
       } //action_str
     } //PC
@@ -2187,6 +2296,15 @@ function PClink(tid_EL) {
   //div.alarmInfo will contain 2 <b>, 1st will be teamname, 2nd will be tid with <b class="PC_tid">
   jm.alert(`PennantChase<br>lg${lgid} ${tname}<a href="https://www.pennantchase.com/lgTeamLineup.aspx?tid=${tid}&lgid=${lgid}" target="_blank">Lineup</a>`);
 } //PClink()
+
+function message_add(str, bgColor_str) {
+  showEl(msgHeader_EL);
+  msg_EL= template_msgInst_EL.cloneNode(true); //clone
+  msgCont_EL.appendChild(msg_EL); //add
+  msg_EL.querySelector("div.msgInfo").innerHTML= str;
+  if (bgColor_str) msg_EL.style.background= bgColor_str;
+  return msg_EL; //bonus get
+} //smessage_add()
 
 function sound_play(ac_key, repeat_n =1, step_ms =750) {
   if (typeof(repeat_n) == "object") repeat_n= repeat_n.length; //repeat_n. passed in an arr
@@ -2484,12 +2602,11 @@ alarms_urlImport(window.location.search);
 if (fClick_flag) { //satisfy browser requirement to allow play-sound
   jm.alert("Click to start", () => {
     clock_draw();
-    dragAlarms_start();
+    alarmsDrag_start();
     clock_start();
     alarms_start();
   });
 }
-
 
 function alarms_urlImport(q_str) { //import from via url querystring, stores "importedAlarm" in localstorage
   //.. this is a url based endpoint, not really a webpage, self closes
@@ -2521,6 +2638,25 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
   if (fClick_flag == false) window.close();
 
 } //alarms_urlImport()
+
+function restart() { //post sleep
+  var elapsed_minutes= Math.floor(sync_diff_ms /60000); //negative
+  var alStrO;
+  [...aI_NL].forEach(aI_EL  => {
+    if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
+      aI_EL.$D.ctdn_m+= elapsed_minutes; //negative
+      if (aI_EL.$D.ctdn_m < 1) {
+        alStrO= g_alStrO(aI_EL);
+        message_add("Alarm missed: " +alStrO.tim +" | " +alStrO.inf, "pink");
+      }
+    } //skip not visible
+  });
+
+  ringer_stop(); //if needed
+  clock_start();
+  if (autsrt_mode) alrm_clear();
+  alarms_start();
+} //restart()
 
 </script>
 
