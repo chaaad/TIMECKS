@@ -799,15 +799,14 @@ var audioClips= {
 
 var clockFace_EL= document.querySelector("DIV#clockFace");
 
-var hand_ELs= {
-  hourH: clockFace_EL.querySelector("div#hourHand"),
-  minuteH: clockFace_EL.querySelector("div#minuteHand")
-};
-var dayOfWeek_EL= clockFace_EL.querySelector("h3");
-var monthDay_EL= clockFace_EL.querySelector("div#dtDisplay");
+var cf_handH_EL= clockFace_EL.querySelector("div#hourHand");
+var cf_handM_EL= clockFace_EL.querySelector("div#minuteHand");
 
-var clockMarker_EL= clockFace_EL.querySelector("div.marker");
-showEl(clockMarker_EL, false);
+var cf_dow_EL= clockFace_EL.querySelector("h3");
+var cf_monthDay_EL= clockFace_EL.querySelector("div#dtDisplay");
+
+var cf_marker_EL= clockFace_EL.querySelector("div.marker");
+showEl(cf_marker_EL, false);
 
 function clock_draw() {
   var rotate_n= 0;
@@ -840,9 +839,9 @@ function clock_draw() {
 } //clock_draw()
 
 
-var degO= {};
-var h_inc= 360 /720;
-var m_inc= 360 /60;
+var cf_degO;
+var cf_h_inc= 360 /720; //0.5deg
+var cf_m_inc= 360 /60; //6deg
 
 var start_dtO;
 var clock_elapse_ms; //what we want the time to be, when compared to Date.now() we get sync_diff_ms
@@ -852,10 +851,25 @@ var inc_ms= 60000; //default 1 minute (flex)
 
 var clockMarker_n;
 
-function clock_drawHands() {
-  hand_ELs.hourH.style.transform= "rotate(" +degO.hours + "deg)";
-  hand_ELs.minuteH.style.transform= "rotate(" +degO.minutes +"deg)";
+function clock_drawHands(o =cf_degO) {
+  cf_handH_EL.style.transform= "rotate(" +o.hr +"deg)";
+  cf_handM_EL.style.transform= "rotate(" +o.mn +"deg)";
 } //clock_drawHands()
+
+function clock_drawSyncHands() { //temp hands positions based on sync_diff_ms, cf_degO uneffected
+  var diff_m= sync_diff_ms /60000;
+  clock_drawHands({ //draw mn hand at precise mn position (not usual whole mn)
+    hr: cf_degO.hr -cf_h_inc *diff_m,
+    mn: cf_degO.mn -cf_m_inc *diff_m
+  }); //sleep/throttle actually make mn hand more accurate lol
+  if (sync_diff_ms < 0) return; //clock was behind //-->
+
+  //clock was ahead
+  setTimeout(() => {
+    clock_drawHands(); //now, can draw mn hand at the 'original' whole mn
+    classEl(cf_handM_EL, "throt", false);
+  }, sync_diff_ms);
+} //clock_drawSyncHands()
 
 /*///////////////
 var dbg_m, dbg_h;
@@ -879,8 +893,10 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
   var minutes= start_dtO.getMinutes(); //0-59
   clock_ctdn_m= 60 -minutes; //60-1
 
-  degO.hours= 30 *clock_hr24 +0.5 *minutes;
-  degO.minutes= 6 *minutes;
+  cf_degO= {
+    hr: 30 *clock_hr24  +cf_h_inc *minutes,
+    mn: cf_m_inc *minutes
+  };
   clock_drawHands();
 
   var minute_ms= start_dtO.getSeconds()*1000 +start_dtO.getMilliseconds();
@@ -920,12 +936,12 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
 
 var monthDay_str;
 function clock_drawDay(dtO, h24) {
-  dayOfWeek_EL.textContent= dtO.toLocaleDateString("en-US", {weekday:"short"}).toUpperCase();
+  cf_dow_EL.textContent= dtO.toLocaleDateString("en-US", {weekday:"short"}).toUpperCase();
   //eg. "Tue" .. "TUE"
 
   monthDay_str= (dtO.getMonth()+1) +"/" +dtO.getDate(); //0-11 (+1), 1-31
-  monthDay_EL.textContent= monthDay_str;
-  classEl(monthDay_EL, "pm", h24>=12);
+  cf_monthDay_EL.textContent= monthDay_str;
+  classEl(cf_monthDay_EL, "pm", h24>=12);
 } //clock_drawDay()
 
 
@@ -940,12 +956,13 @@ function clock_advance() { //+1 clock minute
   sync_dtO= new Date();
   //sync_dtO= dbgdate();
 
-  degO.hours+= h_inc;
-  degO.minutes+= m_inc;
+  cf_degO.hr+= cf_h_inc;
+  cf_degO.mn+= cf_m_inc;
   clock_drawHands();
 
   clock_ctdn_m--; //inc-
   if (clock_ctdn_m < 1) { //top of hr
+    cf_degO.mn= 0;
     clock_ctdn_m= 60; //wrap (reset)
     clock_hr24= (clock_hr24+1) %24; //inc wrap
     clock_ToH_flag= true;
@@ -974,16 +991,17 @@ function clock_advance() { //+1 clock minute
     } else if (clock_jump_ct) { //not 0
       if (clock_jump_ct > 0) { //postsleep stage 2/3
 //console.log("clock slept, jump", clock_jump_ct, "min", g_fmatDtO(sync_dtO), g_fmatSDM()) //debug
-        inc_ms= 60000 +sync_diff_ms; //get back in sync
-        sound_play("clik", (clock_jump_ct>3 ? 3 : clock_jump_ct), 500);
         clock_jump_ct= -1; //stage 3
-        classEl(hand_ELs.minuteH, "slept");
+        inc_ms= 60000 +sync_diff_ms; //get back in sync
+        classEl(cf_handM_EL, "slept");
+        clock_drawSyncHands();
+        sound_play("clik", (clock_jump_ct>3 ? 3 : clock_jump_ct), 500);
         return; //skip ToH //-->
 
       } else { //postsleep stage 3/3
         inc_ms= 60000; //reest
         clock_jump_ct= 0;
-        classEl(hand_ELs.minuteH, "slept", false);
+        classEl(cf_handM_EL, "slept", false);
       }
 
 
@@ -992,16 +1010,17 @@ function clock_advance() { //+1 clock minute
     //when throttle ends, this low inc_ms makes the next sync actually ahead!
     } else if (sync_diff_ms>100 || clock_throt_flag) { //fast (or throt stage 2)
       if (!clock_throt_flag) { //postthrot stage 1/2
-        clock_throt_flag= true; //stage 2
-        classEl(hand_ELs.minuteH, "throt");
-        sound_play("clik", 2, 500);
-        inc_ms= 60000 +sync_diff_ms; //get back in sync
 //console.log("clock throt", g_fmatDtO(sync_dtO), g_fmatSDM()) //debug
+        clock_throt_flag= true; //stage 2
+        inc_ms= 60000 +sync_diff_ms; //get back in sync
+        classEl(cf_handM_EL, "throt");
+        clock_drawSyncHands();
+        sound_play("clik", 2, 500);
         return; //skip ToH //-->
 
       } else { //postthrot stage 2/2
         clock_throt_flag= false;
-        classEl(hand_ELs.minuteH, "throt", false);
+        //classEl(cf_handM_EL, "throt", false);
         inc_ms= 60000; //reset
       }
 
@@ -1044,7 +1063,7 @@ function clock_checkToH() {
     console.log("DST change", diff_hrs, g_fmatDtO(sync_dtO)); //DST change -1 @3:00:00.013
 
     //2am bacomes 3am (forward) or 1am (back) ..
-    degO.hours+= diff_hrs *h_inc *60;
+    cf_degO.hr+= diff_hrs *cf_h_inc *60;
     clock_drawHands();
 
     clock_hr24+= diff_hrs; //reset
@@ -1054,7 +1073,10 @@ function clock_checkToH() {
   } //DST change
 
   //am/pm, monthday
-  if (clock_hr24 %12 == 0) clock_drawDay(toh_dtO, clock_hr24); //noon or midnite
+  if (clock_hr24 %12 == 0) {
+    cf_degO.hr= 0;
+    clock_drawDay(toh_dtO, clock_hr24); //noon or midnite
+  }
   //.. no interaction w DST change
 } //clock_checkToH()
 
@@ -1062,11 +1084,11 @@ function clock_checkMarker() {
   var marker_n= Math.floor(active_ctdn_m /720); //0 1 2+
   if (marker_n > 2) marker_n= 2;
   if (marker_n == clockMarker_n) return; //-->
-  if (clockMarker_EL.mkr_val == undefined) { //init
-    clockMarker_EL.style.transform= "translate(-50%, -50%) rotate(" +(30*hTimO.h +0.5*hTimO.m) +"deg)";
+  if (cf_marker_EL.mkr_val == undefined) { //init
+    cf_marker_EL.style.transform= "translate(-50%, -50%) rotate(" +(30*hTimO.h +0.5*hTimO.m) +"deg)";
   }
-  showEl(clockMarker_EL, active_ctdn_m<1440 ? "block" : false); //within 24hrs
-  classEl(clockMarker_EL, "on", active_ctdn_m<720); //within 12hrs
+  showEl(cf_marker_EL, active_ctdn_m<1440 ? "block" : false); //within 24hrs
+  classEl(cf_marker_EL, "on", active_ctdn_m<720); //within 12hrs
   clockMarker_n= marker_n;
 } //clock_checkMarker()
 
@@ -2033,7 +2055,7 @@ console.log("bad alarm time", alrm_str)
     active_ctdn_m= 0;
 
     showEl(activeStatus_EL, false);
-    showEl(clockMarker_EL, false);
+    showEl(cf_marker_EL, false);
 
     sound_play("slam");
 
