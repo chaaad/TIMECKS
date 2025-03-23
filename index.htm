@@ -1222,7 +1222,6 @@ alarmsCont_EL.addEventListener("mousedown", evt => {
     longPress_flag= false;
     longPress_timerId= setTimeout(function() { //startPressTimer
       var c_alarmInst_EL= targ_EL.closest("div.alarmInstance");
-      if (c_alarmInst_EL == active_aI_EL) return jm.error('Cant change time/countdown view on active alarm'); //-->
       longPress_flag= true; //this will prevent regular click handler
       alarmInst_EL= c_alarmInst_EL;
       alrm_setTorC(alarmInst_EL, !alarmInst_EL.$D.vu_cd, "persist"); //toggle
@@ -1930,7 +1929,9 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
 
 
 function alrm_setTorC(aI_EL, flag, persist_flag) {
-  alrm_setCtdnView(aI_EL, flag);
+  if (aI_EL == active_aI_EL) jm.alert('Default view stored, will be displayed when this is not the active alarm');
+  else alrm_setCtdnView(aI_EL, flag);
+
   if (persist_flag) aI_EL.$D.vu_cd= flag;
 } //alrm_setTorC()
 
@@ -2028,7 +2029,7 @@ console.log("bad alarm time", alrm_str)
   if (active_aI_EL) { //prev alarm off
     classEl(active_aI_EL, "alarmActive", false);
     classEl(active_aI_EL, "expired", false);
-    if (active_aI_EL.$D.vu_cd) alrm_setCtdnView(active_aI_EL);
+    alrm_setCtdnView(active_aI_EL, active_aI_EL.$D.vu_cd);
   }
 
   if (flag) { //alarm on
