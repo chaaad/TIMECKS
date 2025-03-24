@@ -846,8 +846,8 @@ var cf_h_inc= 360 /720; //0.5deg
 var cf_m_inc= 360 /60; //6deg
 
 var start_dtO;
-var clock_elapse_ms; //what we want the time to be, when compared to Date.now() we get sync_diff_ms
 var clock_hr24;
+var clock_elapse_ms; //what we want the time to be, when compared to Date.now() we get sync_diff_ms
 var clock_ctdn_m;
 var inc_ms= 60000; //default 1 minute (flex)
 
@@ -888,8 +888,9 @@ function clock_start() {
   //start_dtO= dbgdate();
 
 console.log("clock_start", start_dtO.toLocaleTimeString());
-  clock_elapse_ms= start_dtO.getTime();
   sound_play("clik");
+
+  clock_elapse_ms= start_dtO.getTime();
 
   clock_hr24= start_dtO.getHours();
   var minutes= start_dtO.getMinutes(); //0-59
@@ -900,6 +901,8 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
     mn: cf_m_inc *minutes
   };
   clock_drawHands();
+
+  tzoc_start();
 
   var minute_ms= start_dtO.getSeconds()*1000 +start_dtO.getMilliseconds();
   var topOfMinute_ms= 60000 -minute_ms;
@@ -932,31 +935,33 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
 
   }, topOfMinute_ms);
 
-  clock_ToH_flag= undefined;
-  clock_drawDay(start_dtO, clock_hr24);
+  clock_drawDay(start_dtO);
+  tzoc_check(start_dtO);
 } //clock_start()
 
 var monthDay_str;
-function clock_drawDay(dtO, h24) {
+function clock_drawDay(dtO) { //draw am/pm and monthday
   cf_dow_EL.textContent= dtO.toLocaleDateString("en-US", {weekday:"short"}).toUpperCase();
   //eg. "Tue" .. "TUE"
-
-  monthDay_str= (dtO.getMonth()+1) +"/" +dtO.getDate(); //0-11 (+1), 1-31
-  cf_monthDay_EL.textContent= monthDay_str;
-  classEl(cf_monthDay_EL, "pm", h24>=12);
+  var month_n= dtO.getMonth();
+  monthDay_str= (month_n +1) +"/" +dtO.getDate(); //0-11 (+1), 1-31
+  cf_monthDay_EL.textContent= monthDay_str; //monthday
+  classEl(cf_monthDay_EL, "pm", clock_hr24>=12); //am/pm
 } //clock_drawDay()
 
 
 var sync_dtO;
+var sync_ms;
 var sync_diff_ms; //can debug in console
 
 var clock_throt_flag;
 var clock_jump_ct= 0;
-var clock_ToH_flag;
 
 function clock_advance() { //+1 clock minute
-  sync_dtO= new Date();
+  sync_dtO= new Date(); //topOfMinute
   //sync_dtO= dbgdate();
+  sync_ms= sync_dtO.getTime();
+  sync_diff_ms= clock_elapse_ms -sync_ms;
 
   cf_degO.hr+= cf_h_inc;
   cf_degO.mn+= cf_m_inc;
@@ -967,60 +972,66 @@ function clock_advance() { //+1 clock minute
     cf_degO.mn= 0;
     clock_ctdn_m= 60; //wrap (reset)
     clock_hr24= (clock_hr24+1) %24; //inc wrap
-    clock_ToH_flag= true;
+
+    if (clock_hr24 %12 == 0) { //noon or midnite
+      cf_degO.hr= 0;
+
+      var toh_dtO= clock_hr24==0 && sync_diff_ms>0 ? new Date(sync_ms +3600000) : undefined; //if midnite, and real time is behind, add 1 hr (to next day)
+      //.. add hr, dont care about time here, just month/day
+
+      clock_drawDay(toh_dtO || sync_dtO);
+      tzoc_check(sync_dtO);
+    }
 //console.log("TOP OF HR", g_fmatDtO(sync_dtO))
   } //top of hr
 
   alarms_update(-1);
 
-  sync_diff_ms= clock_elapse_ms -sync_dtO.getTime();
   if (sync_diff_ms) { //not 0
 
-    //post sleep
+    //post-sleep (possibly throttle)
     if (sync_diff_ms <= -60000 ) { //very slow, 1 or more minute behind
 
       if (sync_diff_ms <= -3600000 ) { //extremely slow, 1 or more hour behind
         restart();
         return "abort_mainloop"; ////-->
+        ///////////////////////
       }
 
       //jump 1 minute
-      clock_jump_ct++;  //postsleep stage 1/3
+      clock_jump_ct++;  //post-sleep stage 1/3
       clock_elapse_ms+= 60000; //add 1 clock min
       clock_advance(); //.. can be called as many times as necessary to catch up (up to an hour)
-      return; //skip ToH //-->
 
     } else if (clock_jump_ct) { //not 0
-      if (clock_jump_ct > 0) { //postsleep stage 2/3
-//console.log("clock slept, jump", clock_jump_ct, "min", g_fmatDtO(sync_dtO), g_fmatSDM()) //debug
+      if (clock_jump_ct > 0) { //post-sleep stage 2/3
+//console.log("clock jumped ahead", clock_jump_ct, "min", g_fmatDtO(sync_dtO), g_fmatSDM()) //debug
         clock_jump_ct= -1; //stage 3
         inc_ms= 60000 +sync_diff_ms; //get back in sync
         classEl(cf_handM_EL, "slept");
         clock_drawSyncHands();
         sound_play("clik", (clock_jump_ct>3 ? 3 : clock_jump_ct), 500);
-        return; //skip ToH //-->
 
-      } else { //postsleep stage 3/3
+      } else { //clock_jump_ct == -1 //post-sleep stage 3/3
         inc_ms= 60000; //reest
         clock_jump_ct= 0;
         classEl(cf_handM_EL, "slept", false);
       }
 
 
-    //post throttle
+    //post-throttle
     //what happens is that during throttle, the mainloop runs lil slow, so inc_ms goes lower to try to run mainloop quicker
     //when throttle ends, this low inc_ms makes the next sync actually ahead!
     } else if (sync_diff_ms>100 || clock_throt_flag) { //fast (or throt stage 2)
-      if (!clock_throt_flag) { //postthrot stage 1/2
+      if (!clock_throt_flag) { //post-throt stage 1/2
 //console.log("clock throt", g_fmatDtO(sync_dtO), g_fmatSDM()) //debug
         clock_throt_flag= true; //stage 2
         inc_ms= 60000 +sync_diff_ms; //get back in sync
         classEl(cf_handM_EL, "throt");
         clock_drawSyncHands();
         sound_play("clik", 2, 500);
-        return; //skip ToH //-->
 
-      } else { //postthrot stage 2/2
+      } else { //post-throt stage 2/2
         clock_throt_flag= false;
         //classEl(cf_handM_EL, "throt", false);
         inc_ms= 60000; //reset
@@ -1033,8 +1044,6 @@ function clock_advance() { //+1 clock minute
       if (inc_ms < 1000) inc_ms= 1000; //not too small, nrn
     }
 
-    clock_checkToH();
-
     //when browser throttled, mainloop 'minute' can be slow (over 7 secs seen), also screen rendering paused
     //https://developer.mozilla.org/en-US/docs/Web/API/Window/setTimeout#reasons_for_delays_longer_than_specified
 
@@ -1044,43 +1053,6 @@ function clock_advance() { //+1 clock minute
   } //sync_diff_ms
 
 } //clock_advance()
-
-function clock_checkToH() {
-  if (!clock_ToH_flag) return;
-  clock_ToH_flag= false;
-
-  var toh_dtO= new Date(sync_dtO); //from real time
-  if (toh_dtO.getMinutes() > 30) toh_dtO.setHours(toh_dtO.getHours() +1);
-  //.. minutes should be 0 or lil more, otherwise real time is behind, eg. 59
-  //.. test of > 30, gives plenty of wiggle room
-  //.. will also take care of midnite, toh_dtO will go to next day
-
-  //note: dst change doesnt affect dateobj epoch ms (and clock_elapse_ms), dst change can be detected by using .getHours()
-
-  //DST change?
-  var now_hr24= toh_dtO.getHours();
-  var diff_hrs= now_hr24 -clock_hr24; //now_hr24 and clock_hr24 should be the same, execept if dst
-  if (diff_hrs) { //-1 0 1
-    //https://www.timeanddate.com/time/dst/transition.html
-    console.log("DST change", diff_hrs, g_fmatDtO(sync_dtO)); //DST change -1 @3:00:00.013
-
-    //2am bacomes 3am (forward) or 1am (back) ..
-    cf_degO.hr+= diff_hrs *cf_h_inc *60;
-    clock_drawHands();
-
-    clock_hr24+= diff_hrs; //reset
-    //.. no overflow concerns, dst change happens at 2am
-
-    sound_play("clik");
-  } //DST change
-
-  //am/pm, monthday
-  if (clock_hr24 %12 == 0) {
-    cf_degO.hr= 0;
-    clock_drawDay(toh_dtO, clock_hr24); //noon or midnite
-  }
-  //.. no interaction w DST change
-} //clock_checkToH()
 
 function clock_checkMarker() {
   var marker_n= Math.floor(active_ctdn_m /720); //0 1 2+
@@ -1312,16 +1284,16 @@ var wakeLock_OBJ;
 async function wakeLock_request() {
 	try {
 		wakeLock_OBJ= await navigator.wakeLock.request();
-      classEl(wlEnable_EL, "on");
-      //localStorage.setItem("wake_lock", true);
-      //no, dont persist, its more of a dynamic value, requesting a wakeLock is more of automatic process
-      //could persist something like "never use wakeLock", but dont bother
+    classEl(wlEnable_EL, "on");
+    //localStorage.setItem("wake_lock", true);
+    //no, dont persist, its more of a dynamic value, requesting a wakeLock is more of automatic process
+    //could persist something like "never use wakeLock", but dont bother
 
-  		wakeLock_OBJ.addEventListener("release", () => {
-  			wakeLock_OBJ= undefined; //clear global
-        classEl(wlEnable_EL, "on", false);
-        //localStorage.setItem("wake_lock", false);
-  		});
+  	wakeLock_OBJ.addEventListener("release", () => {
+  		wakeLock_OBJ= undefined; //clear global
+      classEl(wlEnable_EL, "on", false);
+      //localStorage.setItem("wake_lock", false);
+  	});
 	} catch (err) {console.log(err.message); }
 } //wakeLock_request()
 
@@ -2076,6 +2048,8 @@ function alrm_expireMsg(aI_EL) {
 
 
 function alarms_update(mnt_n) {
+  sysAlarm_check(sync_ms);
+
   if (!vis_ct) return; //-->
 
   var autoTurnover_flag;
@@ -2348,6 +2322,195 @@ function message_remove(msg_EL) {
 
   msg_EL.remove();
 } //message_remove()
+
+
+var sysAlarms_arr= [];
+var sysAlarms_lu= {};
+
+function sysAlarm_addOrDel(name_str, ms, handler) {
+  var sAO;
+  if (ms != undefined) { //add
+    sAO= {n:name_str, ms:ms, handler:handler};
+    sysAlarms_arr.push(sAO);
+    sysAlarms_lu[name_str]= sAO;
+
+  } else { //del
+    sAO= sysAlarms_lu[name_str];
+    sysAlarms_arr.splice(sysAlarms_arr.indexOf(sAO), 1);
+    delete sysAlarms_lu[name_str];
+  }
+} //sysAlarm_addOrDel()
+
+function sysAlarm_check(ms) {
+  if (!sysAlarms_arr.length) return; //-->
+
+  sysAlarms_arr.forEach(sAO => {
+    if (ms >= sAO.ms) {
+      message_add(sAO.n);
+      if (sAO.handler) sAO.handler(sAO, ms);
+      sysAlarm_addOrDel(sAO.n); //remove sysAlarm
+    }
+  });
+} //sysAlarm_check();
+
+
+var clock_tzo;
+var tzoc_arr;
+
+function tzoc_start() {
+  clock_tzo= start_dtO.getTimezoneOffset();
+
+  tzoc_arr= [];
+  var year_n= start_dtO.getFullYear();
+  var tz_str= localStorage.getItem("tzoc") || "";
+  var tz_ar= tz_str.split(",");
+  if (tz_ar[0] != year_n) {
+    var raw_arr= tzoc_getDates(year_n);
+//console.log(raw_arr)
+    if (raw_arr[0] == year_n) { //nrn
+      var alarmNow_obj, ms;
+      raw_arr.forEach((str, i) => {
+        if (i) { //leave year alone
+          alarmNow_obj= alrm_procTimeText(str, "preview");
+          ms= alarmNow_obj ? alarmNow_obj.ms : 0;
+          raw_arr[i]= str +"|" +ms;
+          tzoc_arr[i]= {t:str, ms:ms};
+        } else tzoc_arr[0]= str;
+      });
+      tz_str= raw_arr.join(",");
+    }
+    localStorage.setItem("tzoc", tz_str);
+
+  } else {
+    var split_arr;
+    tz_ar.forEach((str, i) => {
+      if (i) { //leave year alone
+        split_arr= str.split("|");
+        tzoc_arr[i]= {t:split_arr[0], ms:split_arr[1]*1};
+      } else tzoc_arr[0]= str;
+    });
+  }
+} //tzoc_start()
+
+function tzoc_check(dtO) {
+  if (tzoc_arr.length <= 1) return; //just year //-->
+
+  var now_ms= dtO.getTime();
+  var until_ms= now_ms +43200000; //12hr
+  var ms;
+  tzoc_arr.forEach((tzO, i) => {
+    if (i) { //leave year alone
+      ms= tzO.ms;
+      if (ms >= now_ms && ms <= until_ms) add_sysAlm(tzO);
+    }
+  });
+
+  function add_sysAlm(tzO) {
+    var name_str= "Time zone offset change: " +tzO.t;
+    if (sysAlarms_lu[name_str]) return; //already added //-->
+
+    sysAlarm_addOrDel(
+      name_str,
+      tzO.ms,
+      function(sAO, ms) { //handler
+        var dtO= new Date();
+        var tzo= dtO.getTimezoneOffset(); //est 300, dst 240
+        var diff_tzo= clock_tzo -tzo; //0, +- 60
+        if (diff_tzo) {
+          var diff_hr= Math.sign(diff_tzo); // +- 1
+
+          //https://www.timeanddate.com/time/dst/transition.html
+          console.log("DST change", diff_hr, g_fmatDtO(sync_dtO)); //DST change -1 @3:00:00.013
+
+          //becomes 3am (forward) or 1am (back) ..
+          cf_degO.hr+= diff_hr *cf_h_inc *60;
+          clock_drawHands();
+
+          clock_hr24= dtO.getHours(); //reset
+
+          sound_play("clik");
+        } //DST change
+
+      } //handler
+    );
+  } //add_sysAlm()
+
+} //tzoc_check()
+
+function tzoc_getDates(year_n) { //time zone offset change
+  //based on the time/location settings of computer, so should work anywhere
+  //this should run once a year
+  var arr= [year_n];
+  var dtO= new Date(year_n, 0);
+
+  //month: 0-11, 0 indexed
+  var first_month_i= 0;
+  var last_month_i= 11;
+  var ftzo_obj;
+  var date_str;
+
+  var first_i= first_month_i;
+  var prev_tzo;
+  do {
+    dtO.setDate(1); dtO.setHours(0); //reset
+    ftzo_obj= find_tzoChg(first_i , last_month_i, "setMonth", prev_tzo);
+    //note: if tzo changes on and off within a month, we wont catch it, edge or non-issue
+    date_str= ftzo_obj ? find_tzoChgInMonth(year_n, ftzo_obj.i) : "";
+    if (date_str) {
+      arr.push(date_str);
+      if (ftzo_obj.i >= last_month_i) {
+        date_str= undefined; //break
+      } else {
+        first_i= ftzo_obj.i +1;
+        prev_tzo= ftzo_obj.tzo;
+        //next
+      }
+    }
+  } while (date_str)
+
+  return arr;
+  //end
+
+
+  function find_tzoChg(first_i, last_i, dFn_key, prev_tzo) { //note: param 2 is last_i, not .length
+    var tzo;
+    //Loop through every month of the current year
+    for (var i=first_i; i<=last_i; i++) {
+      dtO[dFn_key](i); //set month or day
+      tzo= dtO.getTimezoneOffset();
+//console.log(dFn_key,first_i,i,tzo,dtO)
+      if (prev_tzo!=undefined && tzo!=prev_tzo) return {i:i -1, tzo:tzo}; //-->
+      prev_tzo= tzo;
+    }
+  } //find_tzoChg()
+
+  function find_tzoChgInMonth(year, month) {
+    var ftzo_obj;
+    dtO.setMonth(month);
+    var daysInMonth= new Date(year, month+1, 0).getDate(); //use the 'next' month, minus 1 day (day 0) //month is 0 indexed, day is 1 indexed
+    ftzo_obj= find_tzoChg(1, daysInMonth, "setDate");
+    if (!ftzo_obj) return;
+    var day= ftzo_obj.i;
+    dtO.setDate(day);
+    ftzo_obj= find_tzoChg(0, 23, "setHours");
+    if (!ftzo_obj) return;
+    var hour= ftzo_obj.i;
+
+    //to human read
+    month++;
+    hour++;
+    var amPm_str= hour>=12 ? "PM" : "AM";
+    hour= hour%12;
+    if (hour == 0) hour= 12;
+    return month +"/" +day +" " +hour +":00" +amPm_str;
+  } //find_tzoChgInMonth()
+
+} //tzoc_getDates()
+
+/* //test in console
+var arr= tzoc_getDates();
+console.log(arr);
+*/
 
 
 function sound_play(ac_key, repeat_n =1, step_ms =750) {
