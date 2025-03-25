@@ -1835,7 +1835,8 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     var diff_ms= dtO -new Date();
     if (diff_ms<1 || param=="preview_forceTurnover") { //if reqTime less than nowTime
       if (tO.MD) {
-        if (tO.MD.mW) dtO.setMonth(dtO.getMonth() +1); //+1 month //mon_wildcard_str
+        if (tO.MD.DoW) dtO.setDate(dtO.getDate() +7); //+1 week //DayOfWeek
+        else if (tO.MD.mW) dtO.setMonth(dtO.getMonth() +1); //+1 month //mon_wildcard_str
         else dtO.setFullYear(dtO.getFullYear() +1); //+1 year
       } else {
         dtO.setDate(dtO.getDate() +1); //+1 day
@@ -1869,11 +1870,14 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
       if (isNaN(day) || day<1 || day>31) day= 1; //not verifying against number of days in month
 
     } else if (mD_str.search(/^[SMTWF]/) == 0) { //Day of Week
-      var f2_str= mD_str.substring(0, 2);
+      var f2_str= mD_str.substring(0, 2); //"SU" is ok, "S" is not
       if (f2_str.length < 2) return; //-->
+
       var raw_DoW_n= DoW2_arr.indexOf(f2_str);
       if (raw_DoW_n < 0) return; //-->
+
       DoW_str= DoW_arr[raw_DoW_n];
+
       var copy_dtO= new Date(time_dtO); //lets not change time_dtO here
       var DoW_diff_n= raw_DoW_n -copy_dtO.getDay(); //.getDay(), could be called getDoW, returns 0-6 (sun-sat)
       if (DoW_diff_n) {
@@ -1882,6 +1886,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
       }
       month= copy_dtO.getMonth() +1;
       day= copy_dtO.getDate(); //.getDate(), could be called getDay, returns 1-31
+
     } else {
       return; //--> fail
     }
