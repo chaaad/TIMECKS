@@ -795,6 +795,7 @@ var audioClips= {
   slam: new Audio("https://cdn.freesound.org/previews/421/421472_3387258-lq.mp3"),
   trsh: new Audio("https://cdn.freesound.org/previews/655/655617_13805813-lq.mp3"),
   clik: new Audio("https://cdn.freesound.org/previews/668/668985_14100561-lq.mp3"),
+  snoz: new Audio("https://cdn.freesound.org/previews/425/425727_760420-lq.mp3"),
   rngr: new Audio("https://cdn.freesound.org/previews/246/246332_4486188-lq.mp3")
 };
 
@@ -1123,9 +1124,9 @@ var snooze_def_num= (localStorage.getItem("snooze_num") || 5) *1; //default 5
 
 document.addEventListener("keyup", evt => { //capture any keyup
   if (!document.body.classList.contains("jw-modal-active")) { //modal inactive
-    if (ringerButs_EL.style.display == "block") { //keys to silence ringer
+    if (ring_intimerId) { //keys to silence ringer
       if (evt.key == " ") ringer_stop("snooze");
-      else if (evt.key.search(/Enter|Escape/) > -1) ringer_stop();
+      else if (evt.key.search(/Enter|Escape/) > -1) ringer_stop("off");
     //} else if (evt.key == "-") { //useful for testing, remove
       //alarmInst_EL= alarmsCont_EL.querySelector("div.alarmInstance"); //always the standard (1st) alarm
       //alrm_editTime();
@@ -1134,7 +1135,6 @@ document.addEventListener("keyup", evt => { //capture any keyup
 });
 
 document.querySelector("div#topButtons").addEventListener("click", evt => {
-  ringer_stop(); //if needed
   var targ_EL= evt.target;
   if (targ_EL.id == "editStgsBut") {
     timecksStgs_edit();
@@ -1239,40 +1239,41 @@ alarmsCont_EL.addEventListener("dragstart", () => {
 alarmsCont_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
 
-  var _alarmInst_EL;
-  if (_alarmInst_EL= targ_EL.closest("div.alarmInstance")) {
-    ringer_stop(); //if needed
-    alarmInst_EL= _alarmInst_EL;
-
-    if (targ_EL.classList.contains("expired")) classEl(alarmInst_EL, "expired", false);
-
-    if (targ_EL.classList.contains("alarmActivate")) {
-      alrm_set(alarmInst_EL==active_aI_EL?false:alarmInst_EL, "button"); //toggle
-
-    } else if (targ_EL.closest("div.alarmInfo")) {
-      if (targ_EL.classList.contains("PC_tid")) PClink(targ_EL);
-      else alrm_editInfo();
-
-    } else if (targ_EL.classList.contains("alarmT")) {
-      longPress_timerStop();
-      if (longPress_flag) return false; //-->
-      alrm_editTime();
-
-    } else if (targ_EL.classList.contains("alarmDeleteBut")) {
-      alrm_delete();
-
-    } else if (targ_EL.tagName == "INPUT") { //disabler checkbox (there can only 1 input el in alarmInstance)
-      classEl(alarmInst_EL, "disabledInstance", !targ_EL.checked);
-      alarms_save();
-    }
-
-  } else if (targ_EL.closest("div#ringerSnooze")) {
+  if (targ_EL.closest("div#ringerSnooze")) {
     var n;
     if (targ_EL.tagName == "SPAN") n= targ_EL.textContent *1;
     ringer_stop("snooze", n);
 
   } else if (targ_EL.closest("div#ringerOff")) {
-    ringer_stop();
+    ringer_stop("off");
+
+  } else {
+    var _alarmInst_EL;
+    if (_alarmInst_EL= targ_EL.closest("div.alarmInstance")) {
+      alarmInst_EL= _alarmInst_EL;
+
+      if (targ_EL.classList.contains("expired")) classEl(alarmInst_EL, "expired", false);
+
+      if (targ_EL.classList.contains("alarmActivate")) {
+        alrm_set(alarmInst_EL==active_aI_EL?false:alarmInst_EL, "button"); //toggle
+
+      } else if (targ_EL.closest("div.alarmInfo")) {
+        if (targ_EL.classList.contains("PC_tid")) PClink(targ_EL);
+        else alrm_editInfo();
+
+      } else if (targ_EL.classList.contains("alarmT")) {
+        longPress_timerStop();
+        if (longPress_flag) return false; //-->
+        alrm_editTime();
+
+      } else if (targ_EL.classList.contains("alarmDeleteBut")) {
+        alrm_delete();
+
+      } else if (targ_EL.tagName == "INPUT") { //disabler checkbox (there can only 1 input el in alarmInstance)
+        classEl(alarmInst_EL, "disabledInstance", !targ_EL.checked);
+        alarms_save();
+      }
+    }
   }
 });
 
@@ -1444,7 +1445,17 @@ function alarmsDrag_start() {
   alarmsCont_EL.addEventListener("dragstart", dragStart);
   document.addEventListener("dragover", dragOver);
   document.addEventListener("drop", drop); //user can drop anywhere, listening only on dragList doesnt cut it
-  document.addEventListener("click", evt => {if (dragAl_EL) clear("fully"); }); //recover after a failed drop
+
+  //this is very global (not just drag)
+  document.addEventListener("click", evt => {
+    if (dragAl_EL) clear("fully");
+
+    if (ring_intimerId) {
+      var targ_EL= evt.target;
+      if (!targ_EL.closest("div#ringerButs")) ringer_stop("snooze"); //click anything but the ring controls, is a 'snooze'
+    }
+
+  }); //recover after a failed drop
 
   function dragStart(evt) {
     if (dragAl_EL) clear("fully"); //recover after a failed drop
@@ -2242,7 +2253,7 @@ function ringer_start() {
   }, 5000);
 } //ringer_start()
 
-function ringer_stop(snooze_flag, snooze_n) {
+function ringer_stop(flag, snooze_n) { //without flag, default is 'snooze'
   if (!ring_flag) return;
 
   if (ring_intimerId) {
@@ -2251,20 +2262,21 @@ function ringer_stop(snooze_flag, snooze_n) {
     body_EL.classList.remove("ringing", "ringingFlash");
   }
 
-  if (snooze_flag) {
-    //note: snooze wont be exact, since it only checks/fires at top of minute
-    //eg. 5 minutes will be 4-5 minutes
-    snooze_ctdn_m= snooze_n || snooze_def_num;
-    classEl(ringerSnooze_EL, "but-active");
-
-  } else { //ringer off
-    if (ring_flag) sound_play("slam"); //ringer-off slam
+  if (flag == "off") {
+    sound_play("slam"); //ringer-off slam
     showEl(activeStatus_EL, false);
     showEl(ringerButs_EL, false);
     snooze_ctdn_m= 0; //if needed
     classEl(ringerSnooze_EL, "but-active", false); //if needed
     ring_flag= false;
     alrm_set(false);
+
+  } else { //snooze
+    //note: snooze wont be exact, since it only checks/fires at top of minute
+    //eg. 5 minutes will be 4-5 minutes
+    snooze_ctdn_m= snooze_n || snooze_def_num;
+    classEl(ringerSnooze_EL, "but-active");
+    sound_play("snoz");
   }
 
   snooze_draw(); //if needed
