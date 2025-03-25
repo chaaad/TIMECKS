@@ -2393,7 +2393,7 @@ function tzoc_start() {
 } //tzoc_start()
 
 function tzoc_check(dtO) {
-  if (tzoc_arr.length <= 1) return; //just year //-->
+  if (tzoc_arr.length <= 1) return; //just year, no dates //-->
 
   var now_ms= dtO.getTime();
   var until_ms= now_ms +43200000; //12hr
@@ -2407,7 +2407,7 @@ function tzoc_check(dtO) {
 
   function add_sysAlm(tzO) {
     var name_str= "Time zone offset change: " +tzO.t;
-    if (sysAlarms_lu[name_str]) return; //already added //-->
+    if (sysAlarms_lu[name_str]) return; //skip, already added //-->
 
     sysAlarm_addOrDel(
       name_str,
@@ -2420,7 +2420,7 @@ function tzoc_check(dtO) {
           var diff_hr= Math.sign(diff_tzo); // +- 1
 
           //https://www.timeanddate.com/time/dst/transition.html
-          console.log("DST change", diff_hr, g_fmatDtO(sync_dtO)); //DST change -1 @3:00:00.013
+          console.log("TZO change", diff_hr, g_fmatDtO(sync_dtO)); //DST change -1 @3:00:00.013
 
           //becomes 3am (forward) or 1am (back) ..
           cf_degO.hr+= diff_hr *cf_h_inc *60;
@@ -2455,7 +2455,7 @@ function tzoc_getDates(year_n) { //time zone offset change
     dtO.setDate(1); dtO.setHours(0); //reset
     ftzo_obj= find_tzoChg(first_i , last_month_i, "setMonth", prev_tzo);
     //note: if tzo changes on and off within a month, we wont catch it, edge or non-issue
-    date_str= ftzo_obj ? find_tzoChgInMonth(year_n, ftzo_obj.i) : "";
+    date_str= ftzo_obj ? find_tzoChgInMonth(year_n, ftzo_obj.i) : ""; //date_str also acts as success flag
     if (date_str) {
       arr.push(date_str);
       if (ftzo_obj.i >= last_month_i) {
@@ -2479,7 +2479,7 @@ function tzoc_getDates(year_n) { //time zone offset change
       dtO[dFn_key](i); //set month or day
       tzo= dtO.getTimezoneOffset();
 //console.log(dFn_key,first_i,i,tzo,dtO)
-      if (prev_tzo!=undefined && tzo!=prev_tzo) return {i:i -1, tzo:tzo}; //-->
+      if (prev_tzo!=undefined && tzo!=prev_tzo) return {i:i -1, tzo:tzo}; //success //-->
       prev_tzo= tzo;
     }
   } //find_tzoChg()
@@ -2489,11 +2489,13 @@ function tzoc_getDates(year_n) { //time zone offset change
     dtO.setMonth(month);
     var daysInMonth= new Date(year, month+1, 0).getDate(); //use the 'next' month, minus 1 day (day 0) //month is 0 indexed, day is 1 indexed
     ftzo_obj= find_tzoChg(1, daysInMonth, "setDate");
-    if (!ftzo_obj) return;
+    if (!ftzo_obj) return; //-->
+
     var day= ftzo_obj.i;
     dtO.setDate(day);
     ftzo_obj= find_tzoChg(0, 23, "setHours");
-    if (!ftzo_obj) return;
+    if (!ftzo_obj) return; //-->
+
     var hour= ftzo_obj.i;
 
     //to human read
