@@ -2388,6 +2388,7 @@ function tzoc_start() {
     var raw_arr= tzoc_getDates(year_n);
 //console.log(raw_arr)
     if (raw_arr[0] == year_n) { //nrn
+      message_add("Timezone offset changes for " +raw_arr.join(", "));
       var alarmNow_obj, ms;
       raw_arr.forEach((str, i) => {
         if (i) { //leave year alone
