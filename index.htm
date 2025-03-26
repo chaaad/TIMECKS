@@ -918,7 +918,7 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
     function mainloop() { //self-recursing
       setTimeout(() => {
         clock_elapse_ms+= 60000; //inc (fixed)
-        if (clock_advance()) return; //abort mainloop
+        if (clock_advance()) return; //abort mainloop //-->
 
         if (imported_str= localStorage.getItem("importedAlarm")) alarms_import(imported_str);
         //.. like a poll, for "importedAlarm" in localStorage
@@ -970,9 +970,9 @@ function clock_advance() { //+1 clock minute
 
   clock_ctdn_m--; //inc-
   if (clock_ctdn_m < 1) { //top of hr
-    cf_degO.mn= 0;
     clock_ctdn_m= 60; //wrap (reset)
     clock_hr24= (clock_hr24+1) %24; //inc wrap
+    cf_degO.mn= 0;
 
     if (clock_hr24 %12 == 0) { //noon or midnite
       cf_degO.hr= 0;
@@ -986,15 +986,14 @@ function clock_advance() { //+1 clock minute
 //console.log("TOP OF HR", g_fmatDtO(sync_dtO))
   } //top of hr
 
-  alarms_update(-1);
 
   if (sync_diff_ms) { //not 0
 
-    //post-sleep (possibly throttle)
+    //post-sleep (possibly throttle?)
     if (sync_diff_ms <= -60000 ) { //very slow, 1 or more minute behind
 
       if (sync_diff_ms <= -3600000 ) { //extremely slow, 1 or more hour behind
-        restart();
+        restart(); //clean
         return "abort_mainloop"; ////-->
         ///////////////////////
       }
@@ -1053,14 +1052,17 @@ function clock_advance() { //+1 clock minute
 //console.log("advanced Clock",  g_fmatDtO(sync_dtO), g_fmatSDM(), inc_ms )
   } //sync_diff_ms
 
+  alarms_update(-1);
+
 } //clock_advance()
 
 function clock_checkMarker() {
   var marker_n= Math.floor(active_ctdn_m /720); //0 1 2+
   if (marker_n > 2) marker_n= 2;
   if (marker_n == clockMarker_n) return; //-->
+
   if (cf_marker_EL.mkr_val == undefined) { //init
-    cf_marker_EL.style.transform= "translate(-50%, -50%) rotate(" +(30*hTimO.h +0.5*hTimO.m) +"deg)";
+    cf_marker_EL.style.transform= "translate(-50%, -50%) rotate(" +(30*active_hTimO.h +0.5*active_hTimO.m) +"deg)";
   }
   showEl(cf_marker_EL, active_ctdn_m<1440 ? "block" : false); //within 24hrs
   classEl(cf_marker_EL, "on", active_ctdn_m<720); //within 12hrs
@@ -1182,6 +1184,7 @@ var longPress_timerId;
 
 function longPress_timerStop() {
   if (!longPress_timerId) return; //-->
+
   clearTimeout(longPress_timerId);
   longPress_timerId= undefined;
 }
@@ -1209,7 +1212,8 @@ alarmsCont_EL.addEventListener("mouseover", evt => {
   var targ_EL= evt.target;
   if (targ_EL.classList.contains("alarmT")) {
     var aI_EL= targ_EL.closest("div.alarmInstance");
-    if (aI_EL==active_aI_EL || aI_EL.$D.t_hov) return; //-->  //active or already hovered, skip
+    if (aI_EL==active_aI_EL || aI_EL.$D.t_hov) return; //active or already hovered, skip //-->
+
     alrm_setTorC(aI_EL, !aI_EL.$D.vu_cd); //toggle, but only temporary
     aI_EL.$D.t_hov= true; //hover on
   }
@@ -1223,7 +1227,8 @@ alarmsCont_EL.addEventListener("mouseout", evt => {
   var targ_EL= evt.target;
   if (targ_EL.classList.contains("alarmT")) {
     var aI_EL= targ_EL.closest("div.alarmInstance");
-    if (!aI_EL.$D.t_hov) return; //-->  //already unhovered, skip
+    if (!aI_EL.$D.t_hov) return; //already unhovered, skip //-->
+
     alrm_setTorC(aI_EL, aI_EL.$D.vu_cd); //untoggle, was temporary anyway
     aI_EL.$D.t_hov= false; //hover off
   }
@@ -1263,7 +1268,8 @@ alarmsCont_EL.addEventListener("click", evt => {
 
       } else if (targ_EL.classList.contains("alarmT")) {
         longPress_timerStop();
-        if (longPress_flag) return false; //-->
+        if (longPress_flag) return; //-->
+
         alrm_editTime();
 
       } else if (targ_EL.classList.contains("alarmDeleteBut")) {
@@ -1300,6 +1306,7 @@ async function wakeLock_request() {
 
 async function wakeLock_release() { //note: minimizing of browser, or unfocus of browser tab, will automatically release wakeLock
 	if (!wakeLock_OBJ) return; //-->
+
   try {await wakeLock_OBJ.release(); }
 	catch (err) {console.log(err.message); }
 } //wakeLock_release()
@@ -1315,8 +1322,10 @@ async function wakeLock_toggle() {
 function timecksStgs_edit() { //just snooze duration
   jm.prompt("Snooze duration (minutes, 1-30)", snooze_def_num, resp => {
     if (resp == null) return; //-->
+
     var v_num= resp *1;
     if (v_num == snooze_def_num) return; //same, do nothing //-->
+
     if (isNaN(v_num) || v_num<1 || v_num>30) {
       jm.error('Snooze must be 1-30 minutes<br><br>Your input:<b class="E">' +resp +'</b>', () => {
         timecksStgs_edit(); //try again
@@ -1331,8 +1340,7 @@ function timecksStgs_edit() { //just snooze duration
 
 var active_flag;
 var active_ctdn_m;
-var alrm_dtO;
-var hTimO;
+var active_hTimO;
 
 var aI_NL; //from .getElementsByClassName(), dynamic nodeList
 var vis_ct;
@@ -1415,7 +1423,8 @@ function autosortMode_set() { //from UI
     'Auto Sort Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by deadline. Also, if no alarm is active, the first alarm will self-activate',
     autsrt_mode,
     resp => {
-      if (resp==null || resp==autsrt_mode) return;
+      if (resp==null || resp==autsrt_mode) return; //-->
+
       autsrt_mode= resp;
       autosortMode_execSet();
       localStorage.setItem("autsrt_mode", autsrt_mode);
@@ -1479,6 +1488,7 @@ function alarmsDrag_start() {
 
     if (dragOver_EL == trash_EL) { //trash can
       if (dragOver_EL == prev_dragOver_EL) return; //-->
+
       if (prev_dragOver_EL) clear();
       classEl(dragOver_EL, "dropTrash");
 
@@ -1490,11 +1500,13 @@ function alarmsDrag_start() {
         prev_dragOver_EL= undefined;
       }
 
-      if (autsrt_mode) return; //-->{
+      if (autsrt_mode) return; //-->
+
       if (dragOvAl_EL= dragOver_EL.closest("div.alarmInstance")) { //alarm instance (reorder)
         if (prev_dragOver_EL) clear();
         if (dragOvAl_EL == dragAl_EL) return; //-->
-        //evt.dataTransfer.dropEffect= "move"; //what does this do? seems unneeded for reorder
+
+        //evt.dataTransfer.dropEffect= "move"; //what does this do? unneeded for reorder
 
         const boundingRect= dragOvAl_EL.getBoundingClientRect();
         const offset_y= boundingRect.y +(boundingRect.height /2);
@@ -1593,6 +1605,7 @@ function alrm_editInfo(info_str, NEW_str) {
   if (!info_str) info_str= alarmInst_EL.$E.Info.innerHTML.replaceAll("<br>", "\n");
   jm.prompt_textarea('Alarm info (html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
     if (!NEW_str && (resp==null || resp==info_str)) return; //-->
+
     info_str= (resp || "").trim();
     if (info_str.length > 80) {
       jm.error(`Info length is up to 80 chars. Your text is ${info_str.length} chars`, () => {
@@ -1633,6 +1646,7 @@ function alrm_editTime(NEW_str) {
 
       end_cb: resp => {
         if (resp==null || (resp==alrm_str && !NEW_str)) return; //-->
+
         var mod_alrm_str= resp;
 
         //proc input str
@@ -1672,7 +1686,7 @@ var DoW2_arr= "SU,MO,TU,WE,TH,FR,SA".split(",");
 var DoW_arr= "SUN,MON,TUE,WED,THU,FRI,SAT".split(",");
 
 function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is good
-  var preview_flag= (typeof(param) == "string");
+  var preview_flag= (typeof(param) == "string"); //'preview' will not alert errors
   var err_cb= (typeof(param) == "function") ? param : undefined;
 
   //.. geared toward keypad input, with some shortcuts baked in
@@ -1791,20 +1805,19 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     return {h:h, m:m};
   } //g_procRawTime()
 
-  var _hTimO= {
+  var hTimO= {
     h: time_dtO.getHours(), //0-23
     m: time_dtO.getMinutes()
   };
-  proc_24to12(_hTimO);
-  if (moDaO) _hTimO.MD= moDaO;
-
-  if (!preview_flag) hTimO= _hTimO;
+  proc_24to12(hTimO);
+  if (moDaO) hTimO.MD= moDaO;
 
   //success
   return {
-    time: get_fmatHTime_str(_hTimO),
+    time: get_fmatHTime_str(hTimO),
     ahead: ahead_str,
-    ms: time_dtO.getTime()
+    ms: time_dtO.getTime(),
+    hTimO: hTimO
   };
 
 
@@ -1860,6 +1873,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
 
   function err(err_str) {
     if (preview_flag) return; //-->
+
     jm.error('Alarm time error caused by<br>' +err_str +'<br><br>Your raw input: <b class="E">' +input_str +'</b>', err_cb);
     //multiple errors are not returned, only the first error encountered
   }
@@ -1899,7 +1913,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
       day= copy_dtO.getDate(); //.getDate(), could be called getDay, returns 1-31
 
     } else {
-      return; //--> fail
+      return; //fail //-->
     }
 
     var o= {
@@ -1942,6 +1956,7 @@ function alrm_setCountdown(aI_EL =alarmInst_EL, preview_str ="preview") {
 function alrm_checkSoon(aI_EL) {
   var soon_flag= aI_EL.$D.ctdn_m < 720;
   if (aI_EL.$D.soon == soon_flag) return; //-->
+
   classEl(aI_EL, "soon", soon_flag);
   aI_EL.$D.soon= soon_flag; //.$D.soon, 'soon', session var, not saved
 } //alrm_checkSoon()
@@ -1963,6 +1978,7 @@ function alrm_delete() { //from UI
   var prom_str= g_promStr();
   jm.agree('Delete?<br>' +prom_str, 0, resp => {
     if (resp != true) return; //null or false //-->
+
     alrm_execDelete();
   });
 } //deleteAlarm()
@@ -1974,7 +1990,8 @@ function alrm_execDelete() { //delete 1
 } //alrm_execDelete()
 
 function alrm_exeDel() {
-  if (!alarmInst_EL) return;
+  if (!alarmInst_EL) return; //-->
+
   alarmInst_EL.remove(); //from DOM
   if (alarmInst_EL == active_aI_EL) alrm_set(false); //if alarm was on, turn off
   alarmInst_EL= undefined;
@@ -2008,7 +2025,7 @@ function alrm_set(aI_EL, button_flag) {
   var flag= !!aI_EL; //to boolean
   if (flag) {
     var alrm_str= aI_EL.$E.Time.textContent;
-    var alarmNow_obj= alrm_procTimeText(alrm_str);
+    var alarmNow_obj= alrm_procTimeText(alrm_str); //nrn, final check of alrm_str
     if (!alarmNow_obj) {
       flag= false;
 console.log("bad alarm time", alrm_str)
@@ -2024,6 +2041,7 @@ console.log("bad alarm time", alrm_str)
     active_flag= true;
     active_aI_EL= aI_EL;
     active_ctdn_m= aI_EL.$D.ctdn_m;
+    active_hTimO= alarmNow_obj.hTimO;
     activeCountdown_EL.textContent= g_untilStr(active_ctdn_m);
 
     classEl(aI_EL, "alarmActive");
@@ -2111,6 +2129,7 @@ function alarms_update(mnt_n) {
 
 function alrm_autoActivate(override_arr =[]) { //auto-activate top alarm
   if (!vis_ct) return; //-->
+
   var topAI_EL=    [...aI_NL].find(aI_EL => aI_EL.checkVisibility()); //skip disabled
   if (topAI_EL && topAI_EL!=active_aI_EL && (!active_aI_EL || override_arr.includes(topAI_EL))) {
   //  obvious     redundant                 dont override active, unless its in override_arr
@@ -2131,6 +2150,7 @@ function alarms_sort(evt) { //from UI
 
 function alarms_execSort() {
   if (!vis_ct) return; //-->
+
   [...aI_NL]
     .sort((a, b) => a.$D.ctdn_m > b.$D.ctdn_m ? 1 : -1)
     .forEach(aI_EL => alarmsCont_EL.appendChild(aI_EL)) //reorder in DOM
@@ -2254,7 +2274,7 @@ function ringer_start() {
 } //ringer_start()
 
 function ringer_stop(flag, snooze_n) { //without flag, default is 'snooze'
-  if (!ring_flag) return;
+  if (!ring_flag) return; //-->
 
   if (ring_intimerId) {
     clearInterval(ring_intimerId);
@@ -2377,14 +2397,15 @@ function sysAlarm_check(ms) {
 var clock_tzo;
 var tzoc_arr;
 
-function tzoc_start() {
+function tzoc_start() { //runs upon startup
   clock_tzo= start_dtO.getTimezoneOffset();
 
   tzoc_arr= [];
   var year_n= start_dtO.getFullYear();
   var tz_str= localStorage.getItem("tzoc") || "";
   var tz_ar= tz_str.split(",");
-  if (tz_ar[0] != year_n) {//init (annually)
+  if (tz_ar[0] != year_n) { //init (annually)
+    //.. if user never turns off this app, wont reset annually, edge
     var raw_arr= tzoc_getDates(year_n);
 //console.log(raw_arr)
     if (raw_arr[0] == year_n) { //nrn
@@ -2460,9 +2481,9 @@ function tzoc_check(dtO) { //noon and midnite
 
 } //tzoc_check()
 
-function tzoc_getDates(year_n) { //time zone offset change //generate dates once a year
+function tzoc_getDates(year_n) { //determine time zone offset changes for current year
   //based on the time/location settings of computer, so should work anywhere
-  //this should run once a year
+  //generate dates once a year (after new year)
   var arr= [year_n];
   var dtO= new Date(year_n, 0);
 
@@ -2843,6 +2864,7 @@ if (fClick_flag) { //satisfy browser requirement to allow play-sound
 function alarms_urlImport(q_str) { //import from via url querystring, stores "importedAlarm" in localstorage
   //.. this is a url based endpoint, not really a webpage, self closes
   if (!q_str) return; //-->
+
   var usp= new URLSearchParams(q_str);
 
   //for local testing// file:///C:/Users/chaaad/Documents/GitHub/TIMECKS/index.htm
@@ -2852,6 +2874,7 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
   function action(action_str) {
     var exported_str= usp.get(action_str);
     if (!exported_str) return; //-->
+
     var split_arr= exported_str.split("|");
     if (split_arr[1] == "PC") { //qualify //only PC can import
       fClick_flag= false;
@@ -2871,7 +2894,7 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
 
 } //alarms_urlImport()
 
-function restart() { //post sleep
+function restart() { //post long sleep
   var elapsed_minutes= Math.floor(sync_diff_ms /60000); //negative
   [...aI_NL].forEach(aI_EL  => {
     if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
