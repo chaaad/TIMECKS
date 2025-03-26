@@ -924,7 +924,7 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
         //.. like a poll, for "importedAlarm" in localStorage
 
         if (active_flag) {
-          if (!wakeLock_OBJ && !document.hidden) wakeLock_toggle(); //on
+          if (!wakeLock_OBJ) wakeLock_toggle(); //on
         } else {
           if (wakeLock_OBJ) wakeLock_toggle(); //off
         }
@@ -1289,6 +1289,8 @@ wlEnable_EL.addEventListener("click", wakeLock_toggle);
 //https://developer.chrome.com/blog/new-in-chrome-79/#wake-lock
 var wakeLock_OBJ;
 async function wakeLock_request() {
+  if (document.hidden) return; //-->
+
 	try {
 		wakeLock_OBJ= await navigator.wakeLock.request();
     classEl(wlEnable_EL, "on");
@@ -2056,7 +2058,7 @@ console.log("bad alarm time", alrm_str)
     sound_play("beep");
 
     alrm_scrollTo();
-    if (!wakeLock_OBJ) wakeLock_toggle(); //off
+    if (!wakeLock_OBJ) wakeLock_toggle(); //on
 
   } else { //alarm off
     active_flag= false;
