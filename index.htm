@@ -2629,7 +2629,7 @@ function data_load(key, cb) {
     if (cb) cb(dataO);
 
   } else {
-    chrome.runtime.sendMessage(bssExt_id, {action:"load", reqDataO:keys_arr}, resp => {
+    chrome.runtime.sendMessage(bssExt_id, {action:"get", reqDataO:keys_arr}, resp => {
 //console.log("load bss", key, "resp", resp);
       dataO= resp;
       if (cb) cb(dataO);
@@ -2638,12 +2638,14 @@ function data_load(key, cb) {
 } //data_load()
 
 function data_save(key, data) { //can only save 1 item per call
+  //.. note: alarms is always all alarms, no such thing as saving 1 alarm
+
   localStorage.setItem(key, data); //always save to localStorage, even if useBssExt_flag
   if (!useBssExt_flag) return; //-->
 
   var dataO= {};
   dataO[key]= data;
-  chrome.runtime.sendMessage(bssExt_id, {action:"save", reqDataO:dataO}, resp => {
+  chrome.runtime.sendMessage(bssExt_id, {action:"set", reqDataO:dataO}, resp => {
 //console.log("save bss", key, "resp", resp);
   });
 } //data_save()
@@ -2663,8 +2665,15 @@ console.log(allKeys);
 
 
 // console test
+//actions:
+// set (reqDataO is a hash)
+// get
+// remove
+// getBytesInUse (reqDataO can be null to get all)
+// getKeys (reqDataO not needed)
+
 var bssExt_id= "godombgbodbkfgippjbjjfdamclabjij";
-chrome.runtime.sendMessage(bssExt_id, {action:"save", dataO:{testV:123}}, (resp) => {
+chrome.runtime.sendMessage(bssExt_id, {action:"remove", reqDataO:"testV"}, (resp) => {
   console.log("resp", resp);
 });
 */
