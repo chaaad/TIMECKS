@@ -920,7 +920,10 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
         clock_elapse_ms+= 60000; //inc (fixed)
         if (clock_advance()) return; //abort mainloop //-->
 
-        if (imported_str= localStorage.getItem("importedAlarm")) alarms_import(imported_str);
+        data_load("importedAlarm", resp => {
+          var imported_str= resp;
+          if (imported_str) alarms_import(imported_str);
+        });
         //.. like a poll, for "importedAlarm" in localStorage
 
         if (active_flag) {
@@ -1122,7 +1125,10 @@ var activeCountdown_EL= activeStatus_EL.querySelector("div#activeCountdown");
 var wlEnable_EL= document.querySelector("div#wakeLockEnable");
 
 
-var snooze_def_num= (localStorage.getItem("snooze_num") || 5) *1; //default 5
+var snooze_def_num;
+data_load("snooze_num", resp => {
+  snooze_num= (resp || 5) *1; //default 5
+});
 
 document.addEventListener("keyup", evt => { //capture any keyup
   if (!document.body.classList.contains("jw-modal-active")) { //modal inactive
@@ -1294,14 +1300,10 @@ async function wakeLock_request() {
 	try {
 		wakeLock_OBJ= await navigator.wakeLock.request();
     classEl(wlEnable_EL, "on");
-    //localStorage.setItem("wake_lock", true);
-    //no, dont persist, its more of a dynamic value, requesting a wakeLock is more of automatic process
-    //could persist something like "never use wakeLock", but dont bother
 
   	wakeLock_OBJ.addEventListener("release", () => {
   		wakeLock_OBJ= undefined; //clear global
       classEl(wlEnable_EL, "on", false);
-      //localStorage.setItem("wake_lock", false);
   	});
 	} catch (err) {console.log(err.message); }
 } //wakeLock_request()
@@ -1313,7 +1315,6 @@ async function wakeLock_release() { //note: minimizing of browser, or unfocus of
 	catch (err) {console.log(err.message); }
 } //wakeLock_release()
 
-//if (localStorage.getItem("wake_lock")) wakeLock_toggle(); //turn on by default
 
 async function wakeLock_toggle() {
 	if (wakeLock_OBJ) await wakeLock_release(); //off
@@ -1334,7 +1335,7 @@ function timecksStgs_edit() { //just snooze duration
       });
     } else {
       snooze_def_num= v_num;
-      localStorage.setItem("snooze_num", snooze_def_num);
+      data_save("snooze_num", snooze_def_num);
     }
   });
 } //timecksStgs_edit()
@@ -1353,31 +1354,37 @@ function alarms_start() {
   alarmsCont_EL.innerHTML= "";
   alarmInst_EL= undefined;
 
-  var alarms_json= localStorage.getItem("alarms");
-  var storedAl_arr= [{t:"12:00 AM"}]; //empty default
-  if (alarms_json) try {storedAl_arr= JSON.parse(alarms_json); } catch (err) {}
+  //var alarms_json= localStorage.getItem("alarms");
+  data_load("alarms", resp => {
+    var alarms_json= resp;
+    var storedAl_arr= [{t:"12:00 AM"}]; //empty default
+    if (alarms_json) try {storedAl_arr= JSON.parse(alarms_json); } catch (err) {}
 
-  //storedAl_arr is closest thing to a data model in this app
-  //is totally temporary, rest of the time, data is solely in the DOM
-  storedAl_arr.forEach(a_obj => {
-    aInst_EL= template_alarmInst_EL.cloneNode(true); //clone
-    alarmsCont_EL.appendChild(aInst_EL); //add
-    alrm_addHelpers(aInst_EL);
-    aInst_EL.$E.Info.innerHTML= a_obj.i || ""; //alarm info
-    aInst_EL.$E.Time.textContent= a_obj.t; //alarm time
-    alrm_setCountdown(aInst_EL);
-    if (a_obj.a) alarmInst_EL= aInst_EL; //alarm active
-    if (a_obj.c) alrm_setTorC(aInst_EL, true, "persist"); //init alarm countdown view
+    //storedAl_arr is closest thing to a data model in this app
+    //is totally temporary, rest of the time, data is solely in the DOM
 
-    if (disabler_mode) alrm_drawDisablerMode(aInst_EL, a_obj.d); //disabler mode
-    else if (a_obj.d) showEl(aInst_EL, false); //alarm disabled
-    else vis_ct++;
+var id=1
+    storedAl_arr.forEach(a_obj => {
+      aInst_EL= template_alarmInst_EL.cloneNode(true); //clone
+      alarmsCont_EL.appendChild(aInst_EL); //add
+      alrm_addHelpers(aInst_EL, a_obj.id     || id);
+      aInst_EL.$E.Info.innerHTML= a_obj.i || ""; //alarm info
+      aInst_EL.$E.Time.textContent= a_obj.t; //alarm time
+      alrm_setCountdown(aInst_EL);
+      if (a_obj.a) alarmInst_EL= aInst_EL; //alarm active
+      if (a_obj.c) alrm_setTorC(aInst_EL, true, "persist"); //init alarm countdown view
+
+      if (disabler_mode) alrm_drawDisablerMode(aInst_EL, a_obj.d); //disabler mode
+      else if (a_obj.d) showEl(aInst_EL, false); //alarm disabled
+      else vis_ct++;
+id++;
+    });
+
+    aI_NL= alarmsCont_EL.getElementsByClassName("alarmInstance");
+
+    if (autsrt_mode) autosortMode_execSet();
+    else if (alarmInst_EL && !disabler_mode) alrm_set(alarmInst_EL); //active on init
   });
-
-  aI_NL= alarmsCont_EL.getElementsByClassName("alarmInstance");
-
-  if (autsrt_mode) autosortMode_execSet();
-  else if (alarmInst_EL && !disabler_mode) alrm_set(alarmInst_EL); //active on init
 } //alarms_start()
 
 
@@ -1418,7 +1425,10 @@ function disablerMode_toggle() {
 
 
 
-var autsrt_mode= localStorage.getItem("autsrt_mode") == "true"; //localStorage, will be string "true", "false"
+var autsrt_mode; //= localStorage.getItem("autsrt_mode") == "true"; //localStorage, will be string "true", "false"
+data_load("autsrt_mode", resp => {
+  autsrt_mode= resp=="true" || resp==true;
+});
 
 function autosortMode_set() { //from UI
   jm.state(
@@ -1429,7 +1439,8 @@ function autosortMode_set() { //from UI
 
       autsrt_mode= resp;
       autosortMode_execSet();
-      localStorage.setItem("autsrt_mode", autsrt_mode);
+      //localStorage.setItem("autsrt_mode", autsrt_mode);
+      data_save("autsrt_mode", autsrt_mode);
     }
   );
 } //autosortMode_set()
@@ -1562,9 +1573,9 @@ function alarmsDrag_start() {
 } //alarmsDrag_start()
 
 
-function alrm_addHelpers(aI_EL) { //.dataset only stores strings
+function alrm_addHelpers(aI_EL, id) { //.dataset only stores strings
   //breaks html/js laws, but as far as js only goes, an element is just an object
-  aI_EL.$D= {}; //.data
+  aI_EL.$D= {id:id}; //.data
   aI_EL.$E= { //pointers to sub els
     Activ: aI_EL.querySelector("span.alarmActivate"),
     Info: aI_EL.querySelector("div.alarmInfo"),
@@ -1572,6 +1583,19 @@ function alrm_addHelpers(aI_EL) { //.dataset only stores strings
     Ctdn: aI_EL.querySelector("span.alarmCountdown")
   };
 } //alrm_addHelpers()
+
+function alrm_makeId() {
+  var id_arr= [];
+  var id;
+  [...aI_NL].forEach(aI_EL => {
+      if (id= aI_EL.$D.id) id_arr.push(id);
+  });
+  var new_id= 1;
+  while (id_arr.indexOf(new_id) >= 0) {
+    new_id++;
+  }
+  return new_id;
+} //alrm_makeId()
 
 function alrm_drawDisablerMode(aI_EL, dsbl_flag) {
   var checked_str= dsbl_flag ? "" : " checked";
@@ -1607,6 +1631,7 @@ function alrm_editInfo(info_str, NEW_str) {
   if (!info_str) info_str= alarmInst_EL.$E.Info.innerHTML.replaceAll("<br>", "\n");
   jm.prompt_textarea('Alarm info (html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
     if (!NEW_str && (resp==null || resp==info_str)) return; //-->
+    //.. with NEW_str, 'save' must happen
 
     info_str= (resp || "").trim();
     if (info_str.length > 80) {
@@ -1616,7 +1641,7 @@ function alrm_editInfo(info_str, NEW_str) {
     } else {
       alarmInst_EL.$E.Info.innerHTML= info_str.replaceAll("\n", "<br>");
       alrm_glow(NEW_str ? 4 : 1);
-      alarms_save(); //with NEW_str, 'save' must to happen
+      alarms_save();
     }
   });
 } //alrm_editInfo()
@@ -1970,7 +1995,7 @@ function alrm_add() { //from UI
 
 function alrm_execAdd() { //add 1
   var clAlrmInst_EL= template_alarmInst_EL.cloneNode(true); //clone
-  alrm_addHelpers(clAlrmInst_EL);
+  alrm_addHelpers(clAlrmInst_EL, alrm_makeId());
   alarmsCont_EL.appendChild(clAlrmInst_EL); //add to DOM
   if (disabler_mode) alrm_drawDisablerMode(clAlrmInst_EL);
   alarmInst_EL= clAlrmInst_EL;
@@ -2073,7 +2098,7 @@ console.log("bad alarm time", alrm_str)
     if (autsrt_mode && !button_flag) alrm_autoActivate();
   }
 
-  if (!autsrt_mode) alarms_save();
+  if (!autsrt_mode) active_save();
 } //alrm_set()
 
 function alrm_expireMsg(aI_EL) {
@@ -2090,7 +2115,7 @@ function alarms_update(mnt_n) {
 
   var autoTurnover_flag;
   var until_str;
-  [...aI_NL].forEach(aI_EL  => {
+  [...aI_NL].forEach(aI_EL => {
     if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
       aI_EL.$D.ctdn_m+= mnt_n;
       if (active_flag && aI_EL==active_aI_EL) active_ctdn_m= aI_EL.$D.ctdn_m;
@@ -2132,7 +2157,7 @@ function alarms_update(mnt_n) {
 function alrm_autoActivate(override_arr =[]) { //auto-activate top alarm
   if (!vis_ct) return; //-->
 
-  var topAI_EL=    [...aI_NL].find(aI_EL => aI_EL.checkVisibility()); //skip disabled
+  var topAI_EL= [...aI_NL].find(aI_EL => aI_EL.checkVisibility()); //skip disabled
   if (topAI_EL && topAI_EL!=active_aI_EL && (!active_aI_EL || override_arr.includes(topAI_EL))) {
   //  obvious     redundant                 dont override active, unless its in override_arr
     alrm_set(topAI_EL);
@@ -2166,7 +2191,8 @@ function alarms_execSort() {
 } //alarms_execSort()
 
 function alarms_import(imported_str) {
-  localStorage.setItem("importedAlarm", "");
+  //localStorage.setItem("importedAlarm", "");
+  data_save("importedAlarm", "");
 
   var action_str;
   var spl_ar;
@@ -2230,6 +2256,10 @@ function alarms_import(imported_str) {
   }
 } //alarms_import()
 
+function active_save() {
+  data_save("active", active_aI_EL ? active_aI_EL.$D.id : 0);
+}
+
 function alarms_save() {
   vis_ct= 0;
   var saveAl_arr= []; //another temporary data model
@@ -2237,9 +2267,9 @@ function alarms_save() {
     var a_obj;
     var info_str;
     [...aI_NL].forEach(aI_EL => {
-      a_obj= {t: aI_EL.$E.Time.textContent}; //time
+      a_obj= {id:aI_EL.$D.id, t:aI_EL.$E.Time.textContent}; //id, time
       if (info_str= aI_EL.$E.Info.innerHTML) a_obj.i= info_str;
-      if (aI_EL.classList.contains("alarmActive")) a_obj.a= 1; //active
+//      if (aI_EL.classList.contains("alarmActive")) a_obj.a= 1; //active
       if (aI_EL.$D.vu_cd) a_obj.c= 1; //countdown view
 
       if (disabler_mode ? !aI_EL.querySelector("input").checked : !aI_EL.checkVisibility()) a_obj.d= 1; //disabled
@@ -2249,7 +2279,8 @@ function alarms_save() {
     });
   }
 //console.trace("alarms_save",savestoredAl_arr)
-  localStorage.setItem("alarms", JSON.stringify(saveAl_arr));
+  //localStorage.setItem("alarms", JSON.stringify(saveAl_arr));
+  data_save("alarms", JSON.stringify(saveAl_arr));
 } //alarms_save()
 
 
@@ -2404,36 +2435,44 @@ function tzoc_start() { //runs upon startup
 
   tzoc_arr= [];
   var year_n= start_dtO.getFullYear();
-  var tz_str= localStorage.getItem("tzoc") || "";
-  var tz_ar= tz_str.split(",");
-  if (tz_ar[0] != year_n) { //init (annually)
-    //.. if user never turns off this app, wont reset annually, edge
-    var raw_arr= tzoc_getDates(year_n);
+
+  //var tz_str= localStorage.getItem("tzoc") || "";
+  data_load("tzoc", resp => proc_tzoc(resp));
+
+  function proc_tzoc(tz_str) {
+    if (!tz_str) tz_str= "";
+    var tz_ar= tz_str.split(",");
+    if (tz_ar[0] != year_n) { //init (annually)
+      //.. if user never turns off this app, wont reset annually, edge
+      var raw_arr= tzoc_getDates(year_n);
 //console.log(raw_arr)
-    if (raw_arr[0] == year_n) { //nrn
-      message_add("Timezone offset changes for " +raw_arr.join(", "));
-      var alarmNow_obj, ms;
-      raw_arr.forEach((str, i) => {
+      if (raw_arr[0] == year_n) { //nrn
+        message_add("Timezone offset changes for " +raw_arr.join(", "));
+        var alarmNow_obj, ms;
+        raw_arr.forEach((str, i) => {
+          if (i) { //leave year alone
+            alarmNow_obj= alrm_procTimeText(str, "preview");
+            ms= alarmNow_obj ? alarmNow_obj.ms : 0;
+            raw_arr[i]= str +"|" +ms;
+            tzoc_arr[i]= {t:str, ms:ms};
+          } else tzoc_arr[0]= str;
+        });
+        tz_str= raw_arr.join(",");
+      }
+      //localStorage.setItem("tzoc", tz_str);
+      data_save("tzoc", tz_str);
+
+    } else { //load
+      var split_arr;
+      tz_ar.forEach((str, i) => {
         if (i) { //leave year alone
-          alarmNow_obj= alrm_procTimeText(str, "preview");
-          ms= alarmNow_obj ? alarmNow_obj.ms : 0;
-          raw_arr[i]= str +"|" +ms;
-          tzoc_arr[i]= {t:str, ms:ms};
+          split_arr= str.split("|");
+          tzoc_arr[i]= {t:split_arr[0], ms:split_arr[1]*1};
         } else tzoc_arr[0]= str;
       });
-      tz_str= raw_arr.join(",");
     }
-    localStorage.setItem("tzoc", tz_str);
+  } //proc_tzoc()
 
-  } else { //load
-    var split_arr;
-    tz_ar.forEach((str, i) => {
-      if (i) { //leave year alone
-        split_arr= str.split("|");
-        tzoc_arr[i]= {t:split_arr[0], ms:split_arr[1]*1};
-      } else tzoc_arr[0]= str;
-    });
-  }
 } //tzoc_start()
 
 function tzoc_check(dtO) { //noon and midnite
@@ -2555,11 +2594,28 @@ function tzoc_getDates(year_n) { //determine time zone offset changes for curren
 
 } //tzoc_getDates()
 
-/* //test in console
-var arr= tzoc_getDates();
-console.log(arr);
-*/
 
+function data_load(key, cb) {
+  if (cb) cb(localStorage.getItem(key));
+} //data_load()
+
+function data_save(key, data) {
+  localStorage.setItem(key, data);
+} //data_save()
+
+/* console test
+chrome.runtime.sendMessage("godombgbodbkfgippjbjjfdamclabjij",{echo:"hi"}, (resp) => {
+  console.log("resp", resp);
+});
+
+chrome.runtime.sendMessage("godombgbodbkfgippjbjjfdamclabjij",{save:{testV:123}}, (resp) => {
+  console.log("resp", resp);
+});
+
+chrome.runtime.sendMessage("godombgbodbkfgippjbjjfdamclabjij",{load:["testV"]}, (resp) => {
+  console.log("resp", resp);
+});
+*/
 
 function sound_play(ac_key, repeat_n =1, step_ms =750) {
   if (typeof(repeat_n) == "object") repeat_n= repeat_n.length; //repeat_n. passed in an arr
@@ -2882,13 +2938,16 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
       fClick_flag= false;
 
       exported_str= action_str +"|" +exported_str;
-      var prevImport_str= localStorage.getItem("importedAlarm"); //allow multiple
-      if (prevImport_str) {
-        if (prevImport_str.includes(exported_str)) exported_str= ""; //dupe, ignore
-        else exported_str= prevImport_str +"\n" +exported_str; //append
-      }
 
-      if (exported_str) localStorage.setItem("importedAlarm", exported_str);
+      data_load("importedAlarm", resp => {
+        var prevImport_str= resp;
+        if (prevImport_str) { //allow multiple
+          if (prevImport_str.includes(exported_str)) exported_str= ""; //dupe, ignore
+          else exported_str= prevImport_str +"\n" +exported_str; //append
+        }
+
+        if (exported_str) data_save("importedAlarm", exported_str);
+      });
     }
   }
 
