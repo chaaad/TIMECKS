@@ -1072,6 +1072,23 @@ function clock_checkMarker() {
   clockMarker_n= marker_n;
 } //clock_checkMarker()
 
+
+function restart() { //post long sleep
+  var elapsed_minutes= Math.floor(sync_diff_ms /60000); //negative
+  [...aI_NL].forEach(aI_EL  => {
+    if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
+      aI_EL.$D.ctdn_m+= elapsed_minutes; //negative
+      if (aI_EL.$D.ctdn_m < 1) alrm_expireMsg(aI_EL);
+    } //skip not visible
+  });
+
+  ringer_stop(); //if needed
+  clock_start();
+  if (autsrt_mode) alrm_clear();
+  alarms_start();
+} //restart()
+
+
 //debug utils (console.log)
 function g_fmatDtO(dtO =new Date()) { //formatted time string, eg. "@11:48:22.005" //shows ms
   return "@" +(dtO.getHours()%12||12) +":" +dtO.toISOString().substring(14, 23);
@@ -2995,20 +3012,6 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
 
 } //alarms_urlImport()
 
-function restart() { //post long sleep
-  var elapsed_minutes= Math.floor(sync_diff_ms /60000); //negative
-  [...aI_NL].forEach(aI_EL  => {
-    if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
-      aI_EL.$D.ctdn_m+= elapsed_minutes; //negative
-      if (aI_EL.$D.ctdn_m < 1) alrm_expireMsg(aI_EL);
-    } //skip not visible
-  });
-
-  ringer_stop(); //if needed
-  clock_start();
-  if (autsrt_mode) alrm_clear();
-  alarms_start();
-} //restart()
 
 </script>
 
