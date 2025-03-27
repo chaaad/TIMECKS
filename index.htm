@@ -1126,9 +1126,6 @@ var wlEnable_EL= document.querySelector("div#wakeLockEnable");
 
 
 var snooze_def_num;
-data_load("snooze_num", dataO => {
-  snooze_def_num= (dataO.snooze_num || 5) *1; //default 5
-});
 
 document.addEventListener("keyup", evt => { //capture any keyup
   if (!document.body.classList.contains("jw-modal-active")) { //modal inactive
@@ -1425,9 +1422,6 @@ function disablerMode_toggle() {
 
 
 var autsrt_mode; //= localStorage.getItem("autsrt_mode") == "true"; //localStorage, will be string "true", "false"
-data_load("autsrt_mode", dataO => {
-  autsrt_mode= dataO.autsrt_mode=="true" || dataO.autsrt_mode==true;
-});
 
 function autosortMode_set() { //from UI
   jm.state(
@@ -2949,6 +2943,12 @@ jm.init();
 //INIT
 var init_dtO= new Date();
 console.log("INIT", init_dtO.toLocaleString());
+
+data_load(["snooze_num", "autsrt_mode"], dataO => {
+  snooze_def_num= (dataO.snooze_num || 5) *1; //default 5
+  autsrt_mode= dataO.autsrt_mode=="true" || dataO.autsrt_mode==true;
+});
+
 
 var fClick_flag= true;
 alarms_urlImport(window.location.search);
