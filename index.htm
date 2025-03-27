@@ -920,8 +920,8 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
         clock_elapse_ms+= 60000; //inc (fixed)
         if (clock_advance()) return; //abort mainloop //-->
 
-        data_load("importedAlarm", resp => {
-          var imported_str= resp;
+        data_load("importedAlarm", dataO => {
+          var imported_str= dataO.importedAlarm;
           if (imported_str) alarms_import(imported_str);
         });
         //.. like a poll, for "importedAlarm" in localStorage
@@ -1126,8 +1126,8 @@ var wlEnable_EL= document.querySelector("div#wakeLockEnable");
 
 
 var snooze_def_num;
-data_load("snooze_num", resp => {
-  snooze_num= (resp || 5) *1; //default 5
+data_load("snooze_num", dataO => {
+  snooze_num= (dataO.snooze_num || 5) *1; //default 5
 });
 
 document.addEventListener("keyup", evt => { //capture any keyup
@@ -1355,29 +1355,28 @@ function alarms_start() {
   alarmInst_EL= undefined;
 
   //var alarms_json= localStorage.getItem("alarms");
-  data_load("alarms", resp => {
-    var alarms_json= resp;
-    var storedAl_arr= [{t:"12:00 AM"}]; //empty default
+  data_load(["active_id", "alarms"], dataO => {
+    var active_id= (dataO.active_id || 0) *1; //default 0
+    var alarms_json= dataO.alarms;
+    var storedAl_arr= [{t:"12:00 AM"}]; //default if empty
     if (alarms_json) try {storedAl_arr= JSON.parse(alarms_json); } catch (err) {}
 
     //storedAl_arr is closest thing to a data model in this app
     //is totally temporary, rest of the time, data is solely in the DOM
 
-var id=1
     storedAl_arr.forEach(a_obj => {
       aInst_EL= template_alarmInst_EL.cloneNode(true); //clone
       alarmsCont_EL.appendChild(aInst_EL); //add
-      alrm_addHelpers(aInst_EL, a_obj.id     || id);
+      alrm_addHelpers(aInst_EL, a_obj.id);
       aInst_EL.$E.Info.innerHTML= a_obj.i || ""; //alarm info
       aInst_EL.$E.Time.textContent= a_obj.t; //alarm time
       alrm_setCountdown(aInst_EL);
-      if (a_obj.a) alarmInst_EL= aInst_EL; //alarm active
+      if (a_obj.id == active_id) alarmInst_EL= aInst_EL; //alarm active
       if (a_obj.c) alrm_setTorC(aInst_EL, true, "persist"); //init alarm countdown view
 
       if (disabler_mode) alrm_drawDisablerMode(aInst_EL, a_obj.d); //disabler mode
       else if (a_obj.d) showEl(aInst_EL, false); //alarm disabled
       else vis_ct++;
-id++;
     });
 
     aI_NL= alarmsCont_EL.getElementsByClassName("alarmInstance");
@@ -1426,8 +1425,8 @@ function disablerMode_toggle() {
 
 
 var autsrt_mode; //= localStorage.getItem("autsrt_mode") == "true"; //localStorage, will be string "true", "false"
-data_load("autsrt_mode", resp => {
-  autsrt_mode= resp=="true" || resp==true;
+data_load("autsrt_mode", dataO => {
+  autsrt_mode= dataO.autsrt_mode=="true" || dataO.autsrt_mode==true;
 });
 
 function autosortMode_set() { //from UI
@@ -2098,7 +2097,7 @@ console.log("bad alarm time", alrm_str)
     if (autsrt_mode && !button_flag) alrm_autoActivate();
   }
 
-  if (!autsrt_mode) active_save();
+  if (!autsrt_mode) data_save("active_id", active_aI_EL ? active_aI_EL.$D.id : 0); //active_id save
 } //alrm_set()
 
 function alrm_expireMsg(aI_EL) {
@@ -2256,10 +2255,6 @@ function alarms_import(imported_str) {
   }
 } //alarms_import()
 
-function active_save() {
-  data_save("active", active_aI_EL ? active_aI_EL.$D.id : 0);
-}
-
 function alarms_save() {
   vis_ct= 0;
   var saveAl_arr= []; //another temporary data model
@@ -2269,7 +2264,6 @@ function alarms_save() {
     [...aI_NL].forEach(aI_EL => {
       a_obj= {id:aI_EL.$D.id, t:aI_EL.$E.Time.textContent}; //id, time
       if (info_str= aI_EL.$E.Info.innerHTML) a_obj.i= info_str;
-//      if (aI_EL.classList.contains("alarmActive")) a_obj.a= 1; //active
       if (aI_EL.$D.vu_cd) a_obj.c= 1; //countdown view
 
       if (disabler_mode ? !aI_EL.querySelector("input").checked : !aI_EL.checkVisibility()) a_obj.d= 1; //disabled
@@ -2437,7 +2431,7 @@ function tzoc_start() { //runs upon startup
   var year_n= start_dtO.getFullYear();
 
   //var tz_str= localStorage.getItem("tzoc") || "";
-  data_load("tzoc", resp => proc_tzoc(resp));
+  data_load("tzoc", dataO => proc_tzoc(dataO.tzoc));
 
   function proc_tzoc(tz_str) {
     if (!tz_str) tz_str= "";
@@ -2595,24 +2589,42 @@ function tzoc_getDates(year_n) { //determine time zone offset changes for curren
 } //tzoc_getDates()
 
 
+// Brwswer-app SyncStorage (eg. chrome.storage.sync)
+var bssExt_id= "godombgbodbkfgippjbjjfdamclabjij";
+var bssExt_flag;
+
+if (chrome.runtime) {
+  chrome.runtime.sendMessage(bssExt_id, {message:"version"}, resp => {
+    if (!chrome.runtime.lastError && resp && resp.version) {
+      console.log("bssExt", resp.version);
+      bssExt_flag= true;
+    }
+  });
+}
+
 function data_load(key, cb) {
-  if (cb) cb(localStorage.getItem(key));
+  var keys_arr= Array.isArray(key) ? key : [key];
+  var dataO= {};
+  keys_arr.forEach(k => dataO[k]= localStorage.getItem(k) );
+  if (cb) cb(dataO);
 } //data_load()
 
-function data_save(key, data) {
+function data_save(key, data) { //can only save 1 item per call
   localStorage.setItem(key, data);
 } //data_save()
 
 /* console test
-chrome.runtime.sendMessage("godombgbodbkfgippjbjjfdamclabjij",{echo:"hi"}, (resp) => {
+chrome.runtime.sendMessage(bssExt_id, {echo:"hi"}, (resp) => {
   console.log("resp", resp);
 });
 
-chrome.runtime.sendMessage("godombgbodbkfgippjbjjfdamclabjij",{save:{testV:123}}, (resp) => {
+var bssExt_id= "godombgbodbkfgippjbjjfdamclabjij";
+chrome.runtime.sendMessage(bssExt_id, {save:{testV:123}}, (resp) => {
   console.log("resp", resp);
 });
 
-chrome.runtime.sendMessage("godombgbodbkfgippjbjjfdamclabjij",{load:["testV"]}, (resp) => {
+var bssExt_id= "godombgbodbkfgippjbjjfdamclabjij";
+chrome.runtime.sendMessage(bssExt_id, {load:["testV"]}, (resp) => {
   console.log("resp", resp);
 });
 */
@@ -2939,8 +2951,8 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
 
       exported_str= action_str +"|" +exported_str;
 
-      data_load("importedAlarm", resp => {
-        var prevImport_str= resp;
+      data_load("importedAlarm", dataO => {
+        var prevImport_str= dataO.importedAlarm;
         if (prevImport_str) { //allow multiple
           if (prevImport_str.includes(exported_str)) exported_str= ""; //dupe, ignore
           else exported_str= prevImport_str +"\n" +exported_str; //append
