@@ -2614,6 +2614,7 @@ function data_load(key, cb) {
   if (!useBssExt_flag    ||1) {
     var dataO= {};
     keys_arr.forEach(k => dataO[k]= localStorage.getItem(k) );
+console.log("load LS", key, "dataO", dataO);
     if (cb) cb(dataO);
 
   } else {
