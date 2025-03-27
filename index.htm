@@ -3017,9 +3017,9 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
 
         if (exported_str) {
           data_save("importedAlarm", exported_str, resp => {
-            window.close();
+            //window.close();
           });
-        } else window.close();
+        } //else window.close();
 
       });
 
