@@ -2994,19 +2994,29 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
   if (!q_str) return; //-->
 
   var usp= new URLSearchParams(q_str);
+  var action_str, exported_str;
 
   //for local testing// file:///C:/Users/chaaad/Documents/GitHub/TIMECKS/index.htm
-  action("export");  // ?export=WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123
-  action("exportDelete"); //?exportDelete=123|PC
+  findQS("export");  // ?export=WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123
+  if (!action_str) findQS("exportDelete"); //?exportDelete=123|PC
+  //.. either one, but never both in same call
 
-  function action(action_str) {
-    var exported_str= usp.get(action_str);
-    if (!exported_str) return; //-->
+  function findQS(act_str) {
+    var exp_str= usp.get(act_str);
+    if (exp_str) {
+      var split_arr= exp_str.split("|");
+      if (split_arr[1] == "PC") {
+        //.. qualify //only PC can import
+        action_str= act_str;
+        exported_str= exp_str;
+      }
+    }
+  }
 
-    var split_arr= exported_str.split("|");
-    if (split_arr[1] == "PC") { //qualify //only PC can import
-      fClick_flag= false;
+  if (action_str && exported_str) {
+    fClick_flag= false;
 
+    setTimeout(() => { //let bssExt get set first
       exported_str= action_str +"|" +exported_str;
 
       data_load("importedAlarm", dataO => {
@@ -3018,14 +3028,12 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
 
         if (exported_str) {
           data_save("importedAlarm", exported_str, resp => {
-console.log("xxxxxxxxxxxxxxxxx")
-            //window.close();
+            window.close();
           });
-        } //else window.close();
+        } else window.close();
+      }); //data_load
 
-      });
-
-    }
+    }, 10);
   }
 
 } //alarms_urlImport()
