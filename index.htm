@@ -2593,48 +2593,67 @@ function tzoc_getDates(year_n) { //determine time zone offset changes for curren
 // Brwswer-app SyncStorage (eg. chrome.storage.sync)
 var bssExt_id= "godombgbodbkfgippjbjjfdamclabjij";
 var bssExt_flag;
+var useBssExt_flag;
 
-//function data_start() {
-//console.log("chrome.runtime", chrome.runtime);
-  if (chrome.runtime) {
-    chrome.runtime.sendMessage(bssExt_id, {"get_version":true}, resp => {
-console.log("resp", resp);
-      if (chrome.runtime.lastError) {
-        console.log("c.r.err", chrome.runtime.lastError);
-      } else if (resp && resp.vers) {
-        console.log("bssExt", resp.vers);
-        bssExt_flag= true;
-      }
-    });
-  }
-//} //data_start()
+if (chrome.runtime) {
+  chrome.runtime.sendMessage(bssExt_id, {"get_version":true}, resp => {
+//console.log("resp", resp);
+    if (chrome.runtime.lastError) {
+      console.log("c.r.err", chrome.runtime.lastError);
+    } else if (resp && resp.vers) {
+      console.log("bssExt", resp.vers);
+      bssExt_flag= true;
+useBssExt_flag= true; /////make into a setting //tbd
+    }
+  });
+}
 
 function data_load(key, cb) {
   var keys_arr= Array.isArray(key) ? key : [key];
-  var dataO= {};
-  keys_arr.forEach(k => dataO[k]= localStorage.getItem(k) );
-  if (cb) cb(dataO);
+
+  if (!useBssExt_flag) {
+    var dataO= {};
+    keys_arr.forEach(k => dataO[k]= localStorage.getItem(k) );
+    if (cb) cb(dataO);
+
+  } else {
+    chrome.runtime.sendMessage(bssExt_id, {save:{testV:123}}, resp => {
+console.log("load bss" key, "resp", resp);
+      if (cb) cb(dataO);
+    });
+  }
 } //data_load()
 
 function data_save(key, data) { //can only save 1 item per call
-  localStorage.setItem(key, data);
+  localStorage.setItem(key, data); //always save to localStorage, even if useBssExt_flag
+  if (!useBssExt_flag) return; //-->
+
+  chrome.runtime.sendMessage(bssExt_id, {save:{testV:123}}, resp => {
+console.log("save bss", key, "resp", resp);
+  });
 } //data_save()
 
-/* console test
-chrome.runtime.sendMessage(bssExt_id, {echo:"hi"}, (resp) => {
-  console.log("resp", resp);
-});
+/*
+//localStorage doesnt have 'getKeys'
+function getAllLocalStorageKeys() {
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    keys.push(key);
+  }
+  return keys;
+}
+const allKeys = getAllLocalStorageKeys();
+console.log(allKeys);
 
+
+// console test
 var bssExt_id= "godombgbodbkfgippjbjjfdamclabjij";
 chrome.runtime.sendMessage(bssExt_id, {save:{testV:123}}, (resp) => {
   console.log("resp", resp);
 });
-
-var bssExt_id= "godombgbodbkfgippjbjjfdamclabjij";
-chrome.runtime.sendMessage(bssExt_id, {load:["testV"]}, (resp) => {
-  console.log("resp", resp);
-});
 */
+
 
 function sound_play(ac_key, repeat_n =1, step_ms =750) {
   if (typeof(repeat_n) == "object") repeat_n= repeat_n.length; //repeat_n. passed in an arr
@@ -2926,7 +2945,6 @@ jm.init();
 //INIT
 var init_dtO= new Date();
 console.log("INIT", init_dtO.toLocaleString());
-//data_start();
 
 var fClick_flag= true;
 alarms_urlImport(window.location.search);
