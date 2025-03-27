@@ -1127,7 +1127,7 @@ var wlEnable_EL= document.querySelector("div#wakeLockEnable");
 
 var snooze_def_num;
 data_load("snooze_num", dataO => {
-  snooze_num= (dataO.snooze_num || 5) *1; //default 5
+  snooze_def_num= (dataO.snooze_num || 5) *1; //default 5
 });
 
 document.addEventListener("keyup", evt => { //capture any keyup
