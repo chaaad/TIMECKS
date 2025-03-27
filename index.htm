@@ -2598,7 +2598,9 @@ function data_start() {
 console.log("chrome.runtime", chrome.runtime);
   if (chrome.runtime) {
     chrome.runtime.sendMessage(bssExt_id, {message:"version"}, resp => {
-      if (!chrome.runtime.lastError && resp && resp.version) {
+      if (chrome.runtime.lastError) {
+        console.log("c.r.err", chrome.runtime.lastError);
+      } else if (resp && resp.version) {
         console.log("bssExt", resp.version);
         bssExt_flag= true;
       }
