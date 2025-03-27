@@ -2610,16 +2610,17 @@ useBssExt_flag= true; /////make into a setting //tbd
 
 function data_load(key, cb) {
   var keys_arr= Array.isArray(key) ? key : [key];
-
+  var dataO;
   if (!useBssExt_flag) {
-    var dataO= {};
+    dataO= {};
     keys_arr.forEach(k => dataO[k]= localStorage.getItem(k) );
 console.log("load LS", key, "dataO", dataO);
     if (cb) cb(dataO);
 
   } else {
-    chrome.runtime.sendMessage(bssExt_id, {action:"load", dataO:keys_arr}, resp => {
+    chrome.runtime.sendMessage(bssExt_id, {action:"load", reqDataO:keys_arr}, resp => {
 console.log("load bss", key, "resp", resp);
+      dataO= resp;
       if (cb) cb(dataO);
     });
   }
@@ -2631,7 +2632,7 @@ function data_save(key, data) { //can only save 1 item per call
 
   var dataO= {};
   dataO[key]= data;
-  chrome.runtime.sendMessage(bssExt_id, {action:"save", dataO:dataO}, resp => {
+  chrome.runtime.sendMessage(bssExt_id, {action:"save", reqDataO:dataO}, resp => {
 console.log("save bss", key, "resp", resp);
   });
 } //data_save()
