@@ -2611,7 +2611,7 @@ useBssExt_flag= true; /////make into a setting //tbd
 function data_load(key, cb) {
   var keys_arr= Array.isArray(key) ? key : [key];
 
-  if (!useBssExt_flag) {
+  if (!useBssExt_flag    ||1) {
     var dataO= {};
     keys_arr.forEach(k => dataO[k]= localStorage.getItem(k) );
     if (cb) cb(dataO);
