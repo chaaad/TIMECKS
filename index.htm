@@ -2630,7 +2630,7 @@ function data_load(key, cb) {
 
   } else {
     chrome.runtime.sendMessage(bssExt_id, {action:"get", reqDataO:keys_arr}, resp => {
-//console.log("load bss", key, "resp", resp);
+console.log("load bss", key, "resp", resp);
       dataO= resp;
       if (cb) cb(dataO);
     });
