@@ -2596,7 +2596,7 @@ var bssExt_flag;
 var useBssExt_flag;
 
 if (chrome.runtime) {
-  chrome.runtime.sendMessage(bssExt_id, {"get_version":true}, resp => {
+  chrome.runtime.sendMessage(bssExt_id, {action:"get_version"}, resp => {
 //console.log("resp", resp);
     if (chrome.runtime.lastError) {
       console.log("c.r.err", chrome.runtime.lastError);
@@ -2617,7 +2617,7 @@ function data_load(key, cb) {
     if (cb) cb(dataO);
 
   } else {
-    chrome.runtime.sendMessage(bssExt_id, {save:{testV:123}}, resp => {
+    chrome.runtime.sendMessage(bssExt_id, {action:"load", dataO:keys_arr}, resp => {
 console.log("load bss", key, "resp", resp);
       if (cb) cb(dataO);
     });
@@ -2628,7 +2628,9 @@ function data_save(key, data) { //can only save 1 item per call
   localStorage.setItem(key, data); //always save to localStorage, even if useBssExt_flag
   if (!useBssExt_flag) return; //-->
 
-  chrome.runtime.sendMessage(bssExt_id, {save:{testV:123}}, resp => {
+  var dataO= {};
+  dataO[key]= data;
+  chrome.runtime.sendMessage(bssExt_id, {action:"save", dataO:dataO}, resp => {
 console.log("save bss", key, "resp", resp);
   });
 } //data_save()
@@ -2649,7 +2651,7 @@ console.log(allKeys);
 
 // console test
 var bssExt_id= "godombgbodbkfgippjbjjfdamclabjij";
-chrome.runtime.sendMessage(bssExt_id, {save:{testV:123}}, (resp) => {
+chrome.runtime.sendMessage(bssExt_id, {action:"save", dataO:{testV:123}}, (resp) => {
   console.log("resp", resp);
 });
 */
