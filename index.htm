@@ -2646,7 +2646,7 @@ function data_save(key, data, cb) { //can only save 1 item per call
   var dataO= {};
   dataO[key]= data;
   chrome.runtime.sendMessage(bssExt_id, {action:"set", reqDataO:dataO}, resp => {
-//console.log("save bss", key, "resp", resp);
+console.log("save bss", key, "resp", resp);
     if (cb) cb(resp);
   });
 } //data_save()
@@ -3017,6 +3017,7 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
 
         if (exported_str) {
           data_save("importedAlarm", exported_str, resp => {
+console.log("xxxxxxxxxxxxxxxxx")
             //window.close();
           });
         } //else window.close();
