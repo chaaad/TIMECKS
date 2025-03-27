@@ -2589,18 +2589,22 @@ function tzoc_getDates(year_n) { //determine time zone offset changes for curren
 } //tzoc_getDates()
 
 
+
 // Brwswer-app SyncStorage (eg. chrome.storage.sync)
 var bssExt_id= "godombgbodbkfgippjbjjfdamclabjij";
 var bssExt_flag;
 
-if (chrome.runtime) {
-  chrome.runtime.sendMessage(bssExt_id, {message:"version"}, resp => {
-    if (!chrome.runtime.lastError && resp && resp.version) {
-      console.log("bssExt", resp.version);
-      bssExt_flag= true;
-    }
-  });
-}
+function data_start() {
+console.log("chrome.runtime", chrome.runtime);
+  if (chrome.runtime) {
+    chrome.runtime.sendMessage(bssExt_id, {message:"version"}, resp => {
+      if (!chrome.runtime.lastError && resp && resp.version) {
+        console.log("bssExt", resp.version);
+        bssExt_flag= true;
+      }
+    });
+  }
+} //data_start()
 
 function data_load(key, cb) {
   var keys_arr= Array.isArray(key) ? key : [key];
@@ -2919,6 +2923,7 @@ jm.init();
 //INIT
 var init_dtO= new Date();
 console.log("INIT", init_dtO.toLocaleString());
+data_start();
 
 var fClick_flag= true;
 alarms_urlImport(window.location.search);
