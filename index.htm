@@ -2637,7 +2637,7 @@ function data_load(key, cb) {
   }
 } //data_load()
 
-function data_save(key, data) { //can only save 1 item per call
+function data_save(key, data, cb) { //can only save 1 item per call
   //.. note: alarms is always all alarms, no such thing as saving 1 alarm
 
   localStorage.setItem(key, data); //always save to localStorage, even if useBssExt_flag
@@ -2647,6 +2647,7 @@ function data_save(key, data) { //can only save 1 item per call
   dataO[key]= data;
   chrome.runtime.sendMessage(bssExt_id, {action:"set", reqDataO:dataO}, resp => {
 //console.log("save bss", key, "resp", resp);
+    if (cb) cb(resp);
   });
 } //data_save()
 
@@ -3014,12 +3015,16 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
           else exported_str= prevImport_str +"\n" +exported_str; //append
         }
 
-        if (exported_str) data_save("importedAlarm", exported_str);
+        if (exported_str) {
+          data_save("importedAlarm", exported_str, resp => {
+            window.close();
+          });
+        } else window.close();
+
       });
+
     }
   }
-
-  if (fClick_flag == false) window.close();
 
 } //alarms_urlImport()
 
