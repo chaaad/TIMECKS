@@ -2625,12 +2625,12 @@ function data_load(key, cb) {
   if (!useBssExt_flag) {
     dataO= {};
     keys_arr.forEach(k => dataO[k]= localStorage.getItem(k) );
-console.log("load LS", key, "dataO", dataO);
+//console.log("load LS", key, "dataO", dataO);
     if (cb) cb(dataO);
 
   } else {
     chrome.runtime.sendMessage(bssExt_id, {action:"get", reqDataO:keys_arr}, resp => {
-console.log("load bss", key, "resp", resp);
+//console.log("load bss", key, "resp", resp);
       dataO= resp;
       if (cb) cb(dataO);
     });
@@ -2641,13 +2641,13 @@ function data_save(key, data, cb) { //can only save 1 item per call
   //.. note: alarms is always all alarms, no such thing as saving 1 alarm
 
   localStorage.setItem(key, data); //always save to localStorage, even if useBssExt_flag
-console.log("save LS", key, "data", data);
+//console.log("save LS", key, "data", data);
   if (!useBssExt_flag) return; //-->
 
   var dataO= {};
   dataO[key]= data;
   chrome.runtime.sendMessage(bssExt_id, {action:"set", reqDataO:dataO}, resp => {
-console.log("save bss", key, "resp", resp);
+//console.log("save bss", key, "resp", resp);
     if (cb) cb(resp);
   });
 } //data_save()
