@@ -2594,8 +2594,8 @@ function tzoc_getDates(year_n) { //determine time zone offset changes for curren
 var bssExt_id= "godombgbodbkfgippjbjjfdamclabjij";
 var bssExt_flag;
 
-function data_start() {
-console.log("chrome.runtime", chrome.runtime);
+//function data_start() {
+//console.log("chrome.runtime", chrome.runtime);
   if (chrome.runtime) {
     chrome.runtime.sendMessage(bssExt_id, {"get_version":true}, resp => {
 console.log("resp", resp);
@@ -2607,7 +2607,7 @@ console.log("resp", resp);
       }
     });
   }
-} //data_start()
+//} //data_start()
 
 function data_load(key, cb) {
   var keys_arr= Array.isArray(key) ? key : [key];
@@ -2926,7 +2926,7 @@ jm.init();
 //INIT
 var init_dtO= new Date();
 console.log("INIT", init_dtO.toLocaleString());
-data_start();
+//data_start();
 
 var fClick_flag= true;
 alarms_urlImport(window.location.search);
