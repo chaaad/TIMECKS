@@ -2625,7 +2625,7 @@ function data_load(key, cb) {
   if (!useBssExt_flag) {
     dataO= {};
     keys_arr.forEach(k => dataO[k]= localStorage.getItem(k) );
-//console.log("load LS", key, "dataO", dataO);
+console.log("load LS", key, "dataO", dataO);
     if (cb) cb(dataO);
 
   } else {
@@ -2641,6 +2641,7 @@ function data_save(key, data, cb) { //can only save 1 item per call
   //.. note: alarms is always all alarms, no such thing as saving 1 alarm
 
   localStorage.setItem(key, data); //always save to localStorage, even if useBssExt_flag
+console.log("save LS", key, "data", data);
   if (!useBssExt_flag) return; //-->
 
   var dataO= {};
