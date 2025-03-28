@@ -2642,17 +2642,18 @@ function data_save(key, data, cb) { //can only save 1 item per call
   //.. note: alarms is always all alarms, no such thing as saving 1 alarm
 
   localStorage.setItem(key, data); //always save to localStorage, even if useBssExt_flag
+
   if (useBssExt_flag) {
     var dataO= {};
     dataO[key]= data;
     chrome.runtime.sendMessage(bssExt_id, {action:"set", reqDataO:dataO}, resp => {
-console.log("save bss", key, "resp", resp);
+//console.log("save bss", key, "resp", resp);
       if (cb) cb(resp);
     });
 
   } else {
-  //console.log("save LS", key, "data", data);
-    if (cb) cb(key);
+//console.log("save LS", key, "data", data);
+    if (cb) cb("set");
   }
 } //data_save()
 
