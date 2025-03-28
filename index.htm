@@ -970,7 +970,6 @@ function clock_advance() { //+1 clock minute
 
   cf_degO.hr+= cf_h_inc;
   cf_degO.mn+= cf_m_inc;
-  clock_drawHands();
 
   clock_ctdn_m--; //inc-
   if (clock_ctdn_m < 1) { //top of hr
@@ -990,6 +989,7 @@ function clock_advance() { //+1 clock minute
 //console.log("TOP OF HR", g_fmatDtO(sync_dtO))
   } //top of hr
 
+  clock_drawHands();
 
   if (sync_diff_ms) { //not 0
 
