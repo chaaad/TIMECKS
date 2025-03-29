@@ -2331,10 +2331,13 @@ function ringer_start() {
   }, 5000);
 } //ringer_start()
 
+//note: for ringer start, if these are 'in progress'...
+//longPress, should be ok, process normally
+//drag, will be just be an unsuccessful drop
+//modal, as if it was 'paused'
+
 function ringer_stop(flag, snooze_n) { //without flag, default is 'snooze'
   if (!ring_flag) return; //-->
-
-  longPress_timerStop();
 
   if (ring_intimerId) {
     clearInterval(ring_intimerId);
