@@ -18,19 +18,9 @@ body {
   font-size: 100%;
   font-style: normal;
   font-weight: 300;
-  transition: background-color 2s;
 }
 ul {list-style: none; }
 /*prereq css end*/
-
-
-body.ringing {
-  background: lightblue;
-}
-
-body.ringingFlash {
-  background: pink;
-}
 
 i {
   font-style: normal;
@@ -224,7 +214,26 @@ div#msgContainer {
   }
 }
 
-div#alarm {
+div#templates {
+  display: none;
+}
+
+div#ringerOverlay {
+  display: none; /*hidden by default */
+  position: fixed; /* fixed across whole screen */
+  inset: 0;
+  z-index: 3; /* z-index higher than rest of page */
+  opacity: 0.50;
+  background: lightblue;
+  transition: background-color 2s;
+  padding: 40px;
+
+  &.flash {
+    background: pink;
+  }
+}
+
+div#alarmsContainer {
   float: right;
   font-size: larger;
   padding: 8px;
@@ -269,6 +278,7 @@ div#alarm {
     }
 
     span.alarmCountdown {
+      display: none;
       font-size: larger;
       font-weight: 800;
       color: darkolivegreen;
@@ -341,9 +351,13 @@ div#alarm {
   div#activeCountdown {}
 
   div#activeStatus {
+    display: none;
     margin-bottom: 16px;
 
-    div#ringerButs {
+    div#ringerCont {
+      display: none;
+      z-index: 3;
+      position: relative;
       margin-top: 16px;
 
       div#ringerSnooze,
@@ -358,10 +372,19 @@ div#alarm {
         font-size: 24px;
       }
       div#ringerOff {
-        background: black;
+        background: chartreuse;
+        color: black;
+
+        &:hover {
+          background: lightgray;
+        }
       }
       div#ringerSnooze {
         background: gray;
+
+        &:hover {
+          color: chartreuse;
+        }
 
         &.but-active {
           color: chartreuse;
@@ -371,6 +394,10 @@ div#alarm {
           margin-top: -3px; /*weird but works*/
           span {
             color: lightgray;
+
+            &:hover {
+              color: limegreen;
+            }
           }
         }
       }
@@ -574,7 +601,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   display: none; /* modals are hidden by default */
   position: fixed; /* modal container fixed across whole screen */
   inset: 0;
-  z-index: 10000; /* z-index must be higher than everything else on the page */
+  z-index: 1; /* z-index higher than rest of page, except ringer */
   background-color: rgba(0, 0, 0, .75); /* semi-transparent black background exposed by padding */
   padding: 40px;
   overflow: auto; /* enables scrolling for tall modals */
@@ -721,29 +748,29 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <div id="msgContainer"></div>
 
-<div id="alarm">
-  <div id="alarmsContainer">
-    <div id="activeStatus">
-      <div id="activeCountdown" class="countdown"></div>
-      <div id="ringerButs">
-        <div id="ringerOff" class="button">OFF</div>
-        <div id="ringerSnooze" class="button">
-          SNOOZE
-          <div>
-            <span>1</span>
-            <span>5</span>
-            <span>10</span>
-            <span>15</span>
-            <span>20</span>
-            <span>30</span>
-          </div>
+<div id="ringerOverlay"></div>
+
+<div id="alarmsContainer">
+  <div id="activeStatus">
+    <div id="activeCountdown" class="countdown"></div>
+    <div id="ringerCont">
+      <div id="ringerOff" class="button">OFF</div>
+      <div id="ringerSnooze" class="button">
+        SNOOZE
+        <div>
+          <span>1</span>
+          <span>5</span>
+          <span>10</span>
+          <span>15</span>
+          <span>20</span>
+          <span>30</span>
         </div>
-        <div id="rSnzCountdown" class="countdown">&nbsp;</div>
       </div>
+      <div id="rSnzCountdown" class="countdown">&nbsp;</div>
     </div>
   </div>
-
 </div>
+
 
 <div id="wakeLockEnable" class="button squareButton" title="Wake Lock">🔒</div>
 
@@ -1111,36 +1138,29 @@ function log_aIs(str ="") {
 
 var body_EL= document.querySelector("body");
 
-//div#alarm
-var alarmRoot_EL= document.querySelector("div#alarm");
+var topButs_EL= document.querySelector("div#topButtons");
+//var editStgs_EL= topButs_EL.querySelector("div#editStgsBut");
+var disblabler_EL= topButs_EL.querySelector("div#diasablerModeBut");
+var autoSort_EL= topButs_EL.querySelector("div#autsrtModeBut");
+var sort_EL= topButs_EL.querySelector("div#sortBut");
+//var add_EL= topButs_EL.querySelector("div#addAlarmBut");
+var trash_EL= topButs_EL.querySelector("div#trashCan");
 
-//var editStgs_EL= document.querySelector("div#editStgsBut");
-var disblabler_EL= document.querySelector("div#diasablerModeBut");
-var autoSort_EL= document.querySelector("div#autsrtModeBut");
-var sort_EL= document.querySelector("div#sortBut");
-//var add_EL= document.querySelector("div#addAlarmBut");
-var trash_EL= document.querySelector("div#trashCan");
-
-var templates_EL= document.querySelector("div#templates");
-showEl(templates_EL, false);
-showEl(templates_EL.querySelector("span.alarmCountdown"), false);
-
+var wlEnable_EL= document.querySelector("div#wakeLockEnable");
 
 var msgCont_EL= document.querySelector("div#msgContainer");
+
+var templates_EL= document.querySelector("div#templates");
 var template_msgInst_EL= templates_EL.querySelector("div.msgInstance");
-
-
-var alarmsCont_EL= document.querySelector("div#alarmsContainer");
-
 var template_alarmInst_EL= templates_EL.querySelector("div.alarmInstance");
+
+//alarms
+var alarmsCont_EL= document.querySelector("div#alarmsContainer");
 var alarmInst_EL;
 var active_aI_EL;
 
-var activeStatus_EL= document.querySelector("div#activeStatus");
-showEl(activeStatus_EL, false);
+var activeStatus_EL= alarmsCont_EL.querySelector("div#activeStatus");
 var activeCountdown_EL= activeStatus_EL.querySelector("div#activeCountdown");
-
-var wlEnable_EL= document.querySelector("div#wakeLockEnable");
 
 
 var snooze_def_num;
@@ -1157,7 +1177,7 @@ document.addEventListener("keyup", evt => { //capture any keyup
   }
 });
 
-document.querySelector("div#topButtons").addEventListener("click", evt => {
+topButs_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
   if (targ_EL.id == "editStgsBut") {
     timecksStgs_edit();
@@ -1257,7 +1277,6 @@ alarmsCont_EL.addEventListener("mouseout", evt => {
 
 //alarm //longpress
 alarmsCont_EL.addEventListener("dragstart", () => {
-  ringer_stop(); //if needed
   longPress_timerStop();
 });
 
@@ -1479,15 +1498,9 @@ function alarmsDrag_start() {
   document.addEventListener("dragover", dragOver);
   document.addEventListener("drop", drop); //user can drop anywhere, listening only on dragList doesnt cut it
 
-  //this is very global (not just drag)
+  //global stop drag
   document.addEventListener("click", evt => {
     if (dragAl_EL) clear("fully");
-
-    if (ring_intimerId) {
-      var targ_EL= evt.target;
-      if (!targ_EL.closest("div#ringerButs")) ringer_stop("snooze"); //click anything but the ring controls, is a 'snooze'
-    }
-
   }); //recover after a failed drop
 
   function dragStart(evt) {
@@ -2292,11 +2305,14 @@ function alarms_save() {
 } //alarms_save()
 
 
-var ringerButs_EL= document.querySelector("div#ringerButs");
-showEl(ringerButs_EL, false);
+var ringerOverlay_EL= document.querySelector("div#ringerOverlay");
+ringerOverlay_EL.addEventListener("click", () => {
+  ringer_stop(); //snooze
+});
 
-var ringerSnooze_EL= document.querySelector("div#ringerSnooze")
-var rSnzCountdown_EL= document.querySelector("div#rSnzCountdown");
+var ringerCont_EL= document.querySelector("div#ringerCont");
+var ringerSnooze_EL= ringerCont_EL.querySelector("div#ringerSnooze")
+var rSnzCountdown_EL= ringerCont_EL.querySelector("div#rSnzCountdown");
 
 var ring_flag;
 var ring_intimerId;
@@ -2306,10 +2322,11 @@ function ringer_start() {
   ring_flag= true;
   alrm_scrollTo("activeAlarm");
   sound_play("rngr");
-  showEl(ringerButs_EL);
-  body_EL.classList.add("ringing", "ringingFlash");
+  showEl(ringerOverlay_EL);
+  showEl(ringerCont_EL);
+//  ringerOverlay_EL.classList.add("ringing", "ringingFlash");
   ring_intimerId= setInterval(() => { //recurse
-    body_EL.classList.toggle("ringingFlash");
+    ringerOverlay_EL.classList.toggle("flash");
     sound_play("rngr");
   }, 5000);
 } //ringer_start()
@@ -2317,16 +2334,19 @@ function ringer_start() {
 function ringer_stop(flag, snooze_n) { //without flag, default is 'snooze'
   if (!ring_flag) return; //-->
 
+  longPress_timerStop();
+
   if (ring_intimerId) {
     clearInterval(ring_intimerId);
     ring_intimerId= undefined;
-    body_EL.classList.remove("ringing", "ringingFlash");
+    //ringerOverlay_EL.classList.remove("flash");
   }
 
   if (flag == "off") {
     sound_play("slam"); //ringer-off slam
     showEl(activeStatus_EL, false);
-    showEl(ringerButs_EL, false);
+    showEl(ringerOverlay_EL, false);
+    showEl(ringerCont_EL, false);
     snooze_ctdn_m= 0; //if needed
     classEl(ringerSnooze_EL, "but-active", false); //if needed
     ring_flag= false;
@@ -2335,6 +2355,7 @@ function ringer_stop(flag, snooze_n) { //without flag, default is 'snooze'
   } else { //snooze
     //note: snooze wont be exact, since it only checks/fires at top of minute
     //eg. 5 minutes will be 4-5 minutes
+    showEl(ringerOverlay_EL, false);
     snooze_ctdn_m= snooze_n || snooze_def_num;
     classEl(ringerSnooze_EL, "but-active");
     sound_play("snoz");
