@@ -2248,7 +2248,9 @@ function alarms_import(imported_str) {
           del_arr.push(delTid_EL);
           alarmInst_EL= delTid_EL.closest("div.alarmInstance");
           alrm_exeDel();
-        } //else error messg?
+        } else {
+          message_add("Export-delete of " +tid +" failed");
+        }
 
       } //action_str
     } //PC
