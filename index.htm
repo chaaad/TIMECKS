@@ -2324,7 +2324,6 @@ function ringer_start() {
   sound_play("rngr");
   showEl(ringerOverlay_EL);
   showEl(ringerCont_EL);
-//  ringerOverlay_EL.classList.add("ringing", "ringingFlash");
   ring_intimerId= setInterval(() => { //recurse
     ringerOverlay_EL.classList.toggle("flash");
     sound_play("rngr");
@@ -2342,7 +2341,7 @@ function ringer_stop(flag, snooze_n) { //without flag, default is 'snooze'
   if (ring_intimerId) {
     clearInterval(ring_intimerId);
     ring_intimerId= undefined;
-    //ringerOverlay_EL.classList.remove("flash");
+    ringerOverlay_EL.classList.remove("flash");
   }
 
   if (flag == "off") {
@@ -2358,7 +2357,6 @@ function ringer_stop(flag, snooze_n) { //without flag, default is 'snooze'
   } else { //snooze
     //note: snooze wont be exact, since it only checks/fires at top of minute
     //eg. 5 minutes will be 4-5 minutes
-    showEl(ringerOverlay_EL, false);
     snooze_ctdn_m= snooze_n || snooze_def_num;
     classEl(ringerSnooze_EL, "but-active");
     sound_play("snoz");
