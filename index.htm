@@ -1891,27 +1891,26 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     tO.h= h;
   }
 
-  function g_fromHTimeToDateObj(tO) { //from human time 12:59am/pm, to computer time 23:59
+  function g_fromHTimeToDateObj(htO) { //from human time 12:59am/pm, to computer time 23:59
     var dtO= new Date(); //dateobj, start as now, but most items will be re-set
 
-    if (tO.MD) {
-      dtO.setMonth(tO.MD.mo -1);
-      dtO.setDate(tO.MD.da);
-    }
+    if (htO.MD) dtO.setMonth(htO.MD.mo -1, htO.MD.da); //m 0..11 //d 1..31
+    //.. dont set month and date separately, because months having diff number of days, mistake can happen
 
-    var h= tO.h;
+    var h= htO.h;
     if (h == 12) h= 0;
-    if (tO.p) h+= 12;
+    if (htO.p) h+= 12;
     dtO.setHours(h);
 
-    dtO.setMinutes(tO.m);
+    dtO.setMinutes(htO.m);
     dtO.setSeconds(0);
 
     var diff_ms= dtO -new Date();
+
     if (diff_ms<1 || param=="preview_forceTurnover") { //if reqTime less than nowTime
-      if (tO.MD) {
-        if (tO.MD.DoW) dtO.setDate(dtO.getDate() +7); //+1 week //DayOfWeek
-        else if (tO.MD.mW) dtO.setMonth(dtO.getMonth() +1); //+1 month //mon_wildcard_str
+      if (htO.MD) {
+        if (htO.MD.DoW) dtO.setDate(dtO.getDate() +7); //+1 week //DayOfWeek
+        else if (htO.MD.mW) dtO.setMonth(dtO.getMonth() +1); //+1 month //mon_wildcard_str
         else dtO.setFullYear(dtO.getFullYear() +1); //+1 year
       } else {
         dtO.setDate(dtO.getDate() +1); //+1 day
@@ -1932,7 +1931,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
   function proc_moDa(mD_str) { //if success, returns obj
     var mon_wildcard_str;
     var DoW_str;
-    if (mD_str.includes("/")) {
+    if (mD_str.includes("/")) { //mon/day
       var month, day;
       [month, day]= mD_str.split("/");
 
