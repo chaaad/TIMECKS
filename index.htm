@@ -2454,39 +2454,42 @@ function sysAlarm_check(ms) {
 } //sysAlarm_check();
 
 
+var clock_TZ= Intl.DateTimeFormat().resolvedOptions().timeZone;
+//timezone change can happen any minute, so not going to check for it, user needs to manually do browser reload
 var clock_tzo;
 var tzoc_arr;
 
 function tzoc_start() { //runs upon startup
+  clockFace_EL.title= clock_TZ;
+
   clock_tzo= start_dtO.getTimezoneOffset();
-
-  tzoc_arr= [];
   var year_n= start_dtO.getFullYear();
-
-  //var tz_str= localStorage.getItem("tzoc") || "";
+  var tzYear_key= clock_TZ +"_" +year_n;
   data_load("tzoc", dataO => proc_tzoc(dataO.tzoc));
 
   function proc_tzoc(tz_str) {
     if (!tz_str) tz_str= ""; //param default only works if undeined
     var tz_ar= tz_str.split(",");
-    if (tz_ar[0] != year_n) { //init (annually)
+    if (tz_ar[0] != tzYear_key) { //init (annually if no travel)
       //.. if user never turns off this app, wont reset annually, edge
       var raw_arr= tzoc_getDates(year_n);
 //console.log(raw_arr)
       if (raw_arr[0] == year_n) { //nrn
+        raw_arr[0]= tzYear_key;
+
         message_add("Timezone offset changes for " +raw_arr.join(", "));
 
         tz_str= raw_arr.join(",");
-        //localStorage.setItem("tzoc", tz_str);
         data_save("tzoc", tz_str);
 
         tz_ar= raw_arr;
       }
     }
 
+    tzoc_arr= [];
     var alarmNow_obj, ms;
     tz_ar.forEach((str, i) => {
-      if (i == 0) { //leave year alone
+      if (i == 0) { //tzYear_key
         tzoc_arr[0]= str;
       } else {
         alarmNow_obj= alrm_procTimeText(str, "preview");
@@ -2500,13 +2503,13 @@ function tzoc_start() { //runs upon startup
 } //tzoc_start()
 
 function tzoc_check(dtO) { //noon and midnite
-  if (tzoc_arr.length <= 1) return; //just year, no dates //-->
+  if (tzoc_arr.length <= 1) return; //just tzYear_key, no dates //-->
 
   var now_ms= dtO.getTime();
   var until_ms= now_ms +43200000; //12hr
   var ms;
   tzoc_arr.forEach((tzO, i) => {
-    if (i) { //leave year alone
+    if (i) { //skip tzYear_key
       ms= tzO.ms;
       if (ms >= now_ms && ms <= until_ms) add_sysAlm(tzO);
     }
@@ -2589,6 +2592,8 @@ function tzoc_getDates(year_n) { //determine time zone offset changes for curren
       tzo= dtO.getTimezoneOffset();
 //console.log(dFn_key,first_i,i,tzo,dtO)
       if (prev_tzo!=undefined && tzo!=prev_tzo) return {i:i -1, tzo:tzo}; //success //-->
+      //.. i -1, change occurs in the previos unit (hr, day, month)
+
       prev_tzo= tzo;
     }
   } //find_tzoChg()
