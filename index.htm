@@ -939,8 +939,6 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
     clock_elapse_ms+= topOfMinute_ms;//inc (1st min)
     clock_advance(); //1st
 
-    var imported_str;
-
     mainloop(); //kickoff
 
     function mainloop() { //self-recursing
@@ -2469,7 +2467,7 @@ function tzoc_start() { //runs upon startup
   data_load("tzoc", dataO => proc_tzoc(dataO.tzoc));
 
   function proc_tzoc(tz_str) {
-    if (!tz_str) tz_str= "";
+    if (!tz_str) tz_str= ""; //param default only works if undeined
     var tz_ar= tz_str.split(",");
     if (tz_ar[0] != year_n) { //init (annually)
       //.. if user never turns off this app, wont reset annually, edge
@@ -2477,29 +2475,26 @@ function tzoc_start() { //runs upon startup
 //console.log(raw_arr)
       if (raw_arr[0] == year_n) { //nrn
         message_add("Timezone offset changes for " +raw_arr.join(", "));
-        var alarmNow_obj, ms;
-        raw_arr.forEach((str, i) => {
-          if (i) { //leave year alone
-            alarmNow_obj= alrm_procTimeText(str, "preview");
-            ms= alarmNow_obj ? alarmNow_obj.ms : 0;
-            raw_arr[i]= str +"|" +ms;
-            tzoc_arr[i]= {t:str, ms:ms};
-          } else tzoc_arr[0]= str;
-        });
-        tz_str= raw_arr.join(",");
-      }
-      //localStorage.setItem("tzoc", tz_str);
-      data_save("tzoc", tz_str);
 
-    } else { //load
-      var split_arr;
-      tz_ar.forEach((str, i) => {
-        if (i) { //leave year alone
-          split_arr= str.split("|");
-          tzoc_arr[i]= {t:split_arr[0], ms:split_arr[1]*1};
-        } else tzoc_arr[0]= str;
-      });
+        tz_str= raw_arr.join(",");
+        //localStorage.setItem("tzoc", tz_str);
+        data_save("tzoc", tz_str);
+
+        tz_ar= raw_arr;
+      }
     }
+
+    var alarmNow_obj, ms;
+    tz_ar.forEach((str, i) => {
+      if (i == 0) { //leave year alone
+        tzoc_arr[0]= str;
+      } else {
+        alarmNow_obj= alrm_procTimeText(str, "preview");
+        ms= alarmNow_obj ? alarmNow_obj.ms : 0;
+        tzoc_arr[i]= {t:str, ms:ms};
+      }
+    });
+
   } //proc_tzoc()
 
 } //tzoc_start()
