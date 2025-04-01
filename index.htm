@@ -966,7 +966,7 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
   }, topOfMinute_ms);
 
   clock_drawDay(start_dtO);
-  tzoc_check(start_dtO);
+
 } //clock_start()
 
 var monthDay_str;
@@ -2497,6 +2497,8 @@ function tzoc_start() { //runs upon startup
         tzoc_arr[i]= {t:str, ms:ms};
       }
     });
+
+    tzoc_check(start_dtO);
 
   } //proc_tzoc()
 
