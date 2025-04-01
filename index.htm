@@ -2244,6 +2244,7 @@ function alarms_import(imported_str) {
           alrm_setCountdown();
           alrm_glow(4);
           add_arr.push(alarmInst_EL);
+console.log("alarmInst_EL"alarmInst_EL)
         }
 
       } else if (action_str == "exportDelete") {
@@ -2265,7 +2266,7 @@ function alarms_import(imported_str) {
       } //action_str
     } //PC
   });
-
+console.log("add_arr",add_arr,)
   sound_play("bell", add_arr, 1500); //1400, bell is longish clip
   sound_play("trsh", del_arr, 1000);
   //when both add and de, sounds prob mess up
