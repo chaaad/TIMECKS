@@ -1597,7 +1597,8 @@ function alarmsDrag_start() {
 
 function alrm_addHelpers(aI_EL, id) { //.dataset only stores strings
   //breaks html/js laws, but as far as js only goes, an element is just an object
-  aI_EL.$D= {id:id}; //.data
+  aI_EL.id= id;
+  aI_EL.$D= {}; //like .data
   aI_EL.$E= { //pointers to sub els
     Activ: aI_EL.querySelector("span.alarmActivate"),
     Info: aI_EL.querySelector("div.alarmInfo"),
@@ -1606,18 +1607,18 @@ function alrm_addHelpers(aI_EL, id) { //.dataset only stores strings
   };
 } //alrm_addHelpers()
 
-function alrm_makeId() {
+function alrm_genId() {
   var id_arr= [];
   var id;
   [...aI_NL].forEach(aI_EL => {
-      if (id= aI_EL.$D.id) id_arr.push(id);
+    if (id= aI_EL.id) id_arr.push(id *1);
   });
   var new_id= 1;
-  while (id_arr.indexOf(new_id) >= 0) {
+  while (id_arr.includes(new_id)) {
     new_id++;
   }
   return new_id;
-} //alrm_makeId()
+} //alrm_genId()
 
 function alrm_drawDisablerMode(aI_EL, dsbl_flag) {
   var checked_str= dsbl_flag ? "" : " checked";
@@ -2016,7 +2017,7 @@ function alrm_add() { //from UI
 
 function alrm_execAdd() { //add 1
   var clAlrmInst_EL= template_alarmInst_EL.cloneNode(true); //clone
-  alrm_addHelpers(clAlrmInst_EL, alrm_makeId());
+  alrm_addHelpers(clAlrmInst_EL, alrm_genId());
   alarmsCont_EL.appendChild(clAlrmInst_EL); //add to DOM
   if (disabler_mode) alrm_drawDisablerMode(clAlrmInst_EL);
   alarmInst_EL= clAlrmInst_EL;
@@ -2119,7 +2120,7 @@ console.log("bad alarm time", alrm_str)
     if (autsrt_mode && !button_flag) alrm_autoActivate();
   }
 
-  if (!autsrt_mode) data_save("active_id", active_aI_EL ? active_aI_EL.$D.id : 0); //active_id save
+  if (!autsrt_mode) data_save("active_id", active_aI_EL ? active_aI_EL.id*1 : 0); //active_id save
 } //alrm_set()
 
 function alrm_expireMsg(aI_EL) {
@@ -2286,7 +2287,7 @@ function alarms_save() {
     var a_obj;
     var info_str;
     [...aI_NL].forEach(aI_EL => {
-      a_obj= {id:aI_EL.$D.id, t:aI_EL.$E.Time.textContent}; //id, time
+      a_obj= {id:aI_EL.id *1, t:aI_EL.$E.Time.textContent}; //id, time
       if (info_str= aI_EL.$E.Info.innerHTML) a_obj.i= info_str;
       if (aI_EL.$D.vu_cd) a_obj.c= 1; //countdown view
 
