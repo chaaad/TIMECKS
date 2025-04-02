@@ -2228,8 +2228,8 @@ function alarms_import(imported_str) {
     //export|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123 //to test, can paste right into console "Local storage"
     //0      1               2  3                    4 5
     action_str= spl_ar[0]; //export, exportDelete
+console.log(action_str,"item_str",item_str,"split",spl_ar);
     if (spl_ar[2] == "PC") { //qualify
-//console.log("item_str",item_str,"split",spl_ar);
       if (action_str == "export") {
         time_str= spl_ar[1]; //WED 5/5 12:34pm
         tSpl_ar= time_str.split(" ");
