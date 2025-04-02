@@ -3025,7 +3025,7 @@ if (fClick_flag) { //satisfy browser requirement to allow play-sound
   setTimeout(() => {
     jm.alert(bC_dupe_flag ? "TIMECKS is already running in another window or tab, close this tab" : "Click to start", () => {
       if (bC_dupe_flag) {
-        showEl(topButs_EL, false);
+        window.close();
       } else {
         clock_draw();
         alarmsDrag_start();
