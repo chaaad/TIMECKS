@@ -2225,12 +2225,12 @@ function alarms_import(imported_str) {
   var del_arr= []; //for sound only
   imported_str.split("\n").forEach(item_str => {
     spl_ar= item_str.split("|");
-    //export|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123 //to test, can paste right into console "Local storage"
+    //external|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123 //to test, can paste right into console "Local storage"
     //0      1               2  3                    4 5
-    action_str= spl_ar[0]; //export, exportDelete
-console.log(action_str,"item_str",item_str,"split",spl_ar);
+    action_str= spl_ar[0]; //external, externalDelete
+//console.log(action_str,"item_str",item_str,"split",spl_ar);
     if (spl_ar[2] == "PC") { //qualify
-      if (action_str == "export") {
+      if (action_str == "external") {
         time_str= spl_ar[1]; //WED 5/5 12:34pm
         tSpl_ar= time_str.split(" ");
         if (alarmNow_obj= alrm_procTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -20`, "preview")) { // -20 minutes
@@ -2246,8 +2246,8 @@ console.log(action_str,"item_str",item_str,"split",spl_ar);
           add_arr.push(alarmInst_EL); //for sound only
         }
 
-      } else if (action_str == "exportDelete") {
-        //exportDelete|123|PC
+      } else if (action_str == "externalDelete") {
+        //externalDelete|123|PC
         //0            1   2
         let tid= spl_ar[1];
         let delTid_EL= [...alarmsCont_EL.querySelectorAll("b.PC_tid")]
@@ -2259,7 +2259,7 @@ console.log(action_str,"item_str",item_str,"split",spl_ar);
           alarmInst_EL= delTid_EL.closest("div.alarmInstance");
           alrm_exeDel();
         } else {
-          message_add("Export-delete of " +tid +" failed");
+          message_add("External-delete of " +tid +" failed");
         }
 
       } //action_str
@@ -3024,7 +3024,7 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
   if (!q_str) return; //-->
 
   var usp= new URLSearchParams(q_str);
-  var action_str, exported_str;
+  var action_str, external_str;
 
   //for local testing// file:///C:/Users/chaaad/Documents/GitHub/TIMECKS/index.htm
   findQS("export");  // ?export=WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123
@@ -3037,27 +3037,27 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
       var split_arr= exp_str.split("|");
       if (split_arr[1] == "PC") {
         //.. qualify //only PC can import
-        action_str= act_str;
-        exported_str= exp_str;
+        action_str= act_str.replace("export", "external");
+        external_str= exp_str;
       }
     }
   }
 
-  if (action_str && exported_str) {
+  if (action_str && external_str) {
     fClick_flag= false;
 
     setTimeout(() => { //let bssExt get set first
-      exported_str= action_str +"|" +exported_str;
+      external_str= action_str +"|" +external_str;
 
       data_load("importedAlarm", dataO => {
         var prevImport_str= dataO.importedAlarm;
         if (prevImport_str) { //allow multiple
-          if (prevImport_str.includes(exported_str)) exported_str= ""; //dupe, ignore
-          else exported_str= prevImport_str +"\n" +exported_str; //append
+          if (prevImport_str.includes(external_str)) external_str= ""; //dupe, ignore
+          else external_str= prevImport_str +"\n" +external_str; //append
         }
 
-        if (exported_str) {
-          data_save("importedAlarm", exported_str, resp => {
+        if (external_str) {
+          data_save("importedAlarm", external_str, resp => {
             window.close();
           });
         } else window.close();
