@@ -2395,6 +2395,17 @@ function g_untilStr(m, h) {
 } //g_untilStr()
 
 
+var bC= new BroadcastChannel("bc0");
+bC.postMessage("init");
+
+var bC_dupe_flag;
+bC.onmessage= evt => {
+//console.log("bC", evt)
+  if (evt.data == "init") bC.postMessage("dupe");
+  else if (evt.data == "dupe") bC_dupe_flag= true;
+};
+
+
 function PClink(tid_EL) {
   var tid= tid_EL.textContent;
   var lgid= tid.split("-")[0];
@@ -3005,19 +3016,26 @@ console.log("INIT", init_dtO.toLocaleString());
 var fClick_flag= true;
 alarms_urlImport(window.location.search);
 if (fClick_flag) { //satisfy browser requirement to allow play-sound
-  jm.alert("Click to start", () => {
 
-    data_load(["snooze_num", "autsrt_mode"], dataO => {
-      snooze_def_num= (dataO.snooze_num || 5) *1; //default 5
-      autsrt_mode= dataO.autsrt_mode=="true" || dataO.autsrt_mode==true;
-
-      clock_draw();
-      alarmsDrag_start();
-      clock_start();
-      alarms_start();
-    });
+  data_load(["snooze_num", "autsrt_mode"], dataO => {
+    snooze_def_num= (dataO.snooze_num || 5) *1; //default 5
+    autsrt_mode= dataO.autsrt_mode=="true" || dataO.autsrt_mode==true; //localStorage stores strings
   });
+
+  setTimeout(() => {
+    jm.alert(bC_dupe_flag ? "TIMECKS is already running in another window or tab, close this tab" : "Click to start", () => {
+      if (bC_dupe_flag) {
+        showEl(topButs_EL, false);
+      } else {
+        clock_draw();
+        alarmsDrag_start();
+        clock_start();
+        alarms_start();
+      }
+    });
+  }, 100); //aloow 1st data_load and bC to complete
 }
+
 
 function alarms_urlImport(q_str) { //import from via url querystring, stores "importedAlarm" in localstorage
   //.. this is a url based endpoint, not really a webpage, self closes
