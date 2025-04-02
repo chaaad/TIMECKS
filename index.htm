@@ -947,7 +947,6 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
         if (clock_advance()) return; //abort mainloop //-->
 
         data_load("importedAlarm", dataO => {
-console.log("importedAlarm", dataO)
           var imported_str= dataO.importedAlarm;
           if (imported_str) alarms_import(imported_str);
         });
@@ -2222,16 +2221,15 @@ function alarms_import(imported_str) {
   var alarmNow_obj;
   var html_str;
   var k_str; //keeper
-  var add_arr= []; //sound only
-  var del_arr= []; //sound only
-console.log("imported_str",imported_str);
+  var add_arr= []; //for sound only
+  var del_arr= []; //for sound only
   imported_str.split("\n").forEach(item_str => {
     spl_ar= item_str.split("|");
     //export|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123 //to test, can paste right into console "Local storage"
     //0      1               2  3                    4 5
-console.log("item_str",item_str,"split",spl_ar);
     action_str= spl_ar[0]; //export, exportDelete
     if (spl_ar[2] == "PC") { //qualify
+//console.log("item_str",item_str,"split",spl_ar);
       if (action_str == "export") {
         time_str= spl_ar[1]; //WED 5/5 12:34pm
         tSpl_ar= time_str.split(" ");
@@ -2245,8 +2243,7 @@ console.log("item_str",item_str,"split",spl_ar);
           alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
           alrm_setCountdown();
           alrm_glow(4);
-          add_arr.push(alarmInst_EL); //sound only
-console.log("alarmInst_EL",alarmInst_EL)
+          add_arr.push(alarmInst_EL); //for sound only
         }
 
       } else if (action_str == "exportDelete") {
@@ -2258,7 +2255,7 @@ console.log("alarmInst_EL",alarmInst_EL)
         ;
 
         if (delTid_EL) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
-          del_arr.push(delTid_EL); //sound only
+          del_arr.push(delTid_EL); //for sound only
           alarmInst_EL= delTid_EL.closest("div.alarmInstance");
           alrm_exeDel();
         } else {
@@ -2268,7 +2265,7 @@ console.log("alarmInst_EL",alarmInst_EL)
       } //action_str
     } //PC
   });
-console.log("add_arr",add_arr)
+
   sound_play("bell", add_arr, 1500); //1400, bell is longish clip
   sound_play("trsh", del_arr, 1000);
   //when both add and de, sounds prob mess up
