@@ -947,6 +947,7 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
         if (clock_advance()) return; //abort mainloop //-->
 
         data_load("importedAlarm", dataO => {
+console.log("importedAlarm", dataO)
           var imported_str= dataO.importedAlarm;
           if (imported_str) alarms_import(imported_str);
         });
