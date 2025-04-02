@@ -2221,15 +2221,16 @@ function alarms_import(imported_str) {
   var alarmNow_obj;
   var html_str;
   var k_str; //keeper
-  var add_arr= [];
-  var del_arr= [];
+  var mod_arr= []; //sound only
+  var del_arr= []; //sound only
+console.log("imported_str",imported_str);
   imported_str.split("\n").forEach(item_str => {
     spl_ar= item_str.split("|");
     //export|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123 //to test, can paste right into console "Local storage"
     //0      1               2  3                    4 5
+console.log("item_str",item_str,"split",spl_ar);
     action_str= spl_ar[0]; //export, exportDelete
     if (spl_ar[2] == "PC") { //qualify
-//console.log("item_str",item_str,"split",spl_ar);
       if (action_str == "export") {
         time_str= spl_ar[1]; //WED 5/5 12:34pm
         tSpl_ar= time_str.split(" ");
@@ -2243,7 +2244,7 @@ function alarms_import(imported_str) {
           alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
           alrm_setCountdown();
           alrm_glow(4);
-          add_arr.push(alarmInst_EL);
+          add_arr.push(alarmInst_EL); //sound only
 console.log("alarmInst_EL",alarmInst_EL)
         }
 
@@ -2256,7 +2257,7 @@ console.log("alarmInst_EL",alarmInst_EL)
         ;
 
         if (delTid_EL) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
-          del_arr.push(delTid_EL);
+          del_arr.push(delTid_EL); //sound only
           alarmInst_EL= delTid_EL.closest("div.alarmInstance");
           alrm_exeDel();
         } else {
