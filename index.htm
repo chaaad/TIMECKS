@@ -208,6 +208,7 @@ div#msgContainer {
   left: 70px;
   top: 14px;
   width: 300px;
+  z-index: 1;
 
   div.msgInstance {
     background: gold;
@@ -222,7 +223,7 @@ div#ringerOverlay {
   display: none; /*hidden by default */
   position: fixed; /* fixed across whole screen */
   inset: 0;
-  z-index: 3; /* z-index higher than rest of page */
+  z-index: 3; /* zindex higher than rest of page */
   opacity: 0.30;
   background: lightblue;
   transition: background-color 2s;
@@ -601,7 +602,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   display: none; /* modals are hidden by default */
   position: fixed; /* modal container fixed across whole screen */
   inset: 0;
-  z-index: 1; /* z-index higher than rest of page, except ringer */
+  z-index: 2; /* zindex higher than rest of page, except ringer */
   background-color: rgba(0, 0, 0, .75); /* semi-transparent black background exposed by padding */
   padding: 40px;
   overflow: auto; /* enables scrolling for tall modals */
