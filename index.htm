@@ -2227,8 +2227,8 @@ function alarms_import(imported_str) {
   var del_arr= []; //for sound only
   imported_str.split("\n").forEach(item_str => {
     spl_ar= item_str.split("|");
-    //external|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123 //to test, can paste right into console "Local storage"
-    //0      1               2  3                    4 5
+    //external|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123-1 //to test, can paste right into console "Local storage"
+    //0        1               2  3                    4 5
     action_str= spl_ar[0]; //external, externalDelete
 //console.log(action_str,"item_str",item_str,"split",spl_ar);
     if (spl_ar[2] == "PC") { //qualify
@@ -2249,13 +2249,13 @@ function alarms_import(imported_str) {
         }
 
       } else if (action_str == "externalDelete") {
-        //externalDelete|123|PC
-        //0            1   2
+        //externalDelete|123-1|PC
+        //0              1   2
         let tid= spl_ar[1];
         let delTid_EL= [...alarmsCont_EL.querySelectorAll("b.PC_tid")]
-          .find(span_EL => span_EL.textContent == tid)
+          .find(EL => EL.textContent == tid)
         ;
-
+console.log("externalDelete tid",tid, "delTid_EL",delTid_EL) //debug
         if (delTid_EL) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
           del_arr.push(delTid_EL); //for sound only
           alarmInst_EL= delTid_EL.closest("div.alarmInstance");
@@ -3047,9 +3047,8 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
   var action_str, external_str;
 
   //for local testing// file:///C:/Users/chaaad/Documents/GitHub/TIMECKS/index.htm
-  findQS("export");  // ?export=WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123
-  if (!action_str) findQS("exportDelete"); //?exportDelete=123|PC
-  //.. either one, but never both in same call
+  findQS("export");  // ?export=WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123-1
+  findQS("exportDelete"); //?exportDelete=123-1|PC
 
   function findQS(act_str) {
     var exp_str= usp.get(act_str);
