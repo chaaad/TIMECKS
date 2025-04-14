@@ -159,7 +159,7 @@ div.textBox {
   padding: 8px;
   border-radius: 8px;
   margin-bottom: 8px;
-  opacity: 50%;
+  opacity: 90%;
   letter-spacing: 0.5px;
 }
 
@@ -2255,7 +2255,7 @@ function alarms_import(imported_str) {
         let delTid_EL= [...alarmsCont_EL.querySelectorAll("b.PC_tid")]
           .find(EL => EL.textContent == tid)
         ;
-console.log("externalDelete tid",tid, "delTid_EL",delTid_EL) //debug
+//console.log("externalDelete tid",tid, "delTid_EL",delTid_EL) //debug
         if (delTid_EL) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
           del_arr.push(delTid_EL); //for sound only
           alarmInst_EL= delTid_EL.closest("div.alarmInstance");
