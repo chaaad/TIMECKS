@@ -1675,12 +1675,13 @@ function alrm_editTime(NEW_str) {
   var livePreview_EL;
 
   function pop_prompt() {
-    var alarmNow_obj= alrm_procTimeText(jm._ELs.Input.value, "preview");
+    alrm_str= jm._ELs.Input.value;
+    var alarmNow_obj= alrm_procTimeText(alrm_str, "preview");
     livePreview_EL.innerHTML= alarmNow_obj ? (alarmNow_obj.time +"<br>" +alarmNow_obj.ahead) : "";
   }
 
   var prom_str= g_promStr(NEW_str, alrm_str);
-  timePrompt_fn();
+  timePrompt_fn(); //so can be reused as err fn
 
   function timePrompt_fn() {
     jm.prompt(prom_str, alrm_str, {
@@ -1692,7 +1693,8 @@ function alrm_editTime(NEW_str) {
       },
 
       Input_keyup: evt => { //or "aliasIO_keyup" would work also
-        pop_prompt();
+        if (alrm_str != jm._ELs.Input.value) pop_prompt();
+        //ignore many unwanted keys like "Shift"
       },
 
       end_cb: resp => {
@@ -1817,9 +1819,15 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     ahead_str= "(OFFSET: ";
     ahead_str+= get_fmatHTime_str(raw_hTimO) + " ";
     ahead_str+= offsetMod_str +g_untilStr(ofsO.m, ofsO.h) +")";
-
     time_dtO= new Date(time_ms);
     //DST handled here by js date ?
+
+    if (moDaO) { //offset can change d/m/y
+      moDaO= {
+        mo: time_dtO.getMonth() +1,
+        da: time_dtO.getDate()
+      };
+    }
 
   } else { //no offset given, derive for ahead_str
     let ahead_ms= time_dtO -new Date();
