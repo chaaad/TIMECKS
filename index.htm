@@ -1671,7 +1671,8 @@ function alrm_editInfo(info_str, NEW_str) {
 } //alrm_editInfo()
 
 function alrm_editTime(NEW_str) {
-  var alrm_str= NEW_str ? "12:00" : alarmInst_EL.$E.Time.textContent;
+  var orig_alrm_str= NEW_str ? "12:00" : alarmInst_EL.$E.Time.textContent;
+  var alrm_str= orig_alrm_str;
   var livePreview_EL;
 
   function pop_prompt() {
@@ -1698,9 +1699,8 @@ function alrm_editTime(NEW_str) {
       },
 
       end_cb: resp => {
-        if (resp==null || (resp==alrm_str && !NEW_str)) return; //-->
-
         var mod_alrm_str= resp;
+        if (mod_alrm_str==null || (mod_alrm_str==orig_alrm_str && !NEW_str)) return; //-->
 
         //proc input str
         var alarmNow_obj;
