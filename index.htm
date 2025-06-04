@@ -1633,10 +1633,10 @@ function alrm_drawDisablerMode(aI_EL, dsbl_flag) {
   disblr_ct++;
 } //alrm_drawDisablerMode()
 
-function alrm_glow(s =1, aI_EL =alarmInst_EL) {
+function alrm_glow(s =1, aI_EL =alarmInst_EL, color_str ="aquamarine") {
   aI_EL.scrollIntoView(scrollParam);
 
-  aI_EL.style.background= "aquamarine";
+  aI_EL.style.background= color_str;
   setTimeout(() => {aI_EL.style.background= ""; }, s *1000);
 } //alrm_glow()
 
@@ -2093,6 +2093,7 @@ console.log("bad alarm time", alrm_str)
     classEl(active_aI_EL, "alarmActive", false);
     classEl(active_aI_EL, "expired", false);
     alrm_setCtdnView(active_aI_EL, active_aI_EL.$D.vu_cd);
+    alrm_glow(4, active_aI_EL, "burlywood");
   }
 
   if (flag) { //alarm on
@@ -2126,7 +2127,10 @@ console.log("bad alarm time", alrm_str)
 
     sound_play("slam");
 
-    if (autsrt_mode && !button_flag) alrm_autoActivate();
+    if (autsrt_mode) {
+      alarms_execSort();
+      if (!button_flag) alrm_autoActivate();
+    }
   }
 
   if (!autsrt_mode) data_save("active_id", active_aI_EL ? active_aI_EL.id*1 : 0); //active_id save
@@ -2209,8 +2213,11 @@ function alarms_sort(evt) { //from UI
 function alarms_execSort() {
   if (!vis_ct) return; //-->
 
-  [...aI_NL]
-    .sort((a, b) => a.$D.ctdn_m > b.$D.ctdn_m ? 1 : -1)
+  var arr= [...aI_NL];
+  arr.forEach(aI_EL => { aI_EL.$D.sort_n= aI_EL.classList.contains("expired") ? 0 : aI_EL.$D.ctdn_m; }); //expired alarms always at top of list
+  //.forEach() cant chain
+  arr
+    .sort((a, b) => a.$D.sort_n > b.$D.sort_n ? 1 : -1)
     .forEach(aI_EL => alarmsCont_EL.appendChild(aI_EL)) //reorder in DOM
   ;
   if (active_aI_EL) active_aI_EL.after(activeStatus_EL);
