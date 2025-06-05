@@ -1205,15 +1205,9 @@ msgDelAllBut_EL.title= "Delete all messages";
 msgCont_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
   if (targ_EL == msgDelAllBut_EL) {
-    //////add a confirm? ////tbd
     msgCont_EL.querySelectorAll("div.msgInstance").forEach(m_el => message_remove(m_el));
-    showEl(msgHeader_EL, false);
-    //hide header
-
   } else if (targ_EL.classList.contains("msgDeleteBut")) {
     message_remove(targ_EL.closest("div.msgInstance"));
-    targ_EL.closest("div.msgInstance").remove();
-    if (!msgCont_EL.querySelectorAll("div.msgInstance").length) showEl(msgHeader_EL, false);
   }
 });
 
@@ -1296,7 +1290,11 @@ alarmsCont_EL.addEventListener("click", evt => {
     if (_alarmInst_EL= targ_EL.closest("div.alarmInstance")) {
       alarmInst_EL= _alarmInst_EL;
 
-      if (targ_EL.classList.contains("expired")) classEl(alarmInst_EL, "expired", false);
+      if (alarmInst_EL.classList.contains("expired")) {
+        var exp_msg_EL;
+        if (exp_msg_EL= alarmInst_EL.$exp_msg_EL) message_remove(exp_msg_EL); //will remove .$exp_msg_EL too
+        else alrm_unexpire(alarmInst_EL);
+      }
 
       if (targ_EL.classList.contains("alarmActivate")) {
         alrm_set(alarmInst_EL==active_aI_EL?false:alarmInst_EL, "button"); //toggle
@@ -2140,6 +2138,7 @@ function alrm_expireMsg(aI_EL) {
   var alStrO= g_alStrO(aI_EL);
   var msg_EL= message_add("Alarm expired: " +alStrO.tim +" | " +alStrO.inf, "pink");
   msg_EL.$exp_aI_EL= aI_EL;
+  aI_EL.$exp_msg_EL= msg_EL;
 } //alrm_expireMsg()
 
 
@@ -2442,12 +2441,18 @@ function message_add(str, bgColor_str) {
 } //smessage_add()
 
 function message_remove(msg_EL) {
-  var exp_aI_EL;
-  if (exp_aI_EL= msg_EL.$exp_aI_EL) classEl(exp_aI_EL, "expired", false);
-
   msg_EL.remove();
+  if (!msgCont_EL.querySelectorAll("div.msgInstance").length) showEl(msgHeader_EL, false);
+
+  var exp_aI_EL; if (exp_aI_EL= msg_EL.$exp_aI_EL) alrm_unexpire(exp_aI_EL);
 } //message_remove()
 
+function alrm_unexpire(aI_EL) {
+  delete aI_EL.$exp_msg_EL;
+  classEl(aI_EL, "expired", false);
+  alrm_glow(2, aI_EL, "pink");
+  if (autsrt_mode) alarms_execSort();
+}
 
 var sysAlarms_arr= [];
 var sysAlarms_lu= {};
