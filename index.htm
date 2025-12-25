@@ -1418,7 +1418,7 @@ function stgs_rDat() {
         alarms_start();
         message_add("Alarms raw data saved", "lightblue");
       } else {
-        message_add("Alarms raw data failed");
+        message_add("Loading Alarms raw data failed");
       }
     }); //jm.prompt_textarea()
 
@@ -1426,9 +1426,10 @@ function stgs_rDat() {
 } //stgs_rDat()
 
 function stgs_rdMe() {
-  txtFile_fetch("readme.txt", str => {
-console.log("2str:", str);
-    //  jm.alert("<p>stgs_tips</p>ghjh kkj hk jk<br>ghjh kkj hk jk<br>ghjh kkj hk jk<br>ghjh kkj hk jk<br>ghjh kkj hk jk<br>ghjh kkj hk jk<br>");
+  var url_str= ""readme.txt"";
+  txtFile_fetch(url_str, str => {
+    if (str) jm.alert("<p>Read Me</p><pre>" +str +"<pre>");
+    else message_add("Reading " +url_str +" failed");
   });
 } //stgs_rdMe()
 
@@ -1436,7 +1437,7 @@ async function txtFile_fetch(url_str, cb) {
   var resp;
   try {
     resp= await fetch(url_str); //no local testing with file:///...
-console.log("1resp:", resp);
+//console.log("resp:", resp);
     if (resp.ok) {
       var str= await resp.text();
       cb(str);
