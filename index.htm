@@ -1426,8 +1426,8 @@ function stgs_rDat() {
 } //stgs_rDat()
 
 function stgs_rdMe() {
-  txtFile_fetch("readme.txt", resp => {
-console.log("2resp:", resp);
+  txtFile_fetch("readme.txt", str => {
+console.log("2str:", str);
     //  jm.alert("<p>stgs_tips</p>ghjh kkj hk jk<br>ghjh kkj hk jk<br>ghjh kkj hk jk<br>ghjh kkj hk jk<br>ghjh kkj hk jk<br>ghjh kkj hk jk<br>");
   });
 } //stgs_rdMe()
@@ -1437,11 +1437,15 @@ async function txtFile_fetch(url_str, cb) {
   try {
     resp= await fetch(url_str); //no local testing with file:///...
 console.log("1resp:", resp);
-    cb(resp);
+    if (resp.ok) {
+      var str= await resp.text();
+      cb(str);
+    } else {
+      console.error("Fetch error2:", resp.statusText); cb();
+    }
   } catch (err) {
-    console.error("Error:", err);
+    console.error("Fetch error1:", err); cb();
   }
-  cb(resp);
 } //txtFile_fetch()
 
 
