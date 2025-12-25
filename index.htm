@@ -1433,22 +1433,15 @@ console.log("2resp:", resp);
 } //stgs_rdMe()
 
 async function txtFile_fetch(url_str, cb) {
+  var resp;
   try {
-    var resp= await fetch(url_str); //no local testing with file:///...
+    resp= await fetch(url_str); //no local testing with file:///...
 console.log("1resp:", resp);
     cb(resp);
-/*
-    if (resp.ok) {
-      //const data= await resp.json();
-//console.log(data);
-    } else {
-      throw new Error('Failed to fetch data');
-    }
-*/
   } catch (err) {
     console.error("Error:", err);
   }
-  cb("xxxxxxxxxxxxxxxxxxxx");
+  cb(resp);
 } //txtFile_fetch()
 
 
