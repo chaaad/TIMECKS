@@ -219,21 +219,6 @@ div#templates {
   display: none;
 }
 
-div#ringerOverlay {
-  display: none; /*hidden by default */
-  position: fixed; /* fixed across whole screen */
-  inset: 0;
-  z-index: 3; /* zindex higher than rest of page */
-  opacity: 0.30;
-  background: lightblue;
-  transition: background-color 2s;
-  padding: 40px;
-
-  &.flash {
-    background: pink;
-  }
-}
-
 div#alarmsContainer {
   float: right;
   font-size: larger;
@@ -349,47 +334,37 @@ div#alarmsContainer {
     }
   }
 
-  div#activeCountdown {}
 
-  div#activeStatus {
+  div#wakeyDiv {
     display: none;
     margin-bottom: 16px;
 
-    div#ringerCont {
+    div#wakeyCountdown {}
+
+    div#wakeyControls {
       display: none;
-      z-index: 3;
-      position: relative;
       margin-top: 16px;
 
-      div#ringerSnooze,
-      div#ringerOff {
+      div#wakeySnoozeBut,
+      div#wakeyOffBut {
         width: 100%;
         height:60px;
         line-height:60px;
         text-align: center;
         margin-top: 12px;
-        color: white;
+        color: black;
         font-weight: bold;
         font-size: 24px;
-      }
-      div#ringerOff {
-        background: chartreuse;
-        color: black;
 
         &:hover {
-          background: lightgray;
+          color: white;
         }
       }
-      div#ringerSnooze {
+      div#wakeyOffBut {
         background: gray;
-
-        &:hover {
-          color: chartreuse;
-        }
-
-        &.but-active {
-          color: chartreuse;
-        }
+      }
+      div#wakeySnoozeBut {
+        background: chartreuse;
 
         div { /*snooze numbers*/
           margin-top: -3px; /*weird but works*/
@@ -404,7 +379,7 @@ div#alarmsContainer {
       }
     }
 
-    div#rSnzCountdown {}
+    div#wakeySnzCountdown {}
   }
 
   .countdown {
@@ -418,13 +393,6 @@ div#alarmsContainer {
 
 } /*alarm*/
 
-body.ringing {
-  div#ringerSnooze {
-    span {
-      color: white !important;
-    }
-  }
-}
 
 div#clockFace {
   width: 272px;
@@ -603,9 +571,14 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   position: fixed; /* modal container fixed across whole screen */
   inset: 0;
   z-index: 2; /* zindex higher than rest of page, except ringer */
-  background-color: rgba(0, 0, 0, .75); /* semi-transparent black background exposed by padding */
   padding: 40px;
   overflow: auto; /* enables scrolling for tall modals */
+
+  background-color: rgba(0, 0, 0, .75); /* semi-transparent black background exposed by padding */
+  transition: background-color 5s;
+  &.flash {
+    background-color: rgba(255, 127, 127, .75); /*pink*/
+  }
 
   .jw-modal-item { /*modal instance*/
     font-size: larger;
@@ -633,6 +606,17 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
         color: cornflowerblue;
         &.E {
           color: red;
+        }
+      }
+
+      p { /*stronger*/
+        margin: 0 0 4px 0;
+        font-size: x-large;
+        font-weight: bold;
+        color: #0078d0;
+
+        .b {
+          color: darkorange;
         }
       }
     }
@@ -702,7 +686,6 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     /*button-71*/
 
     button.toggleable {
-      background: chocolate;
       opacity: 40%
     }
     button.hilite {
@@ -710,6 +693,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     }
 
     button#jwmCancelBut {
+      background: chocolate;
       opacity: 50%
     }
   }
@@ -740,23 +724,20 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <div id="topButtons">
   <div id="editStgsBut" class="button squareButton" title="Settings (snooze duration)">︙</div>
-  <div id="diasablerModeBut" class="button squareButton" title="Disabler Mode">D</div>
-  <div id="autsrtModeBut" class="button squareButton" title="AutoSort Mode">A</div>
-  <div id="sortBut" class="button squareButton" title="Sort alarms (ctrl-click to skip confirm)">⮝</div>
+  <div id="diasablerModeBut" class="button squareButton" title="Hide-Alarms Mode">H</div>
   <div id="addAlarmBut" class="button squareButton" title="Add new alarm">✚</div>
   <div id="trashCan" class="button squareButton" title="Trash (drop unwanted alarm here)">🗑</div>
 </div>
 
 <div id="msgContainer"></div>
 
-<div id="ringerOverlay"></div>
-
 <div id="alarmsContainer">
-  <div id="activeStatus">
-    <div id="activeCountdown" class="countdown"></div>
-    <div id="ringerCont">
-      <div id="ringerOff" class="button">OFF</div>
-      <div id="ringerSnooze" class="button">
+
+  <div id="wakeyDiv">
+    <div id="wakeyCountdown" class="countdown"></div>
+    <div id="wakeyControls">
+      <div id="wakeyOffBut" class="button">OFF</div>
+      <div id="wakeySnoozeBut" class="button">
         SNOOZE
         <div>
           <span>1</span>
@@ -767,9 +748,10 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
           <span>30</span>
         </div>
       </div>
-      <div id="rSnzCountdown" class="countdown">&nbsp;</div>
+      <div id="wakeySnzCountdown" class="countdown">&nbsp;</div>
     </div>
   </div>
+
 </div>
 
 
@@ -1111,7 +1093,7 @@ function restart() { //post long sleep
 
   ringer_stop(); //if needed
   clock_start();
-  if (autsrt_mode) alrm_clear();
+  alrm_clear();
   alarms_start();
 } //restart()
 
@@ -1140,8 +1122,6 @@ var body_EL= document.querySelector("body");
 var topButs_EL= document.querySelector("div#topButtons");
 //var editStgs_EL= topButs_EL.querySelector("div#editStgsBut");
 var disblabler_EL= topButs_EL.querySelector("div#diasablerModeBut");
-var autoSort_EL= topButs_EL.querySelector("div#autsrtModeBut");
-var sort_EL= topButs_EL.querySelector("div#sortBut");
 //var add_EL= topButs_EL.querySelector("div#addAlarmBut");
 var trash_EL= topButs_EL.querySelector("div#trashCan");
 
@@ -1158,8 +1138,8 @@ var alarmsCont_EL= document.querySelector("div#alarmsContainer");
 var alarmInst_EL;
 var active_aI_EL;
 
-var activeStatus_EL= alarmsCont_EL.querySelector("div#activeStatus");
-var activeCountdown_EL= activeStatus_EL.querySelector("div#activeCountdown");
+var wakeyDiv_EL= alarmsCont_EL.querySelector("div#wakeyDiv");
+var wakeyCountdown_EL= wakeyDiv_EL.querySelector("div#wakeyCountdown");
 
 
 var snooze_def_num;
@@ -1182,10 +1162,6 @@ topButs_EL.addEventListener("click", evt => {
     timecksStgs_edit();
   } else if (targ_EL == disblabler_EL) {
     disablerMode_toggle();
-  } else if (targ_EL == autoSort_EL) {
-    autosortMode_set();
-  } else if (targ_EL == sort_EL) {
-    alarms_sort(evt);
   } else if (targ_EL.id == "addAlarmBut") {
     alrm_add();
   }
@@ -1277,12 +1253,12 @@ alarmsCont_EL.addEventListener("dragstart", () => {
 alarmsCont_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
 
-  if (targ_EL.closest("div#ringerSnooze")) {
+  if (targ_EL.closest("div#wakeySnoozeBut")) {
     var n;
     if (targ_EL.tagName == "SPAN") n= targ_EL.textContent *1;
     ringer_stop("snooze", n);
 
-  } else if (targ_EL.closest("div#ringerOff")) {
+  } else if (targ_EL.closest("div#wakeyOffBut")) {
     ringer_stop("off");
 
   } else {
@@ -1354,14 +1330,14 @@ async function wakeLock_toggle() {
 
 
 function timecksStgs_edit() { //just snooze duration
-  jm.prompt("Snooze duration (minutes, 1-30)", snooze_def_num, resp => {
+  jm.prompt("<p>Snooze duration</p>(minutes, 1-30)", snooze_def_num, resp => {
     if (resp == null) return; //-->
 
     var v_num= resp *1;
     if (v_num == snooze_def_num) return; //same, do nothing //-->
 
     if (isNaN(v_num) || v_num<1 || v_num>30) {
-      jm.error('Snooze must be 1-30 minutes<br><br>Your input:<b class="E">' +resp +'</b>', () => {
+      jm.error('<p class="bad">Snooze must be 1-30 minutes</p>Your input:<b class="E">' +resp +'</b>', () => {
         timecksStgs_edit(); //try again
       });
     } else {
@@ -1405,44 +1381,33 @@ function alarms_start() {
       if (a_obj.id == active_id) alarmInst_EL= aInst_EL; //alarm active
       if (a_obj.c) alrm_setTorC(aInst_EL, true, "persist"); //init alarm countdown view
 
-      if (disabler_mode) alrm_drawDisablerMode(aInst_EL, a_obj.d); //disabler mode
-      else if (a_obj.d) showEl(aInst_EL, false); //alarm disabled
-      else vis_ct++;
+      if (disabler_mode) {
+        vis_ct++;
+        alrm_drawDisablerMode(aInst_EL, a_obj.d); //disabler mode
+      } else if (a_obj.d) {
+        showEl(aInst_EL, false); //alarm disabled
+      } else {
+        vis_ct++;
+      }
     });
 
     aI_NL= alarmsCont_EL.getElementsByClassName("alarmInstance");
 
-    if (autsrt_mode) autosortMode_execSet();
-    else if (alarmInst_EL && !disabler_mode) alrm_set(alarmInst_EL); //active on init
+    alarms_execSort();
+    alrm_autoActivate();
   });
 } //alarms_start()
 
 
 var disabler_mode;
-var preserved_autsrt_mode;
 var disblr_ct; //for css checkbox label to work
 
 function disablerMode_toggle() {
   if (!disabler_mode) { //turn disabler mode on}
-    showEl(autoSort_EL, false);
-    if (autsrt_mode) {
-      preserved_autsrt_mode= true;
-      autsrt_mode= false;
-      autosortMode_execSet();
-      alrm_clear();
-    }
-
     if (wakeLock_OBJ) wakeLock_toggle(); //off
     showEl(wlEnable_EL, false);
 
   } else { //turn disabler mode off
-    showEl(autoSort_EL);
-    if (preserved_autsrt_mode) {
-      preserved_autsrt_mode= undefined;
-      autsrt_mode= true;
-      //autosortMode_execSet(); //alarms_start() will do this
-    }
-
     showEl(wlEnable_EL);
   }
 
@@ -1452,35 +1417,6 @@ function disablerMode_toggle() {
   alarms_start();
 
 } //disablerMode_toggle()
-
-
-
-var autsrt_mode; //= localStorage.getItem("autsrt_mode") == "true"; //localStorage, will be string "true", "false"
-
-function autosortMode_set() { //from UI
-  jm.state(
-    'Auto Sort Mode?<br>No manual reordering of alarms, the alarm list will automatically be sorted by deadline. Also, if no alarm is active, the first alarm will self-activate',
-    autsrt_mode,
-    resp => {
-      if (resp==null || resp==autsrt_mode) return; //-->
-
-      autsrt_mode= resp;
-      autosortMode_execSet();
-      //localStorage.setItem("autsrt_mode", autsrt_mode);
-      data_save("autsrt_mode", autsrt_mode);
-    }
-  );
-} //autosortMode_set()
-
-function autosortMode_execSet() { //on or off
-  var displ_v= autsrt_mode ? false : undefined;
-  showEl(sort_EL, displ_v);
-  classEl(autoSort_EL, "on", autsrt_mode);
-  if (autsrt_mode) {
-    alarms_execSort();
-    alrm_autoActivate();
-  }
-} //autosortMode_execSet()
 
 
 function alarmsDrag_start() {
@@ -1534,8 +1470,7 @@ function alarmsDrag_start() {
         prev_dragOver_EL= undefined;
       }
 
-      if (autsrt_mode) return; //-->
-
+      /* //got rid of alarms manual ordering, so no alarms drag reordering
       if (dragOvAl_EL= dragOver_EL.closest("div.alarmInstance")) { //alarm instance (reorder)
         if (prev_dragOver_EL) clear();
         if (dragOvAl_EL == dragAl_EL) return; //-->
@@ -1552,6 +1487,7 @@ function alarmsDrag_start() {
 
         prev_dragOver_EL= dragOvAl_EL;
       }
+      */
     }
   } //dragOver()
 
@@ -1572,7 +1508,7 @@ function alarmsDrag_start() {
         if (dropOn_EL.classList.contains("dropAbove")) dropOn_EL.before(dragAl_EL);
         else dropOn_EL.after(dragAl_EL);
 
-        if (active_aI_EL) active_aI_EL.after(activeStatus_EL);
+        if (active_aI_EL) active_aI_EL.after(wakeyDiv_EL);
 
         alarms_save();
       }
@@ -1651,13 +1587,13 @@ function alrm_scrollTo(active_flag) {
 function alrm_editInfo(info_str, NEW_str) {
   var t_str= alarmInst_EL.$E.Time.textContent;
   if (!info_str) info_str= alarmInst_EL.$E.Info.innerHTML.replaceAll("<br>", "\n");
-  jm.prompt_textarea('Alarm info (html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
+  jm.prompt_textarea('<p>Alarm name</p>(html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
     if (!NEW_str && (resp==null || resp==info_str)) return; //-->
     //.. with NEW_str, 'save' must happen
 
     info_str= (resp || "").trim();
     if (info_str.length > 80) {
-      jm.error(`Info length is up to 80 chars. Your text is ${info_str.length} chars`, () => {
+      jm.error(`<p class="bad">Info length is up to 80 chars</p>Your text is ${info_str.length} chars`, () => {
         alrm_editInfo(info_str, NEW_str); //try again (and we dont throw away what you typed in)
       });
     } else {
@@ -1715,16 +1651,15 @@ function alrm_editTime(NEW_str) {
 
           if (!disabler_mode && (!active_aI_EL || active_aI_EL==alarmInst_EL)) { //set is none active, or re-set if this is active
             alrm_set(alarmInst_EL);
-          } else if (!autsrt_mode && !NEW_str) {
+          }
+          alarms_execSort();
+          alrm_autoActivate([alarmInst_EL]);
+          if (NEW_str) {
+            alrm_editInfo(NEW_str, NEW_str);
+          } else {
             alarms_save();
+            alrm_glow();
           }
-          if (autsrt_mode) {
-            alarms_execSort();
-            alrm_autoActivate([alarmInst_EL]);
-            if (!NEW_str) alarms_save();
-          }
-          if (NEW_str) alrm_editInfo(NEW_str, NEW_str);
-          else alrm_glow();
         }
       }
     });
@@ -1930,7 +1865,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
   function err(err_str) {
     if (preview_flag) return; //-->
 
-    jm.error('Alarm time error caused by<br>' +err_str +'<br><br>Your raw input: <b class="E">' +input_str +'</b>', err_cb);
+    jm.error('<p class="bad">Alarm time error</p>' +err_str +'<br><br>Your raw input: <b class="E">' +input_str +'</b>', err_cb);
     //multiple errors are not returned, only the first error encountered
   }
 
@@ -2032,7 +1967,7 @@ function alrm_execAdd() { //add 1
 
 function alrm_delete() { //from UI
   var prom_str= g_promStr();
-  jm.agree('Delete?<br>' +prom_str, 0, resp => {
+  jm.agree('<p>Delete?</p>' +prom_str, 0, resp => {
     if (resp != true) return; //null or false //-->
 
     alrm_execDelete();
@@ -2057,7 +1992,7 @@ function alrm_exeDel() {
 function g_promStr(str, t_str) {
   var alStrO;
   if (!str || !t_str) alStrO= g_alStrO(alarmInst_EL);
-  return `Alarm info:<b>${str || alStrO.inf}</b><br>Time:<b class="livePreview">${t_str || alStrO.tim}</b>`;
+  return `<p>${str || alStrO.inf}</p>Time:<b class="livePreview">${t_str || alStrO.tim}</b>`;
 } //g_promStr()
 
 function g_alStrO(aI_EL) {
@@ -2099,12 +2034,12 @@ console.log("bad alarm time", alrm_str)
     active_aI_EL= aI_EL;
     active_ctdn_m= aI_EL.$D.ctdn_m;
     active_hTimO= alarmNow_obj.hTimO;
-    activeCountdown_EL.textContent= g_untilStr(active_ctdn_m);
+    wakeyCountdown_EL.textContent= g_untilStr(active_ctdn_m);
 
     classEl(aI_EL, "alarmActive");
-    aI_EL.after(activeStatus_EL);
-    showEl(activeStatus_EL);
-    showEl(activeCountdown_EL);
+    aI_EL.after(wakeyDiv_EL);
+    showEl(wakeyDiv_EL);
+    showEl(wakeyCountdown_EL);
     alrm_setCtdnView(aI_EL, false); //if needed
 
     clockMarker_n= undefined;
@@ -2120,18 +2055,14 @@ console.log("bad alarm time", alrm_str)
     active_aI_EL= undefined;
     active_ctdn_m= 0;
 
-    showEl(activeStatus_EL, false);
+    showEl(wakeyDiv_EL, false);
     showEl(cf_marker_EL, false);
 
     sound_play("slam");
 
-    if (autsrt_mode) {
-      alarms_execSort();
-      if (!button_flag) alrm_autoActivate();
-    }
+    alarms_execSort();
+    if (!button_flag) alrm_autoActivate();
   }
-
-  if (!autsrt_mode) data_save("active_id", active_aI_EL ? active_aI_EL.id*1 : 0); //active_id save
 } //alrm_set()
 
 function alrm_expireMsg(aI_EL) {
@@ -2160,7 +2091,7 @@ function alarms_update(mnt_n) {
         classEl(aI_EL, "expired");
         alrm_setCountdown(aI_EL, "preview_forceTurnover");
         if (aI_EL != active_aI_EL) alrm_expireMsg(aI_EL);
-        if (autsrt_mode) autoTurnover_flag= true;
+        autoTurnover_flag= true;
       }
 
       until_str= g_untilStr(aI_EL.$D.ctdn_m);
@@ -2173,10 +2104,10 @@ function alarms_update(mnt_n) {
   if (active_flag) {
     if (active_ctdn_m < 1) { //end alarm countdown
       active_flag= false;
-      showEl(activeCountdown_EL, false);
-      ringer_start();
+      showEl(wakeyCountdown_EL, false);
+      ringer_start(active_aI_EL);
     } else {
-      activeCountdown_EL.textContent= g_untilStr(active_ctdn_m);
+      wakeyCountdown_EL.textContent= g_untilStr(active_ctdn_m);
       clock_checkMarker();
     }
 
@@ -2198,17 +2129,6 @@ function alrm_autoActivate(override_arr =[]) { //auto-activate top alarm
   }
 } //alrm_autoActivate()
 
-function alarms_sort(evt) { //from UI
-  if (evt.ctrlKey) {
-    alarms_execSort();
-
-  } else {
-    jm.confirm('Sort alarms by date/time?', resp => {
-      if (resp) alarms_execSort();
-    });
-  }
-} //alarms_sort()
-
 function alarms_execSort() {
   if (!vis_ct) return; //-->
 
@@ -2219,11 +2139,10 @@ function alarms_execSort() {
     .sort((a, b) => a.$D.sort_n > b.$D.sort_n ? 1 : -1)
     .forEach(aI_EL => alarmsCont_EL.appendChild(aI_EL)) //reorder in DOM
   ;
-  if (active_aI_EL) active_aI_EL.after(activeStatus_EL);
+  if (active_aI_EL) active_aI_EL.after(wakeyDiv_EL);
 
   alrm_scrollTo();
 
-  if (!autsrt_mode) alarms_save();
   sound_play("clik");
 } //alarms_execSort()
 
@@ -2287,10 +2206,8 @@ function alarms_import(imported_str) {
   //when both add and de, sounds prob mess up
 
   if (add_arr.length || del_arr.length) {
-    if (autsrt_mode) {
-      alarms_execSort();
-      alrm_autoActivate(add_arr);
-    }
+    alarms_execSort();
+    alrm_autoActivate(add_arr);
     alarms_save();
   }
 } //alarms_import()
@@ -2318,29 +2235,41 @@ function alarms_save() {
 } //alarms_save()
 
 
-var ringerOverlay_EL= document.querySelector("div#ringerOverlay");
-ringerOverlay_EL.addEventListener("click", () => {
-  ringer_stop(); //snooze
-});
+var wakeyControls_EL= document.querySelector("div#wakeyControls");
+var wakeySnoozeBut_EL= wakeyControls_EL.querySelector("div#wakeySnoozeBut")
+var wakeySnzCountdown_EL= wakeyControls_EL.querySelector("div#wakeySnzCountdown");
 
-var ringerCont_EL= document.querySelector("div#ringerCont");
-var ringerSnooze_EL= ringerCont_EL.querySelector("div#ringerSnooze")
-var rSnzCountdown_EL= ringerCont_EL.querySelector("div#rSnzCountdown");
-
-var ring_flag;
+var wakey_aI_EL;
 var ring_intimerId;
 var snooze_ctdn_m;
 
-function ringer_start() {
-  ring_flag= true;
+var jm_cancelBut= document.getElementById("jwmCancelBut");
+
+function ringer_start(wk_aI_EL) {
+  if (wk_aI_EL) wakey_aI_EL= wk_aI_EL;
   alrm_scrollTo("activeAlarm");
   sound_play("rngr");
-  showEl(ringerOverlay_EL);
-  showEl(ringerCont_EL);
+
+  showEl(wakeyControls_EL);
+  jm._ELs.Overlay.classList.add("flash");
   ring_intimerId= setInterval(() => { //recurse
-    ringerOverlay_EL.classList.toggle("flash");
+    jm._ELs.Overlay.classList.toggle("flash");
     sound_play("rngr");
   }, 5000);
+
+  jm.confirm("", { //text_str= "", filled later
+    //jm custom hooks object
+    begin_cb: () => {
+      jm._ELs.Description.innerHTML= "<p>" +active_aI_EL.$E.Info.textContent +"</p>Alarm off?";
+      jm_cancelBut.textContent= "SNOOZE";
+    },
+    end_cb: resp => {
+      jm_cancelBut.textContent= "Cancel";
+      if (resp) resp= "off"; //else snooze
+      ringer_stop(resp);
+    }
+  });
+
 } //ringer_start()
 
 //note: for ringer start, if these are 'in progress'...
@@ -2349,29 +2278,26 @@ function ringer_start() {
 //modal, as if it was 'paused'
 
 function ringer_stop(flag, snooze_n) { //without flag, default is 'snooze'
-  if (!ring_flag) return; //-->
+  if (!wakey_aI_EL) return; //-->
 
   if (ring_intimerId) {
     clearInterval(ring_intimerId);
     ring_intimerId= undefined;
-    ringerOverlay_EL.classList.remove("flash");
+    jm._ELs.Overlay.classList.remove("flash");
   }
 
   if (flag == "off") {
+    wakey_aI_EL= false;
     sound_play("slam"); //ringer-off slam
-    showEl(activeStatus_EL, false);
-    showEl(ringerOverlay_EL, false);
-    showEl(ringerCont_EL, false);
+    showEl(wakeyDiv_EL, false);
+    showEl(wakeyControls_EL, false);
     snooze_ctdn_m= 0; //if needed
-    classEl(ringerSnooze_EL, "but-active", false); //if needed
-    ring_flag= false;
     alrm_set(false);
 
   } else { //snooze
     //note: snooze wont be exact, since it only checks/fires at top of minute
     //eg. 5 minutes will be 4-5 minutes
     snooze_ctdn_m= snooze_n || snooze_def_num;
-    classEl(ringerSnooze_EL, "but-active");
     sound_play("snoz");
   }
 
@@ -2379,13 +2305,12 @@ function ringer_stop(flag, snooze_n) { //without flag, default is 'snooze'
 } //ringer_stop()
 
 function snooze_draw() {
-  rSnzCountdown_EL.innerHTML= snooze_ctdn_m ? g_untilStr(snooze_ctdn_m) : "&nbsp;";
+  wakeySnzCountdown_EL.innerHTML= snooze_ctdn_m ? g_untilStr(snooze_ctdn_m) : "&nbsp;";
 } //snooze_draw()
 
 function snooze_check() {
   snooze_draw();
   if (!snooze_ctdn_m) { //end snooze
-    classEl(ringerSnooze_EL, "but-active", false);
     ringer_start();
   }
 } //snooze_check()
@@ -2451,7 +2376,7 @@ function alrm_unexpire(aI_EL) {
   delete aI_EL.$exp_msg_EL;
   classEl(aI_EL, "expired", false);
   alrm_glow(2, aI_EL, "pink");
-  if (autsrt_mode) alarms_execSort();
+  alarms_execSort();
 }
 
 var sysAlarms_arr= [];
@@ -2660,60 +2585,19 @@ function tzoc_getDates(year_n) { //determine time zone offset changes for curren
 
 
 
-// Brwswer-app SyncStorage (eg. chrome.storage.sync)
-var bssExt_id= "godombgbodbkfgippjbjjfdamclabjij";
-var bssExt_flag;
-var useBssExt_flag;
-
-if (chrome.runtime) {
-  chrome.runtime.sendMessage(bssExt_id, {action:"get_version"}, resp => {
-//console.log("resp", resp);
-    if (chrome.runtime.lastError) {
-      console.log("c.r.err", chrome.runtime.lastError);
-    } else if (resp && resp.vers) {
-      console.log("bssExt", resp.vers);
-      bssExt_flag= true;
-//useBssExt_flag= true; /////make into a setting //tbd
-//disable SyncStorage // 7/25
-    }
-  });
-}
-
 function data_load(key, cb) {
   var keys_arr= Array.isArray(key) ? key : [key];
-  var dataO;
-  if (useBssExt_flag) {
-    chrome.runtime.sendMessage(bssExt_id, {action:"get", reqDataO:keys_arr}, resp => {
-//console.log("load bss", key, "resp", resp);
-      dataO= resp;
-      if (cb) cb(dataO);
-    });
-
-  } else {
-    dataO= {};
-    keys_arr.forEach(k => dataO[k]= localStorage.getItem(k) );
+  var dataO= {};
+  keys_arr.forEach(k => dataO[k]= localStorage.getItem(k) );
 //console.log("load LS", key, "dataO", dataO);
-    if (cb) cb(dataO);
-  }
+  if (cb) cb(dataO);
 } //data_load()
 
 function data_save(key, data, cb) { //can only save 1 item per call
   //.. note: alarms is always all alarms, no such thing as saving 1 alarm
-
-  localStorage.setItem(key, data); //always save to localStorage, even if useBssExt_flag
-
-  if (useBssExt_flag) {
-    var dataO= {};
-    dataO[key]= data;
-    chrome.runtime.sendMessage(bssExt_id, {action:"set", reqDataO:dataO}, resp => {
-//console.log("save bss", key, "resp", resp);
-      if (cb) cb(resp);
-    });
-
-  } else {
+  localStorage.setItem(key, data);
 //console.log("save LS", key, "data", data);
-    if (cb) cb("set");
-  }
+  if (cb) cb("set");
 } //data_save()
 
 /*
@@ -2728,20 +2612,6 @@ function getAllLocalStorageKeys() {
 }
 const allKeys = getAllLocalStorageKeys();
 console.log(allKeys);
-
-
-// console test
-//actions:
-// set (reqDataO is a hash)
-// get
-// remove
-// getBytesInUse (reqDataO can be null to get all)
-// getKeys (reqDataO not needed)
-
-var bssExt_id= "godombgbodbkfgippjbjjfdamclabjij";
-chrome.runtime.sendMessage(bssExt_id, {action:"remove", reqDataO:"testV"}, (resp) => {
-  console.log("resp", resp);
-});
 */
 
 
@@ -2778,6 +2648,7 @@ var jm= {
   _ELs: {},
   _type: 0,
   _end_cb: 0,
+  _queue: [],
 
   init: function() {
     //pop jm._ELs (aliasIO is dynamically assigned)
@@ -2797,8 +2668,7 @@ var jm= {
     });
 
     jm._mouseHandler("Overlay_mousedown", evt => { //"click" can get accidental "click"
-      if (evt.target.id == "jwmOverlay") jm._respond("Overlay Click"); //closeModal
-
+      if (evt.target == jm._ELs.Overlay) jm._respond("Overlay Click"); //closeModal
     });
 
     jm._mouseHandler("OkBut", evt => {
@@ -2825,7 +2695,11 @@ var jm= {
     //all types can have cb (callback)
 
     if (document.body.classList.contains("jw-modal-active")) { //modal active
-      console.error("Modal occupied");
+      jm._queue.push(
+        () => { //anon fn that stores function call (w vargs) to be used later
+          jm.dialog(type_str, text_str, value_str, cb);
+        }
+      );
       return; //abort //-->
     }
 
@@ -2895,7 +2769,7 @@ var jm= {
     jm.dialog("ALERT", text_str, "", cb); //returns true or null
   },
   error: function(text_str, cb) {
-    jm.dialog("ERROR", text_str, "", cb); //returns true or null
+    jm.dialog("ERROR", '<p class="bad">' +text_str +'</p>', "", cb); //returns true or null
   },
   confirm: function(text_str, cb) {
     jm.dialog("CONFIRM", text_str, "", cb); //returns true or null
@@ -2952,24 +2826,26 @@ var jm= {
     jm.closeModal();
 
     var cb= jm._cb;
-    if (!cb) return; //-->
+    if (cb) {
 
-    var resp= true;
-    if (act_code.search(/Overlay Click|Escape|CANCEL|CLOSE/) > -1) {
-      resp= null;
-    } else if (jm._type.includes("PROMPT_")) {
-      resp= jm._ELs.aliasIO.value;
-    } else if (jm._type.includes("BOOLEAN_")) {
-      resp= (jm._ELs.aliasIO.value == "OK"); //to boolean
+      var resp= true;
+      if (act_code.search(/Overlay Click|Escape|CANCEL|CLOSE/) > -1) {
+        resp= null;
+      } else if (jm._type.includes("PROMPT_")) {
+        resp= jm._ELs.aliasIO.value;
+      } else if (jm._type.includes("BOOLEAN_")) {
+        resp= (jm._ELs.aliasIO.value == "OK"); //to boolean
+      }
+
+      if (typeof(cb) == "object") {
+        jm._customHooks(cb, false); //remove listeners
+        if (cb.end_cb) cb.end_cb(resp);
+      } else {
+        cb(resp);
+      }
     }
 
-    if (typeof(cb) == "object") {
-      jm._customHooks(cb, false); //remove listeners
-      if (cb.end_cb) cb.end_cb(resp);
-    } else {
-      cb(resp);
-    }
-
+    if (jm._queue.length) jm._queue.shift()(); //remove it from queue and then run it as a function!
   }, //_respond
 
   _customHooks: function(cbO, add_flag) {
@@ -3040,9 +2916,8 @@ var fClick_flag= true;
 alarms_urlImport(window.location.search);
 if (fClick_flag) { //satisfy browser requirement to allow play-sound
 
-  data_load(["snooze_num", "autsrt_mode"], dataO => {
+  data_load(["snooze_num"], dataO => {
     snooze_def_num= (dataO.snooze_num || 5) *1; //default 5
-    autsrt_mode= dataO.autsrt_mode=="true" || dataO.autsrt_mode==true; //localStorage stores strings
   });
 
   setTimeout(() => {
@@ -3056,7 +2931,7 @@ if (fClick_flag) { //satisfy browser requirement to allow play-sound
         alarms_start();
       }
     });
-  }, 100); //aloow 1st data_load and bC to complete
+  }, 100); //allow 1st data_load and bC to complete
 }
 
 
@@ -3086,24 +2961,21 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
   if (action_str && external_str) {
     fClick_flag= false;
 
-    setTimeout(() => { //let bssExt get set first
-      external_str= action_str +"|" +external_str;
+    external_str= action_str +"|" +external_str;
 
-      data_load("importedAlarm", dataO => {
-        var prevImport_str= dataO.importedAlarm;
-        if (prevImport_str) { //allow multiple
-          if (prevImport_str.includes(external_str)) external_str= ""; //dupe, ignore
-          else external_str= prevImport_str +"\n" +external_str; //append
-        }
+    data_load("importedAlarm", dataO => {
+      var prevImport_str= dataO.importedAlarm;
+      if (prevImport_str) { //allow multiple
+        if (prevImport_str.includes(external_str)) external_str= ""; //dupe, ignore
+        else external_str= prevImport_str +"\n" +external_str; //append
+      }
 
-        if (external_str) {
-          data_save("importedAlarm", external_str, resp => {
-            window.close();
-          });
-        } else window.close();
-      }); //data_load
-
-    }, 10);
+      if (external_str) {
+        data_save("importedAlarm", external_str, resp => {
+          window.close();
+        });
+      } else window.close();
+    }); //data_load
   }
 
 } //alarms_urlImport()
