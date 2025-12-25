@@ -28,23 +28,21 @@ i {
   font-size: 24px;
 }
 
-.button {
+.squareButton {
   color: lightgray;
   background: #eee;
   border-radius: 8px;
   border: 2px solid chartreuse;
   cursor: pointer;
   user-select: none;
+  font-size: larger;
+  margin: 8px;
+  padding: 8px;
+  color: gray;
 
-  &.squareButton {
-    font-size: larger;
-    margin: 8px;
-    padding: 8px;
-    color: gray;
-    width: 20px;
-    height: 20px;
-    text-align: center;
-  }
+  width: 20px;
+  height: 20px;
+  text-align: center;
 
   &:hover {
     background: #ddd;
@@ -203,10 +201,23 @@ div#wakeLockEnable {
   }
 }
 
+div#stgContainer {
+  position: fixed;
+  left: 68px;
+  top: 8px;
+  display: none;
+
+  div { /*squareButton*/
+    font-size: medium;
+    width: auto;
+    display: inline-block;
+  }
+}
+
 div#msgContainer {
   position: fixed;
-  left: 70px;
-  top: 14px;
+  left: 16px;
+  top: 220px;
   width: 300px;
   z-index: 4;
 
@@ -709,7 +720,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
   <div class="alarmInstance" draggable="true">
     <div class="textBox alarmInfo" title="Edit info"></div>
-    <span class="alarmActivate button squareButton" title="On/Off">⏹</span>
+    <span class="alarmActivate squareButton" title="On/Off">⏹</span>
     <span class="alarmT alarmTime" title="Edit time (LONG PRESS to change default view)">@</span>
     <span class="alarmT alarmCountdown" title="Edit time (LONG PRESS to change default view)"></span>
     <span class="alarmDeleteBut closeButton" title="Delete"></span>
@@ -723,13 +734,19 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 </div>
 
 <div id="topButtons">
-  <div id="editStgsBut" class="button squareButton" title="Settings (snooze duration)">︙</div>
-  <div id="diasablerModeBut" class="button squareButton" title="Hide-Alarms Mode">H</div>
-  <div id="addAlarmBut" class="button squareButton" title="Add new alarm">✚</div>
-  <div id="trashCan" class="button squareButton" title="Trash (drop unwanted alarm here)">🗑</div>
+  <div id="editStgsBut" class="squareButton" title="Settings & Info">︙</div>
+  <div id="diasablerModeBut" class="squareButton" title="Hide-Alarms Mode">H</div>
+  <div id="addAlarmBut" class="squareButton" title="Add new alarm">✚</div>
+  <div id="trashCan" class="squareButton" title="Trash (drag&drop unwanted alarm here)">🗑</div>
 </div>
 
 <div id="msgContainer"></div>
+
+<div id="stgContainer">
+  <div id="stgdSnzBut" class="squareButton">Default Snooze</div>
+  <div id="stgDataBut" class="squareButton">Alarms raw data</div>
+  <div id="stgTipsBut" class="squareButton">Tips</div>
+</div>
 
 <div id="alarmsContainer">
 
@@ -755,7 +772,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 </div>
 
 
-<div id="wakeLockEnable" class="button squareButton" title="Wake Lock">🔒</div>
+<div id="wakeLockEnable" class="squareButton" title="Wake Lock">🔒</div>
 
 
 <div id="clockFace">
@@ -1120,7 +1137,9 @@ var body_EL= document.querySelector("body");
 
 var topButs_EL= document.querySelector("div#topButtons");
 //var editStgs_EL= topButs_EL.querySelector("div#editStgsBut");
-var disblabler_EL= topButs_EL.querySelector("div#diasablerModeBut");
+var stgCont_EL= document.querySelector("div#stgContainer");
+
+var disabler_EL= topButs_EL.querySelector("div#diasablerModeBut");
 //var add_EL= topButs_EL.querySelector("div#addAlarmBut");
 var trash_EL= topButs_EL.querySelector("div#trashCan");
 
@@ -1158,13 +1177,25 @@ document.addEventListener("keyup", evt => { //capture any keyup
 topButs_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
   if (targ_EL.id == "editStgsBut") {
-    timecksStgs_edit();
-  } else if (targ_EL == disblabler_EL) {
+    stgs_tog(targ_EL);
+  } else if (targ_EL == disabler_EL) {
     disablerMode_toggle();
   } else if (targ_EL.id == "addAlarmBut") {
     alrm_add();
   }
 });
+
+stgCont_EL.addEventListener("click", evt => {
+  var targ_EL= evt.target;
+  if (targ_EL.id == "stgdSnzBut") {
+   stgs_snz();
+  } else if (targ_EL.id == "stgDataBut") {
+    stgs_data();
+  } else if (targ_EL.id == "stgTipsBut") {
+    stgs_tips();
+  }
+});
+
 
 
 //create Message Header
@@ -1339,8 +1370,14 @@ async function wakeLock_toggle() {
 	else await wakeLock_request(); //on
 } //wakeLock_toggle()
 
+var stg_mode;
+function stgs_tog(but_EL) {
+  stg_mode= !stg_mode;
+  showEl(stgCont_EL, stg_mode ? undefined : false);
+  classEl(but_EL, "down", stg_mode);
+} //stgs_tog()
 
-function timecksStgs_edit() { //just snooze duration
+function stgs_snz() {
   jm.prompt("<p>Snooze duration</p>(minutes, 1-30)", snooze_def_num, resp => {
     if (resp == null) return; //-->
 
@@ -1356,7 +1393,39 @@ function timecksStgs_edit() { //just snooze duration
       data_save("snooze_num", snooze_def_num);
     }
   });
-} //timecksStgs_edit()
+} //stgs_snz()
+
+function xParseJSON(str) {
+  var json_dat;
+  try {json_dat= JSON.parse(str); } catch (err) {console.error(err); return; }
+  return json_dat;
+}
+
+function stgs_data() {
+  data_load("alarms", dataO => {
+    var json_str= dataO.alarms;
+    var json_dat= xParseJSON(json_str);
+    if (!json_dat) json_str= "";
+    jm.prompt_textarea("<p>Alarms raw data (JSON)</p>", json_str, resp => {
+      if (resp == null) return; //-->
+
+      json_str= resp;
+      json_dat= xParseJSON(json_str);
+      if (json_dat) {
+        data_save("alarms", json_str);
+        alarms_start();
+        message_add("Alarms raw data saved", "lightblue");
+      } else {
+        message_add("Alarms raw data failed");
+      }
+    }); //jm.prompt_textarea()
+
+  }); //data_load()
+} //stgs_data()
+
+function stgs_tips() {
+  alert("stgs_tips")/////////
+} //stgs_tips()
 
 
 var active_flag;
@@ -1374,9 +1443,10 @@ function alarms_start() {
 
   //var alarms_json= localStorage.getItem("alarms");
   data_load("alarms", dataO => {
-    var alarms_json= dataO.alarms;
-    var storedAl_arr= [{t:"12:00 AM"}]; //default if empty
-    if (alarms_json) try {storedAl_arr= JSON.parse(alarms_json); } catch (err) {}
+    var json_str= dataO.alarms;
+    var storedAl_arr= xParseJSON(json_str);
+    if (!storedAl_arr) json_str= "";
+    if (!storedAl_arr) storedAl_arr= [{t:"12:00 AM"}]; //default if empty
 
     //storedAl_arr is closest thing to a data model in this app
     //is totally temporary, rest of the time, data is solely in the DOM
@@ -1417,10 +1487,11 @@ function disablerMode_toggle() {
 
   } else { //turn disabler mode off
     showEl(wlEnable_EL);
+    active_aI_EL= undefined; //so will auto-activate top alarm (in alarms_sort)
   }
 
   disabler_mode= !disabler_mode; //toggle
-  classEl(disblabler_EL, "down", disabler_mode);
+  classEl(disabler_EL, "down", disabler_mode);
   classEl(alarmsCont_EL, "disablableContainer", disabler_mode);
   alarms_start();
 
