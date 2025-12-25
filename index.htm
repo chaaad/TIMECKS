@@ -603,6 +603,10 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       display: block;
     }
 
+    &.wide {
+      width: auto;
+    }
+
     * {
       margin:12px;
     }
@@ -630,6 +634,12 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
           color: darkorange;
         }
       }
+
+      pre {
+        line-height: normal;
+        margin: 0;
+      }
+
     }
     input#jwmInput {
       width: 360px;
@@ -1428,8 +1438,16 @@ function stgs_rDat() {
 function stgs_rdMe() {
   var url_str= "readme.txt";
   txtFile_fetch(url_str, str => {
-    if (str) jm.alert("<p>Read Me</p><pre>" +str +"<pre>");
-    else message_add("Reading " +url_str +" failed");
+    if (str) {
+      var modal_EL= document.getElementById("jwmModal");
+      jm.alert("<p>Read Me</p><pre>" +str +"<pre>", {
+        begin_cb: () => {classEl(modal_EL, "wide"); },
+        end_cb: () => {classEl(modal_EL, "wide", false); }
+      });
+
+    } else {
+      message_add("Reading " +url_str +" failed");
+    }
   });
 } //stgs_rdMe()
 
