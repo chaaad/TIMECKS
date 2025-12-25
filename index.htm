@@ -744,8 +744,8 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <div id="stgContainer">
   <div id="stgdSnzBut" class="squareButton">Default Snooze</div>
-  <div id="stgDataBut" class="squareButton">Alarms raw data</div>
-  <div id="stgTipsBut" class="squareButton">Tips</div>
+  <div id="stgRDatBut" class="squareButton">Alarms raw data</div>
+  <div id="stgRdMeBut" class="squareButton">Read Me</div>
 </div>
 
 <div id="alarmsContainer">
@@ -1188,11 +1188,11 @@ topButs_EL.addEventListener("click", evt => {
 stgCont_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
   if (targ_EL.id == "stgdSnzBut") {
-   stgs_snz();
-  } else if (targ_EL.id == "stgDataBut") {
-    stgs_data();
-  } else if (targ_EL.id == "stgTipsBut") {
-    stgs_tips();
+    stgs_dSnz();
+  } else if (targ_EL.id == "stgRDatBut") {
+    stgs_rDat();
+  } else if (targ_EL.id == "stgRdMeBut") {
+    stgs_rdMe();
   }
 });
 
@@ -1377,8 +1377,8 @@ function stgs_tog(but_EL) {
   classEl(but_EL, "down", stg_mode);
 } //stgs_tog()
 
-function stgs_snz() {
-  jm.prompt("<p>Snooze duration</p>(minutes, 1-30)", snooze_def_num, resp => {
+function stgs_dSnz() {
+  jm.prompt("<p>Default Snooze duration</p>(minutes, 1-30)", snooze_def_num, resp => {
     if (resp == null) return; //-->
 
     var v_num= resp *1;
@@ -1393,19 +1393,21 @@ function stgs_snz() {
       data_save("snooze_num", snooze_def_num);
     }
   });
-} //stgs_snz()
+} //stgs_dSnz()
 
 function xParseJSON(str) {
   var json_dat;
-  try {json_dat= JSON.parse(str); } catch (err) {console.error(err); return; }
+  try {json_dat= JSON.parse(str); } catch (err) {console.error(err); }
   return json_dat;
 }
 
-function stgs_data() {
+function stgs_rDat() {
   data_load("alarms", dataO => {
     var json_str= dataO.alarms;
     var json_dat= xParseJSON(json_str);
+//console.log("json_dat:", json_dat);
     if (!json_dat) json_str= "";
+
     jm.prompt_textarea("<p>Alarms raw data (JSON)</p>", json_str, resp => {
       if (resp == null) return; //-->
 
@@ -1421,11 +1423,33 @@ function stgs_data() {
     }); //jm.prompt_textarea()
 
   }); //data_load()
-} //stgs_data()
+} //stgs_rDat()
 
-function stgs_tips() {
-  alert("stgs_tips")/////////
-} //stgs_tips()
+function stgs_rdMe() {
+  txtFile_fetch("readme.txt", resp => {
+console.log("2resp:", resp);
+    //  jm.alert("<p>stgs_tips</p>ghjh kkj hk jk<br>ghjh kkj hk jk<br>ghjh kkj hk jk<br>ghjh kkj hk jk<br>ghjh kkj hk jk<br>ghjh kkj hk jk<br>");
+  });
+} //stgs_rdMe()
+
+async function txtFile_fetch(url_str, cb) {
+  try {
+    var resp= await fetch(url_str); //no local testing with file:///...
+console.log("1resp:", resp);
+    cb(resp);
+/*
+    if (resp.ok) {
+      //const data= await resp.json();
+//console.log(data);
+    } else {
+      throw new Error('Failed to fetch data');
+    }
+*/
+  } catch (err) {
+    console.error("Error:", err);
+  }
+  cb("xxxxxxxxxxxxxxxxxxxx");
+} //txtFile_fetch()
 
 
 var active_flag;
