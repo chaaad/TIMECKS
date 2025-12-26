@@ -1710,7 +1710,7 @@ function alrm_scrollTo(noExp_flag) {
 function alrm_editInfo(info_str, NEW_str) {
   var t_str= alarmInst_EL.$E.Time.textContent;
   if (!info_str) info_str= alarmInst_EL.$E.Info.innerHTML.replaceAll("<br>", "\n");
-  jm.prompt_textarea('<p>Alarm name</p>(html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
+  jm.prompt_textarea('<p>Alarm name</p>(html allowed, 80 chars max)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
     if (!NEW_str && (resp==null || resp==info_str)) return; //-->
     //.. with NEW_str, 'save' must happen
 
@@ -2090,7 +2090,7 @@ function alrm_execAdd() { //add 1
   alarmInst_EL= clAlrmInst_EL;
 } //alrm_execAdd()
 
-function alrm_delete() { //from UI
+function alrm_delete() { //from alarm delete-button
   var prom_str= g_promStr();
   jm.agree('<p>Delete alarm?</p>' +prom_str, 0, resp => {
     if (resp != true) return; //null or false //-->
@@ -2099,13 +2099,13 @@ function alrm_delete() { //from UI
   });
 } //deleteAlarm()
 
-function alrm_execDelete() { //delete 1
+function alrm_execDelete() { //from alrm_delete() or drag&drop
   alrm_exeDel();
   alarms_save();
   sound_play("trsh");
 } //alrm_execDelete()
 
-function alrm_exeDel() {
+function alrm_exeDel() { //from alrm_execDelete() or alarms_import()
   if (!alarmInst_EL) return; //-->
   alarmInst_EL.remove(); //from DOM
   if (alarmInst_EL == wakey_aI_EL) ringer_stop("off");
@@ -2278,15 +2278,15 @@ function alarms_import(imported_str) {
     //0        1               2  3                    4 5
     action_str= spl_ar[0]; //external, externalDelete
 //console.log(action_str,"item_str",item_str,"split",spl_ar);
-    if (spl_ar[2] == "PC") { //qualify
+    if (spl_ar[2] == "PC") { //qualify (weakly) as pennantChase
       if (action_str == "external") {
         time_str= spl_ar[1]; //WED 5/5 12:34pm
         tSpl_ar= time_str.split(" ");
         if (alarmNow_obj= alrm_procTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -20`, "preview")) { // -20 minutes
           alrm_execAdd();
 
-          k_str= spl_ar[4] ? " (K)" : "";
-          html_str= `${tSpl_ar[0]}<br><b>${spl_ar[3]}</b>${k_str} <b class="PC_tid" title="?">${spl_ar[5]}</b>`;
+          k_str= spl_ar[4] ? " (K)" : ""; //keeper league
+          html_str= `${tSpl_ar[0]} <br><b>${spl_ar[3]}</b>${k_str} <b class="PC_tid" title="?">${spl_ar[5]}</b>`;
           alarmInst_EL.$E.Info.innerHTML= html_str;
 
           alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
