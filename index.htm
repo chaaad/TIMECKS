@@ -1811,7 +1811,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
   var time_str;
   var offset_str, offsetMod_str;
   [time_str, offset_str]= raw_str.split(/\+|-/);
-  if (offset_str) offsetMod_str= raw_str[time_str.length]; //1 char,  = or -
+  if (offset_str) offsetMod_str= raw_str[time_str.length]; //1 char,  + or -
 
   var raw_hTimO;
   if (time_str) {
@@ -1851,7 +1851,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
 
   var ofsO;
   if (offset_str) {
-    ofsO= g_procRawTime(offset_str);
+    ofsO= g_procRawTime(offset_str, "offset");
     if (ofsO.h +ofsO.m < 1) return err("0 hour+minute (offset mode)"); //-->
 
     var time_ms= time_dtO.getTime();
@@ -1885,7 +1885,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     ahead_str= `(in: ${g_untilStr(Math.ceil(ahead_ms /60000))})`;
   }
 
-  function g_procRawTime(str) {
+  function g_procRawTime(str, offset_flag) {
     var h= m= 0;
 
     var split_arr= str.split(/:|\./);
@@ -1903,11 +1903,16 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
           m= hm_str *1;
         } else { //1-2 digits
           let n= hm_str *1;
-          if (n <= 12) h= n; //just hr, mn 0
-          else m= n; //just mn, hr 0
+          var maxH_n= offset_flag ? 24 : 12;
+          if (n <= maxH_n) {
+            h= n; //just hr, mn 0
+            if (offset_flag && h==24) m= 0;
+          } else {
+            m= n; //just mn, hr 0
+          }
         }
       } else { //3-4 digits
-        //.. w "*" for 'pm', eg. 1220 .. 12:20am, or 420* .. 4:20pm
+        //.. with "*" for 'pm', eg. 1220 .. 12:20am, or 420* .. 4:20pm
         h= hm_str.substring(0, L -2) *1; //begining, up to last 2 digits
         m= hm_str.substring(L -2) *1; //last 2 digits
       }
@@ -2457,7 +2462,7 @@ bC.onmessage= evt => {
 };
 
 
-function PClink(tid_EL) {
+function PClink(tid_EL) { //PennantChase
   var tid= tid_EL.textContent;
   var lgid= tid.split("-")[0];
   var tname= tid_EL.closest("div.alarmInfo").querySelector("b").textContent; //tree up then down
