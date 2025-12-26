@@ -313,7 +313,7 @@ div#alarmsContainer {
     &.dragging {
       opacity: 0.5;
     }
-
+/*
     &.dropAbove {
       border-top: 100px solid lightcyan;
       border-bottom: "";
@@ -322,7 +322,7 @@ div#alarmsContainer {
       border-top: "";
       border-bottom: 100px solid lightcyan;
     }
-
+*/
     &.expired {
       background: pink;
     }
@@ -1544,7 +1544,7 @@ function disablerMode_toggle() {
 } //disablerMode_toggle()
 
 
-function alarmsDrag_start() {
+function alarmsDrag_init() {
   //dragndrop
   //adapted from: https://www.w3resource.com/javascript-exercises/event/javascript-event-handling-exercise-6.php
 
@@ -1586,10 +1586,10 @@ function alarmsDrag_start() {
     if (dragOver_EL == trash_EL) { //trash can
       if (dragOver_EL == prev_dragOver_EL) return; //-->
 
-      //if (prev_dragOver_EL) clear();
+      if (prev_dragOver_EL) clear();
       classEl(dragOver_EL, "dropTrash");
 
-      //prev_dragOver_EL= dragOver_EL;
+      prev_dragOver_EL= dragOver_EL;
 
     } else { //not trashcan
       if (prev_dragOver_EL && prev_dragOver_EL == trash_EL) { //trash can
@@ -1656,7 +1656,7 @@ function alarmsDrag_start() {
   } //clear()
 
   //dragndrop
-} //alarmsDrag_start()
+} //alarmsDrag_init()
 
 
 function alrm_addHelpers(aI_EL, id) { //.dataset only stores strings
@@ -2107,7 +2107,12 @@ function alrm_execDelete() { //from alrm_delete() or drag&drop
 function alrm_exeDel() { //from alrm_execDelete() or alarms_import()
   if (!alarmInst_EL) return; //-->
   alarmInst_EL.remove(); //from DOM
-  if (alarmInst_EL == wakey_aI_EL) ringer_stop("off");
+  if (alarmInst_EL == wakey_aI_EL) {
+    ringer_stop("off");
+  } else if (alarmInst_EL == active_aI_EL) {
+    alrm_activate(false);
+    alarms_autoActivate();
+  }
   alarmInst_EL= undefined;
 } //alrm_exeDel()
 
@@ -2249,21 +2254,22 @@ function alarms_sort(aa_override_arr =[]) {
     .sort((a, b) => a.$D.ctdn_m -b.$D.ctdn_m)
     .forEach(aI_EL => alarmsCont_EL.appendChild(aI_EL)) //reorder in DOM
   ;
-//arr.forEach(aI_EL => console.log(aI_EL.$D))
 
-  if (!wakey_aI_EL) { //no auto activate
-    //auto activate top alarm
-    var topAI_EL= [...aI_NL].find(aI_EL => aI_EL.checkVisibility() && !aI_EL.classList.contains("expired")); //skip disabled, expired
-    if (topAI_EL && topAI_EL!=active_aI_EL && (!active_aI_EL || aa_override_arr.includes(topAI_EL))) {
-      //exists      not same                   dont override active, unless its in aa_override_arr
-      alrm_activate(topAI_EL);
-    }
-  }
+  if (!wakey_aI_EL) alarms_autoActivate(aa_override_arr);
 
   if (active_aI_EL) active_aI_EL.after(activeDiv_EL); //alarm els sorted, move activeDiv_EL under correct alarm el
 
   alrm_scrollTo();
 } //alarms_sort()
+
+function alarms_autoActivate(override_arr =[]) {
+  //auto activate top alarm
+  var topAI_EL= [...aI_NL].find(aI_EL => aI_EL.checkVisibility() && !aI_EL.classList.contains("expired")); //skip disabled, expired
+  if (topAI_EL && topAI_EL!=active_aI_EL && (!active_aI_EL || override_arr.includes(topAI_EL))) {
+    //exists      not same                   dont override active, unless its in aa_override_arr
+    alrm_activate(topAI_EL);
+  }
+} //alarms_autoActivate()
 
 function alarms_import(imported_str) {
   //localStorage.setItem("importedAlarm", "");
@@ -3055,7 +3061,7 @@ if (fClick_flag) { //satisfy browser requirement to allow play-sound
         window.close();
       } else {
         clock_draw();
-        alarmsDrag_start();
+        alarmsDrag_init();
         clock_start();
         alarms_start();
       }
