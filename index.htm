@@ -1408,7 +1408,7 @@ function stgs_dSnz() {
       snooze_def_num= v_num;
       data_save("snooze_num", snooze_def_num);
     }
-  });
+  }, "highlight");
 } //stgs_dSnz()
 
 function xParseJSON(str) {
@@ -1790,7 +1790,7 @@ function alrm_editTime(NEW_str) {
           }
         }
       }
-    });
+    }, "highlight");
   } //time_prompt()
 
 } //alrm_editTime()
@@ -2824,7 +2824,7 @@ var jm= {
 
   }, //init()
 
-  dialog: function(type_str, text_str, value_str, cb) { //ck, non blocking modal
+  dialog: function(type_str, text_str, value_str, cb, highlight_flag) { //ck, non blocking modal
     //all types can have cb (callback)
 
     if (document.body.classList.contains("jw-modal-active")) { //modal active
@@ -2896,8 +2896,12 @@ var jm= {
 
     jm.openModal("jwmModal");
 
-    if (typeHas("PROMPT_INPUT")) jm._ELs.aliasIO.select();
-    else jm._ELs.aliasIO.focus(); //for textarea, if all text is highlighted, enter key will delete the text!
+    //modal needs to be visible to .focus() or .select()
+    if (typeHas("PROMPT_")) {
+      //note: textareas, if text is highlighted, any key (inc enter-key) will delete the text!
+      if (highlight_flag) jm._ELs.aliasIO.select();
+      else jm._ELs.aliasIO.focus();
+    }
   },
 
   alert: function(text_str, cb) {
@@ -2920,11 +2924,11 @@ var jm= {
     //param called value_flag here, but jm.dialog will still call it value_str
   },
 
-  prompt: function(text_str, value_str, cb) {
-    jm.dialog("PROMPT_INPUT", text_str, value_str, cb); //returns string or null
+  prompt: function(text_str, value_str, cb, highlight_flag) {
+    jm.dialog("PROMPT_INPUT", text_str, value_str, cb, highlight_flag); //returns string or null
   },
-  prompt_textarea: function(text_str, value_str, cb) {
-    jm.dialog("PROMPT_TEXTAREA", text_str, value_str, cb); //returns string or null
+  prompt_textarea: function(text_str, value_str, cb, highlight_flag) {
+    jm.dialog("PROMPT_TEXTAREA", text_str, value_str, cb, highlight_flag); //returns string or null
   },
 
   _booleanProc: function(key) {
