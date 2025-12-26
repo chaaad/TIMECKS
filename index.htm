@@ -348,13 +348,13 @@ div#alarmsContainer {
   }
 
 
-  div#wakeyDiv {
+  div#activeDiv {
     display: none;
     margin-bottom: 16px;
 
-    div#wakeyCountdown {}
+    div#activeCountdown {}
 
-    div#wakeyControls {
+    div#wakeyDiv {
       display: none;
       margin-top: 16px;
 
@@ -368,6 +368,8 @@ div#alarmsContainer {
         color: black;
         font-weight: bold;
         font-size: 24px;
+        border-radius: 8px;
+        cursor: pointer;
 
         &:hover {
           color: white;
@@ -383,6 +385,7 @@ div#alarmsContainer {
           margin-top: -3px; /*weird but works*/
           span {
             color: lightgray;
+            cursor: pointer;
 
             &:hover {
               color: limegreen;
@@ -762,9 +765,9 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <div id="alarmsContainer">
 
-  <div id="wakeyDiv">
-    <div id="wakeyCountdown" class="countdown"></div>
-    <div id="wakeyControls">
+  <div id="activeDiv">
+    <div id="activeCountdown" class="countdown"></div>
+    <div id="wakeyDiv">
       <div id="wakeyOffBut" class="button">OFF</div>
       <div id="wakeySnoozeBut" class="button">
         SNOOZE
@@ -1093,7 +1096,7 @@ function clock_advance() { //+1 clock minute
 //console.log("advanced Clock",  g_fmatDtO(sync_dtO), g_fmatSDM(), inc_ms )
   } //sync_diff_ms
 
-  alarms_update(-1);
+  alarms_minuteUpdate();
 
 } //clock_advance()
 
@@ -1168,8 +1171,8 @@ var alarmsCont_EL= document.querySelector("div#alarmsContainer");
 var alarmInst_EL;
 var active_aI_EL;
 
-var wakeyDiv_EL= alarmsCont_EL.querySelector("div#wakeyDiv");
-var wakeyCountdown_EL= wakeyDiv_EL.querySelector("div#wakeyCountdown");
+var activeDiv_EL= alarmsCont_EL.querySelector("div#activeDiv");
+var activeCountdown_EL= activeDiv_EL.querySelector("div#activeCountdown");
 
 
 var snooze_def_num;
@@ -1310,6 +1313,7 @@ alarmsCont_EL.addEventListener("click", evt => {
     if (_alarmInst_EL= targ_EL.closest("div.alarmInstance")) {
       alarmInst_EL= _alarmInst_EL;
 
+/*
       if (alarmInst_EL.classList.contains("expired")) {
         alrmExpChange_flag= false;
 
@@ -1319,7 +1323,7 @@ alarmsCont_EL.addEventListener("click", evt => {
 
         if (alrmExpChange_flag) alarms_sort();
       }
-
+*/
       if (targ_EL.classList.contains("alarmActivate")) {
         var toggleOff_flag= alarmInst_EL==active_aI_EL;
         if (wakey_aI_EL) {
@@ -1499,7 +1503,7 @@ function alarms_start() {
       alrm_addHelpers(aInst_EL, a_obj.id);
       aInst_EL.$E.Info.innerHTML= a_obj.i || ""; //alarm info
       aInst_EL.$E.Time.textContent= a_obj.t; //alarm time
-      alrm_setCountdown(aInst_EL);
+      alrm_initCountdown(aInst_EL);
       if (a_obj.c) alrm_setTorC(aInst_EL, true, "persist"); //init alarm countdown view
 
       if (disabler_mode) {
@@ -1529,7 +1533,7 @@ function disablerMode_toggle() {
 
   } else { //turn disabler mode off
     showEl(wlEnable_EL);
-    active_aI_EL= undefined; //so will auto-activate top alarm (in alarms_sort)
+    active_aI_EL= undefined; //so will auto-activate top alarm (alarms_sort)
   }
 
   disabler_mode= !disabler_mode; //toggle
@@ -1564,10 +1568,12 @@ function alarmsDrag_start() {
     classEl(dragAl_EL, "dragging");
     //evt.dataTransfer.effectAllowed= "move"; //what does this even do? unnecessary for this reorder functionality
 
+    /* //got rid of alarms manual ordering, so no alarms drag reordering
     var ct= 0;
     [...aI_NL].forEach(aI_EL => {if (aI_EL.checkVisibility()) aI_EL.$D.drag_i= ct++; }); //drag index
     //.. current order, set .drag_i for each alarm
     // .drag_i is only accurate up until the drop, it must be popped upon every dragStart
+    */
   } //dragStart()
 
   function dragOver(evt) {
@@ -1580,10 +1586,10 @@ function alarmsDrag_start() {
     if (dragOver_EL == trash_EL) { //trash can
       if (dragOver_EL == prev_dragOver_EL) return; //-->
 
-      if (prev_dragOver_EL) clear();
+      //if (prev_dragOver_EL) clear();
       classEl(dragOver_EL, "dropTrash");
 
-      prev_dragOver_EL= dragOver_EL;
+      //prev_dragOver_EL= dragOver_EL;
 
     } else { //not trashcan
       if (prev_dragOver_EL && prev_dragOver_EL == trash_EL) { //trash can
@@ -1630,7 +1636,7 @@ function alarmsDrag_start() {
         if (dropOn_EL.classList.contains("dropAbove")) dropOn_EL.before(dragAl_EL);
         else dropOn_EL.after(dragAl_EL);
 
-        if (active_aI_EL) active_aI_EL.after(wakeyDiv_EL);
+        if (active_aI_EL) active_aI_EL.after(activeDiv_EL);
 
         alarms_save();
         */
@@ -1656,7 +1662,9 @@ function alarmsDrag_start() {
 function alrm_addHelpers(aI_EL, id) { //.dataset only stores strings
   //breaks html/js laws, but as far as js only goes, an element is just an object
   aI_EL.id= id;
-  aI_EL.$D= {}; //like .data
+
+  //because .dataset only stores strings
+  aI_EL.$D= {};
   aI_EL.$E= { //pointers to sub els
     Activ: aI_EL.querySelector("span.alarmActivate"),
     Info: aI_EL.querySelector("div.alarmInfo"),
@@ -1770,7 +1778,7 @@ function alrm_editTime(NEW_str) {
           }
 
           alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
-          alrm_setCountdown();
+          alrm_initCountdown();
 
           alarms_sort([alarmInst_EL]);
 
@@ -1973,7 +1981,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
 
     var diff_ms= dtO -new Date();
 
-    if (diff_ms<1 || param=="preview_forceTurnover") { //if reqTime less than nowTime
+    if (diff_ms < 1) { //if reqTime less than nowTime
       if (htO.MD) {
         if (htO.MD.DoW) dtO.setDate(dtO.getDate() +7); //+1 week //DayOfWeek
         else if (htO.MD.mW) dtO.setMonth(dtO.getMonth() +1); //+1 month //mon_wildcard_str
@@ -2058,25 +2066,16 @@ function alrm_setCtdnView(aI_EL, flag) {
   showEl(aI_EL.$E.Time, !flag ? "inline-block" : false);
 } //alrm_setCtdnView()
 
-function alrm_setCountdown(aI_EL =alarmInst_EL, preview_str ="preview") {
-  var alarmNow_obj= alrm_procTimeText(aI_EL.$E.Time.textContent, preview_str);
+function alrm_initCountdown(aI_EL =alarmInst_EL) {
+  var alarmNow_obj= alrm_procTimeText(aI_EL.$E.Time.textContent, "preview");
   if (alarmNow_obj) {
     var ms= alarmNow_obj.ms -new Date();
     if (ms < 60000) ms= 60000; //minimum of 1 minute
     aI_EL.$D.ctdn_m= Math.ceil(ms /60000);
     aI_EL.$E.Ctdn.textContent= g_untilStr(aI_EL.$D.ctdn_m);
-    alrm_checkSoon(aI_EL);
+    check_soon(aI_EL);
   }
-} //alrm_setCountdown()
-
-function alrm_checkSoon(aI_EL) {
-  var soon_flag= aI_EL.$D.ctdn_m < 720;
-  if (aI_EL.$D.soon == soon_flag) return; //-->
-
-  classEl(aI_EL, "soon", soon_flag);
-  aI_EL.$D.soon= soon_flag; //.$D.soon, 'soon', session var, not saved
-} //alrm_checkSoon()
-
+} //alrm_initCountdown()
 
 function alrm_add() { //from UI
   alrm_editTime("NEW");
@@ -2144,8 +2143,8 @@ console.log("bad alarm time", alrm_str)
 
 //console.log("prev alarm off? active_aI_EL", aId(active_aI_EL))
   if (active_aI_EL) { //prev active-alarm off
-    classEl(active_aI_EL, "alarmActive", false);
-    classEl(active_aI_EL, "expired", false);
+    classEl(active_aI_EL, ["alarmActive", "expired", "soon"], false);
+    alrm_initCountdown(active_aI_EL);
     alrm_setCtdnView(active_aI_EL, active_aI_EL.$D.vu_cd);
     alrm_glow(4, active_aI_EL, "burlywood");
     sound_play("slam");
@@ -2156,12 +2155,12 @@ console.log("bad alarm time", alrm_str)
     active_aI_EL= aI_EL;
     active_ctdn_m= aI_EL.$D.ctdn_m;
     active_hTimO= alarmNow_obj.hTimO;
-    wakeyCountdown_EL.textContent= g_untilStr(active_ctdn_m);
+    activeCountdown_EL.textContent= g_untilStr(active_ctdn_m);
 
     classEl(aI_EL, "alarmActive");
-    aI_EL.after(wakeyDiv_EL);
-    showEl(wakeyDiv_EL);
-    showEl(wakeyCountdown_EL);
+    aI_EL.after(activeDiv_EL);
+    showEl(activeDiv_EL);
+    showEl(activeCountdown_EL);
     alrm_setCtdnView(aI_EL, false); //if needed //shows time
 
     clockMarker_n= undefined;
@@ -2176,7 +2175,7 @@ console.log("bad alarm time", alrm_str)
     active_aI_EL= undefined;
     active_ctdn_m= 0;
 
-    showEl(wakeyDiv_EL, false);
+    showEl(activeDiv_EL, false);
     showEl(cf_marker_EL, false);
   }
 } //alrm_activate()
@@ -2189,25 +2188,27 @@ function alrm_expireMsg(aI_EL) {
 } //alrm_expireMsg()
 
 
-function alarms_update(mnt_n) {
+function alarms_minuteUpdate() {
   sysAlarm_check(sync_ms);
 
   if (!vis_ct) return; //-->
 
-  var autoTurnover_flag;
+  //var autoTurnover_flag;
   var until_str;
   [...aI_NL].forEach(aI_EL => {
     if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
-      aI_EL.$D.ctdn_m+= mnt_n;
+      aI_EL.$D.ctdn_m-= 1; //-1 minute
       if (active_flag && aI_EL==active_aI_EL) active_ctdn_m= aI_EL.$D.ctdn_m;
 
-      alrm_checkSoon(aI_EL);
+      if (aI_EL.$D.ctdn_m <1 ) { //expire
+        if (!aI_EL.classList.contains("expired")) { //new expire
+          classEl(aI_EL, "expired");
+          //alrm_initCountdown(aI_EL);
+          if (aI_EL != active_aI_EL) alrm_expireMsg(aI_EL);
+        }
 
-      if (aI_EL.$D.ctdn_m < 1) {
-        classEl(aI_EL, "expired");
-        alrm_setCountdown(aI_EL, "preview_forceTurnover");
-        if (aI_EL != active_aI_EL) alrm_expireMsg(aI_EL);
-        autoTurnover_flag= true;
+      } else {
+        check_soon(aI_EL);
       }
 
       until_str= g_untilStr(aI_EL.$D.ctdn_m);
@@ -2218,12 +2219,12 @@ function alarms_update(mnt_n) {
   });
 
   if (active_flag) {
-    if (active_ctdn_m < 1) { //end alarm countdown
+    if (active_ctdn_m < 1) { //end active countdown
       active_flag= false;
-      showEl(wakeyCountdown_EL, false);
+      showEl(activeCountdown_EL, false);
       ringer_start(active_aI_EL);
     } else {
-      wakeyCountdown_EL.textContent= g_untilStr(active_ctdn_m);
+      activeCountdown_EL.textContent= g_untilStr(active_ctdn_m);
       clock_checkMarker();
     }
 
@@ -2231,9 +2232,12 @@ function alarms_update(mnt_n) {
     snooze_ctdn_m--; //inc-
     snooze_check();
   }
+} //alarms_minuteUpdate()
 
-  if (autoTurnover_flag) alarms_sort();
-} //alarms_update()
+function check_soon(aI_EL) {
+  var soon_flag= aI_EL.$D.ctdn_m < 720; //12 hrs, soon
+  if (soon_flag != aI_EL.classList.contains("soon")) classEl(aI_EL, "soon", soon_flag);
+}
 
 function alarms_sort(aa_override_arr =[]) {
   if (!vis_ct) return; //-->
@@ -2241,21 +2245,22 @@ function alarms_sort(aa_override_arr =[]) {
   sound_play("clik");
 
   var arr= [...aI_NL];
-  arr.forEach(aI_EL => { aI_EL.$D.sort_n= aI_EL.classList.contains("expired") ? 0 : aI_EL.$D.ctdn_m; }); //expired alarms always at top of list
-  //.forEach() cant chain
   arr
-    .sort((a, b) => a.$D.sort_n > b.$D.sort_n ? 1 : -1)
+    .sort((a, b) => a.$D.ctdn_m -b.$D.ctdn_m)
     .forEach(aI_EL => alarmsCont_EL.appendChild(aI_EL)) //reorder in DOM
   ;
+//arr.forEach(aI_EL => console.log(aI_EL.$D))
 
-  //auto activate top alarm
-  var topAI_EL= [...aI_NL].find(aI_EL => aI_EL.checkVisibility()); //skip disabled
-  if (topAI_EL && topAI_EL!=active_aI_EL && (!active_aI_EL || aa_override_arr.includes(topAI_EL))) {
-    //exists      not same                   dont override active, unless its in aa_override_arr
-    alrm_activate(topAI_EL);
+  if (!wakey_aI_EL) { //no auto activate
+    //auto activate top alarm
+    var topAI_EL= [...aI_NL].find(aI_EL => aI_EL.checkVisibility() && !aI_EL.classList.contains("expired")); //skip disabled, expired
+    if (topAI_EL && topAI_EL!=active_aI_EL && (!active_aI_EL || aa_override_arr.includes(topAI_EL))) {
+      //exists      not same                   dont override active, unless its in aa_override_arr
+      alrm_activate(topAI_EL);
+    }
   }
 
-  if (active_aI_EL) active_aI_EL.after(wakeyDiv_EL);
+  if (active_aI_EL) active_aI_EL.after(activeDiv_EL); //alarm els sorted, move activeDiv_EL under correct alarm el
 
   alrm_scrollTo();
 } //alarms_sort()
@@ -2290,7 +2295,7 @@ function alarms_import(imported_str) {
           alarmInst_EL.$E.Info.innerHTML= html_str;
 
           alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
-          alrm_setCountdown();
+          alrm_initCountdown();
           alrm_glow(4);
           add_arr.push(alarmInst_EL); //for sound only
         }
@@ -2348,9 +2353,9 @@ function alarms_save() {
 } //alarms_save()
 
 
-var wakeyControls_EL= document.querySelector("div#wakeyControls");
-var wakeySnoozeBut_EL= wakeyControls_EL.querySelector("div#wakeySnoozeBut")
-var wakeySnzCountdown_EL= wakeyControls_EL.querySelector("div#wakeySnzCountdown");
+var wakeyDiv_EL= document.querySelector("div#wakeyDiv");
+var wakeySnoozeBut_EL= wakeyDiv_EL.querySelector("div#wakeySnoozeBut")
+var wakeySnzCountdown_EL= wakeyDiv_EL.querySelector("div#wakeySnzCountdown");
 
 var wakey_aI_EL;
 var ring_intimerId;
@@ -2364,7 +2369,7 @@ function ringer_start(aI_EL) {
   alrm_scrollTo("noExp");
   sound_play("rngr");
 
-  showEl(wakeyControls_EL);
+  showEl(wakeyDiv_EL);
   jm._ELs.Overlay.classList.add("flash");
   ring_intimerId= setInterval(() => { //recurse
     jm._ELs.Overlay.classList.toggle("flash");
@@ -2404,8 +2409,8 @@ function ringer_stop(flag, snooze_n) { //without flag, default is 'snooze'
 
   if (flag == "off") {
     wakey_aI_EL= undefined;
+    showEl(activeDiv_EL, false);
     showEl(wakeyDiv_EL, false);
-    showEl(wakeyControls_EL, false);
     snooze_ctdn_m= 0; //if needed
 
     alrm_activate(false);
@@ -2493,7 +2498,8 @@ var alrmExpChange_flag;
 function alrm_unexpire(aI_EL) {
   alrmExpChange_flag= true;
   delete aI_EL.$exp_msg_EL;
-  classEl(aI_EL, "expired", false);
+  classEl(aI_EL, ["expired", "soon"], false);
+  alrm_initCountdown(aI_EL);
   alrm_glow(2, aI_EL, "pink");
 }
 
@@ -2757,8 +2763,10 @@ function sound_play(ac_key, repeat_n =1, step_ms =750) {
 function showEl(el, display_str ="block") {
   if (el) el.style.display= display_str==false ? "none" : display_str;
 }
-function classEl(el, class_str, flag =true) {
-  if (el) el.classList[flag?"add":"remove"](class_str);
+function classEl(el, class_param, flag =true) { //class_param can be string or array
+  if (!el) return; //-->
+  if (Array.isArray(class_param)) el.classList[flag?"add":"remove"](...class_param);
+  else el.classList[flag?"add":"remove"](class_param);
 }
 
 
