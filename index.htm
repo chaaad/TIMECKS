@@ -751,8 +751,8 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 <div id="topButtons">
   <div id="editStgsBut" class="squareButton" title="Settings & Info">︙</div>
   <div id="diasablerModeBut" class="squareButton" title="Hide-Alarms Mode">H</div>
-  <div id="addAlarmBut" class="squareButton" title="Add new alarm">✚</div>
   <div id="trashCan" class="squareButton" title="Trash (drag&drop unwanted alarm here)">🗑</div>
+  <div id="addAlarmBut" class="squareButton" title="Add new alarm">✚</div>
 </div>
 
 <div id="msgContainer"></div>
@@ -1192,6 +1192,8 @@ topButs_EL.addEventListener("click", evt => {
     stgs_tog(targ_EL);
   } else if (targ_EL == disabler_EL) {
     disablerMode_toggle();
+  } else if (targ_EL.id == "trashCan") {
+    trash_clicked();
   } else if (targ_EL.id == "addAlarmBut") {
     alrm_add();
   }
@@ -1470,6 +1472,9 @@ async function txtFile_fetch(url_str, cb) {
   }
 } //txtFile_fetch()
 
+function trash_clicked() {
+  jm.alert("You can delete an alarm by Dragging and Dropping it onto the Trash button");
+} //trash_clicked()
 
 var active_flag;
 var active_ctdn_m;

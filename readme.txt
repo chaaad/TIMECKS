@@ -4,24 +4,26 @@ Top Left Buttons
   Toggles "Settings & Info Buttons"
 
   Hide-Alarms Mode
-
-  Add new alarm
+  .................
 
   Trash
-  drag&drop unwanted alarm onto this button
+  You can delete an alarm by Dragging and Dropping it onto the Trash button
+
+  Add new alarm
 
 
 Settings & Info Buttons
   Default Snooze
 
   Alarms raw data
+  ............................
 
   Read Me
 
 
 
 
-
+Inputting time
 daily
 1:00 AM
 
@@ -33,10 +35,6 @@ monthly
 
 annual
 12/26 2:39 AM
-
-
-
-
 
 
 //shortcuts
@@ -53,16 +51,12 @@ annual
 //.. with "*" for 'pm', eg. 1220 .. 12:20am, or 420* .. 4:20pm
 
 
-
-
 mD_str.includes("/")) { //mon/day
 "?"; //month wildcard
 
 
 SMTWF]/) == 0) { //Day of Week
 //at least 2 letters
-
-
 
 
 //ahead
