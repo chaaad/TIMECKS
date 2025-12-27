@@ -1,3 +1,4 @@
+TIMECKS
 
 Top Left Buttons
 
@@ -24,6 +25,7 @@ Settings & Info Buttons
 
   Read Me
   Opens dialog that displays readme.txt.
+  Displayed text won't wrap, you might need to enlarge window.
 
 
 
