@@ -1,24 +1,29 @@
+
 Top Left Buttons
 
   Settings & Info
-  Toggles "Settings & Info Buttons"
+  Toggles "Settings & Info Buttons".
 
   Hide-Alarms Mode
-  .................
+  Allows you to enable/disable alarms, switch back to regular mode when done.
 
   Trash
-  You can delete an alarm by Dragging and Dropping it onto the Trash button
+  You can delete an alarm by Dragging and Dropping it onto the Trash button.
 
   Add new alarm
+  Opens dialogs for name, then time.
 
 
 Settings & Info Buttons
+
   Default Snooze
+  Opens dialog for default Snooze duration.
 
   Alarms raw data
-  ............................
+  Edit with care, this is basically the database in JSON text.
 
   Read Me
+  Opens dialog that displays readme.txt.
 
 
 

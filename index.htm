@@ -1312,17 +1312,6 @@ alarmsCont_EL.addEventListener("click", evt => {
     if (_alarmInst_EL= targ_EL.closest("div.alarmInstance")) {
       alarmInst_EL= _alarmInst_EL;
 
-/*
-      if (alarmInst_EL.classList.contains("expired")) {
-        alrmExpChange_flag= false;
-
-        var exp_msg_EL;
-        if (exp_msg_EL= alarmInst_EL.$exp_msg_EL) message_remove(exp_msg_EL); //will remove .$exp_msg_EL too
-        else alrm_unexpire(alarmInst_EL);
-
-        if (alrmExpChange_flag) alarms_sort();
-      }
-*/
       if (targ_EL.classList.contains("alarmActivate")) {
         var toggleOff_flag= alarmInst_EL==active_aI_EL;
         if (wakey_aI_EL) {
@@ -1717,10 +1706,10 @@ function alrm_scrollTo(noExp_flag) {
 } //alrm_scrollTo()
 
 
-function alrm_editInfo(info_str, NEW_flag) {
+function alrm_editInfo(info_str, NEW_flag= "") {
   var t_str= NEW_flag ? "?" : alarmInst_EL.$E.Time.textContent;
   if (!info_str && !NEW_flag) info_str= alarmInst_EL.$E.Info.innerHTML.replaceAll("<br>", "\n"); //autoreplace "<br>"s
-  jm.prompt_textarea('<p>Alarm name</p>(html ok, shift-enter for &lt;br&gt;, 80 chars max)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
+  jm.prompt_textarea('<p>' +NEW_flag +'Alarm name</p>80 chars max, shift-enter for linebreak<br>(html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
     if (resp==null || (resp==info_str && !NEW_flag)) return; //-->
 
     info_str= (resp || "").trim();
@@ -2081,7 +2070,7 @@ function alrm_initCountdown(aI_EL =alarmInst_EL) {
 } //alrm_initCountdown()
 
 function alrm_add() { //from UI
-  alrm_editInfo("New", "NEW");
+  alrm_editInfo("NEW", "New ");
 } //alrm_add()
 
 function alrm_execAdd() { //add 1
@@ -2258,7 +2247,7 @@ function alarms_sort(aa_override_arr =[]) {
     .forEach(aI_EL => alarmsCont_EL.appendChild(aI_EL)) //reorder in DOM
   ;
 
-  if (!wakey_aI_EL) alarms_autoActivate(aa_override_arr);
+  if (!wakey_aI_EL) alarms_autoActivate(aa_override_arr); //no autoActivate if alarm is ringing/snoozed
 
   if (active_aI_EL) active_aI_EL.after(activeDiv_EL); //alarm els sorted, move activeDiv_EL under correct alarm el
 
