@@ -2293,7 +2293,7 @@ function alarms_import(imported_str) {
       if (action_str == "external") {
         time_str= spl_ar[1]; //WED 5/5 12:34pm
         tSpl_ar= time_str.split(" ");
-        if (alarmNow_obj= alrm_procTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -20`, "preview")) { // -20 minutes
+        if (alarmNow_obj= alrm_procTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -020`, "preview")) { // -20 minutes
           alrm_execAdd();
 
           k_str= spl_ar[4] ? " (K)" : ""; //keeper league
