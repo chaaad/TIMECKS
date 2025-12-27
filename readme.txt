@@ -30,44 +30,52 @@ Settings & Info Buttons
 
 
 
-Inputting time
-daily
-1:00 AM
-
-weekly
-SUN 11:00 PM
-
-monthly
-?/13 7:00 PM
-
-annual
-12/26 2:39 AM
+Alarms
+  On/Off Button
+  Usually, the top (soonest) alarm gets auto-activated, will ring at set time.
+  However, you can prevent an alarm from ringing by turning it off.
 
 
-//shortcuts
+  Inputting time
+  The dialog contains a live "preview" of the time based on your input.
+  There are built-in patterns that allow for shorthands when typing.
 
-//starts with "0"
-//minutes mode, eg. "01" is 1 mn, "012" is 12 mns
-//just mns, hr 0
+  There are 4 alarm types
+    Daily
+    example: 1:00 AM
 
-//1-2 digits
-//if (n <= 12) h= n; //just hr, mn 0
-//else m= n; //just mn, hr 0
+    Weekly
+    example: SUN 11:00 PM
+    Note the 3 letter day of the week, shorthand requires at least 2 letters
 
-//3-4 digits
-//.. with "*" for 'pm', eg. 1220 .. 12:20am, or 420* .. 4:20pm
+    Monthly
+    example: ?/13 7:00 PM
+    Note the "?"
 
+    Annually
+    example: 12/26 2:39 AM
 
-mD_str.includes("/")) { //mon/day
-"?"; //month wildcard
+  Default is "AM". For PM, append "PM", or shorthand "p", or even "*" (numpad friendly)
+  example: 12/26 2:39p
 
+  Can use "." instead of ":" (numpad friendly)
+  example: 2.39 becomes: 2:39 AM
+  In fact, you can even leave out the ":" altogether
+  example: 316p becomes: 3:16 PM
 
-SMTWF]/) == 0) { //Day of Week
-//at least 2 letters
+  Time with Offset
+  Right after the time portion, you can add or subtract an amount of time (max 24 hrs)
+  example for subtract 1hr:
+    1:45 PM-1 becomes: 12:45 PM
+  example for add 2hr:
+    1:45 PM+2 becomes: 3:45 PM
 
+  For minutes, number starts with a "0"
+  example for subtract 1min:
+    1:45 PM-01 becomes: 1:44 PM
+  example for add 15min:
+    1:45 PM+015 becomes: 2:00 PM
 
-//ahead
-//+1 .. +24, hr
-//+01 .. +59, mn
-
-//+1:34
+  Can also do the same with hr and min
+  example for subtract 1hr and 30min:
+    3:30 PM+1:30 becomes: 5:00 PM

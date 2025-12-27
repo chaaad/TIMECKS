@@ -1738,7 +1738,7 @@ function alrm_editTime(NEW_str) {
   function pop_prompt() {
     alrm_str= jm._ELs.Input.value;
     var alarmNow_obj= alrm_procTimeText(alrm_str, "preview");
-    livePreview_EL.innerHTML= alarmNow_obj ? (alarmNow_obj.time +"<br>" +alarmNow_obj.ahead) : "";
+    livePreview_EL.innerHTML= alarmNow_obj ? (alarmNow_obj.time +"<br>" +alarmNow_obj.modifier) : "";
   }
 
   var prom_str= g_promStr(NEW_str, alrm_str);
@@ -1849,7 +1849,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
 
   time_dtO= g_fromHTimeToDateObj(raw_hTimO);
 
-  var ahead_str= "";
+  var modifier_str= "";
 
   var ofsO;
   if (offset_str) {
@@ -1860,18 +1860,18 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     var sgn_num= offsetMod_str=="+" ? 1 : -1;
 
     if (ofsO.m) {
-      if (ofsO.m > 59) return err(`ahead minutes:<b>${ofsO.m}</b>max is 59`); //-->
-      time_ms+= sgn_num *ofsO.m *60000; //60*1000 //add mns
+      if (ofsO.m > 59) return err(`modifier minutes:<b>${ofsO.m}</b>max is 59`); //-->
+      time_ms+= sgn_num *ofsO.m *60000; //60*1000 //modify mns
     }
     if (ofsO.h) {
-      let max_h= ofsO.m ? 23 : 24; //max 24 hrs ahead
-      if (ofsO.h > max_h) return err(`ahead hours:<b>${ofsO.h}</b>max is ${max_h}`); //-->
-      time_ms+= sgn_num *ofsO.h *3600000; //60*60*1000 //add hrs
+      let max_h= ofsO.m ? 23 : 24; //max 24 hrs modifier
+      if (ofsO.h > max_h) return err(`modifier hours:<b>${ofsO.h}</b>max is ${max_h}`); //-->
+      time_ms+= sgn_num *ofsO.h *3600000; //60*60*1000 //modify hrs
     }
 
-    ahead_str= "(OFFSET: ";
-    ahead_str+= get_fmatHTime_str(raw_hTimO) + " ";
-    ahead_str+= offsetMod_str +g_untilStr(ofsO.m, ofsO.h) +")";
+    modifier_str= "(" +get_fmatHTime_str(raw_hTimO);
+    modifier_str+= " OFFSET";
+    modifier_str+= offsetMod_str +g_untilStr(ofsO.m, ofsO.h) +")";
     time_dtO= new Date(time_ms);
     //DST handled here by js date ?
 
@@ -1882,9 +1882,9 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
       };
     }
 
-  } else { //no offset given, derive for ahead_str
-    let ahead_ms= time_dtO -new Date();
-    ahead_str= `(in: ${g_untilStr(Math.ceil(ahead_ms /60000))})`;
+  } else { //no offset given, derive for modifier_str
+    let modifier_ms= time_dtO -new Date();
+    modifier_str= `(in: ${g_untilStr(Math.ceil(modifier_ms /60000))})`;
   }
 
   function g_procRawTime(str, offset_flag) {
@@ -1932,7 +1932,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
   //success
   return {
     time: get_fmatHTime_str(hTimO),
-    ahead: ahead_str,
+    modifier: modifier_str,
     ms: time_dtO.getTime(),
     hTimO: hTimO
   };
@@ -2083,7 +2083,7 @@ function alrm_execAdd() { //add 1
 
 function alrm_delete() { //from alarm delete-button
   var prom_str= g_promStr();
-  jm.agree('<p>Delete alarm?</p>' +prom_str, 0, resp => {
+  jm.confirm('<p>Delete alarm?</p>' +prom_str, resp => {
     if (resp != true) return; //null or false //-->
 
     alrm_execDelete();
