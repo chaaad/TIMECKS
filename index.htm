@@ -1182,9 +1182,6 @@ document.addEventListener("keyup", evt => { //capture any keyup
     if (ring_intimerId) { //keys to silence ringer
       if (evt.key == " ") ringer_stop("snooze");
       else if (evt.key.search(/Enter|Escape/) > -1) ringer_stop("off");
-    //} else if (evt.key == "-") { //useful for testing, remove
-      //alarmInst_EL= alarmsCont_EL.querySelector("div.alarmInstance"); //always the standard (1st) alarm
-      //alrm_editTime();
     }
   }
 });
@@ -1715,24 +1712,28 @@ function alrm_scrollTo(noExp_flag) {
 } //alrm_scrollTo()
 
 
-function alrm_editInfo(info_str, NEW_str) {
-  var t_str= alarmInst_EL.$E.Time.textContent;
-  if (!info_str) info_str= alarmInst_EL.$E.Info.innerHTML.replaceAll("<br>", "\n");
-  jm.prompt_textarea('<p>Alarm name</p>(html allowed, 80 chars max)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
-    if (!NEW_str && (resp==null || resp==info_str)) return; //-->
-    //.. with NEW_str, 'save' must happen
+function alrm_editInfo(info_str, NEW_flag) {
+  var t_str= NEW_flag ? "?" : alarmInst_EL.$E.Time.textContent;
+  if (!info_str && !NEW_flag) info_str= alarmInst_EL.$E.Info.innerHTML.replaceAll("<br>", "\n"); //autoreplace "<br>"s
+  jm.prompt_textarea('<p>Alarm name</p>(html ok, shift-enter for &lt;br&gt;, 80 chars max)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
+    if (resp==null || (resp==info_str && !NEW_flag)) return; //-->
 
     info_str= (resp || "").trim();
     if (info_str.length > 80) {
       jm.error(`<p class="bad">Info length is up to 80 chars</p>Your text is ${info_str.length} chars`, () => {
-        alrm_editInfo(info_str, NEW_str); //try again (and we dont throw away what you typed in)
+        alrm_editInfo(info_str, NEW_flag); //try again (and we dont throw away what you typed in)
       });
     } else {
-      alarmInst_EL.$E.Info.innerHTML= info_str.replaceAll("\n", "<br>");
-      alrm_glow(NEW_str ? 4 : 1);
-      alarms_save();
+      info_str= info_str.replaceAll("\n", "<br>"); //autoreplace "\n"s
+      if (NEW_flag) {
+        alrm_editTime(info_str || "*"); //so NEW_str not empty
+      } else {
+        alarmInst_EL.$E.Info.innerHTML= info_str;
+        alrm_glow();
+        alarms_save();
+      }
     }
-  });
+  }, NEW_flag); //NEW_flag as highlight
 } //alrm_editInfo()
 
 function alrm_editTime(NEW_str) {
@@ -1770,11 +1771,12 @@ function alrm_editTime(NEW_str) {
         //proc input str
         var alarmNow_obj;
         if (alarmNow_obj= alrm_procTimeText(mod_alrm_str, timePrompt_fn)) {
-          //.. passed time_prompt() as err_cb, try again
+          //pass time_prompt() as err_cb (try again)
 
           if (NEW_str) {
             alrm_execAdd();
             sound_play("bell");
+            alarmInst_EL.$E.Info.innerHTML= NEW_str;
           }
 
           alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
@@ -1782,15 +1784,11 @@ function alrm_editTime(NEW_str) {
 
           alarms_sort([alarmInst_EL]);
 
-          if (NEW_str) {
-            alrm_editInfo(NEW_str, NEW_str);
-          } else {
-            alarms_save();
-            alrm_glow();
-          }
+          alarms_save();
+          alrm_glow(NEW_str ? 4 : 1);
         }
       }
-    }, "highlight");
+    }, NEW_str); //NEW_str as highlight
   } //time_prompt()
 
 } //alrm_editTime()
@@ -2078,7 +2076,7 @@ function alrm_initCountdown(aI_EL =alarmInst_EL) {
 } //alrm_initCountdown()
 
 function alrm_add() { //from UI
-  alrm_editTime("NEW");
+  alrm_editInfo("New", "NEW");
 } //alrm_add()
 
 function alrm_execAdd() { //add 1
@@ -2800,6 +2798,10 @@ var jm= {
       }
     });
 
+    jm._mouseHandler("Textarea_keydown", evt => { //linebreak in textarea, prevent enter key (use shift-enter)
+      if (evt.key=="Enter" && !evt.shiftKey) evt.preventDefault();
+    });
+
     jm._mouseHandler("Overlay_mousedown", evt => { //"click" can get accidental "click"
       if (evt.target == jm._ELs.Overlay) jm._respond("Overlay Click"); //closeModal
     });
@@ -2898,7 +2900,8 @@ var jm= {
 
     //modal needs to be visible to .focus() or .select()
     if (typeHas("PROMPT_")) {
-      //note: textareas, if text is highlighted, any key (inc enter-key) will delete the text!
+      //note: textareas, if text is highlighted, any key (except enter-key) will delete the text!
+      //note: enter-key always submits (custom)
       if (highlight_flag) jm._ELs.aliasIO.select();
       else jm._ELs.aliasIO.focus();
     }
