@@ -57,7 +57,7 @@ Alarms
   Default is "AM". For PM, append "PM", or shorthand "p", or even "*" (numpad friendly)
   example: 12/26 2:39p
 
-  Can use "." instead of ":" (numpad friendly)
+  Instead of ":", you can use "." (numpad friendly)
   example: 2.39 becomes: 2:39 AM
   In fact, you can even leave out the ":" altogether
   example: 316p becomes: 3:16 PM
