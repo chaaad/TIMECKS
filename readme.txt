@@ -76,6 +76,14 @@ Alarms
   example for add 15min:
     1:45 PM+015 becomes: 2:00 PM
 
-  Can also do the same with hr and min
-  example for subtract 1hr and 30min:
+  Can also do offset with hr and min
+  example for add 1hr and 30min:
     3:30 PM+1:30 becomes: 5:00 PM
+
+  Offet by itself is also possible
+  example for 5hr from now:
+    +5
+  example for 5min from now:
+    +05
+  example for 2hrs and 30min from now:
+    +230
