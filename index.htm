@@ -1119,7 +1119,7 @@ function restart() { //post long sleep
   [...aI_NL].forEach(aI_EL  => {
     if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
       aI_EL.$D.ctdn_m+= elapsed_minutes; //negative
-      if (aI_EL.$D.ctdn_m < 1) alrm_expireMsg(aI_EL);
+      if (aI_EL.$D.ctdn_m < 1) alrm_silentExpire(aI_EL);
     } //skip not visible
   });
 
@@ -2177,12 +2177,12 @@ console.log("bad alarm time", alrm_str)
   }
 } //alrm_activate()
 
-function alrm_expireMsg(aI_EL) {
+function alrm_silentExpire(aI_EL) { //alarm not active, so no ringer
   var alStrO= g_alStrO(aI_EL);
   var msg_EL= message_add("Alarm expired: " +alStrO.tim +" | " +alStrO.inf, "pink");
   msg_EL.$exp_aI_EL= aI_EL;
   aI_EL.$exp_msg_EL= msg_EL;
-} //alrm_expireMsg()
+} //alrm_silentExpire()
 
 
 function alarms_minuteUpdate() {
@@ -2190,18 +2190,16 @@ function alarms_minuteUpdate() {
 
   if (!vis_ct) return; //-->
 
-  //var autoTurnover_flag;
   var until_str;
   [...aI_NL].forEach(aI_EL => {
     if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
       aI_EL.$D.ctdn_m-= 1; //-1 minute
-      if (active_flag && aI_EL==active_aI_EL) active_ctdn_m= aI_EL.$D.ctdn_m;
+      if (aI_EL==active_aI_EL && active_flag) active_ctdn_m= aI_EL.$D.ctdn_m;
 
       if (aI_EL.$D.ctdn_m <1 ) { //expire
         if (!aI_EL.classList.contains("expired")) { //new expire
           classEl(aI_EL, "expired");
-          //alrm_initCountdown(aI_EL);
-          if (aI_EL != active_aI_EL) alrm_expireMsg(aI_EL);
+          if (aI_EL != active_aI_EL) alrm_silentExpire(aI_EL);
         }
 
       } else {
@@ -2234,7 +2232,7 @@ function alarms_minuteUpdate() {
 function check_soon(aI_EL) {
   var soon_flag= aI_EL.$D.ctdn_m < 720; //12 hrs, soon
   if (soon_flag != aI_EL.classList.contains("soon")) classEl(aI_EL, "soon", soon_flag);
-}
+} //check_soon()
 
 function alarms_sort(aa_override_arr =[]) {
   if (!vis_ct) return; //-->

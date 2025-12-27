@@ -29,7 +29,6 @@ Settings & Info Buttons
 
 
 
-
 Alarms
   On/Off Button
   Usually, the top (soonest) alarm gets auto-activated, will ring at set time.
@@ -85,5 +84,5 @@ Alarms
     +5
   example for 5min from now:
     +05
-  example for 2hrs and 30min from now:
+  example for 2hr and 30min from now:
     +230
