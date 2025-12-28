@@ -1405,7 +1405,8 @@ function stgs_dSnz(key) {
 
 function stgs_dATV(key) {
   jm.boolean("<p>Default AlarmTime View", timeview_def_flag, {
-    buttonText: {OkBut: "Countdown", NoBut: "Time"},
+    //jm custom cb object
+    custButText: {OkBut: "Countdown", NoBut: "Time"},
     end_cb: resp => {
       if (resp==null || resp==timeview_def_flag) return; //cancel or same, do nothing //-->
       timeview_def_flag= resp;
@@ -1450,6 +1451,7 @@ function stgs_rdMe() {
     if (str) {
       var modal_EL= document.getElementById("jwmModal");
       jm.alert("<p>Read Me</p><pre>" +str +"<pre>", {
+        //jm custom cb object
         begin_cb: () => {classEl(modal_EL, "wide"); },
         end_cb: () => {classEl(modal_EL, "wide", false); }
       });
@@ -2387,9 +2389,9 @@ function ringer_start(aI_EL) {
     sound_play("rngr");
   }, 5000);
 
-  jm.confirm("<p>" +active_aI_EL.$E.Info.textContent +"</p>Alarm off?", { //////////////// //text_str= "", filled later
+  jm.confirm("<p>" +active_aI_EL.$E.Info.textContent +"</p>Alarm off?", {
     //jm custom cb object
-    buttonText: {CancelBut: "SNOOZE"},
+    custButText: {CancelBut: "SNOOZE"},
     end_cb: resp => {
       if (resp) resp= "off"; //true .. "off" //else snooze
       ringer_stop(resp);
@@ -2775,6 +2777,8 @@ function classEl(el, class_param, flag =true) { //class_param can be string or a
 }
 
 
+
+
 //jm (modal)
 var jm= {
   _ELs: {},
@@ -2783,9 +2787,12 @@ var jm= {
 
   init: function() {
     //pop jm._ELs (aliasIO is dynamically assigned)
+    var el, jid;
     "div#jwmOverlay, span#jwmCloseBut, div#jwmDescription, input#jwmInput, textarea#jwmTextarea, button#jwmOkBut, button#jwmNoBut, button#jwmCancelBut".split(", ").forEach(sel_str => {
-      jm._ELs[sel_str.split("#")[1].replace("jwm", "")]= document.querySelector(sel_str);
-      //note: jid is the element id with the "jwm" removed
+      el= document.querySelector(sel_str);
+      jid= sel_str.split("#")[1].replace("jwm", ""); //basically, jid is the element id with the "jwm" removed
+      jm._ELs[jid]= el;
+      if (jid.includes("But")) el.$origText= el.textContent; //for init-button
     });
 
     //modal handlers
@@ -2838,19 +2845,20 @@ var jm= {
       return; //abort //-->
     }
 
+    jm._ELs.aliasIO= jm._ELs.Input; //default, .Input
+
     jm._displayEls("Input,Textarea,NoBut,CancelBut", false);
-    jm._classEls("OkBut,NoBut", "hilite", false);
+    jm._displayEls("OkBut", "inline"); //OkBut already displayed, but needs init-button
     jm._classEls("OkBut", "toggleable", false);
-    jm._ELs.aliasIO= jm._ELs.Input; //for .Input or .Textarea
-    jm._ELs.OkBut.textContent= "OK"; //always resets itself
+    jm._classEls("OkBut,NoBut", "hilite", false);
 
     if (typeHas(/ALERT|ERROR|CONFIRM|BOOLEAN/)) {
-      jm._ELs.aliasIO.value= "OK";
+      jm._ELs.aliasIO.value= "OK"; //default
 
       if (typeHas("BOOLEAN")) {
         jm._displayEls("NoBut,CancelBut", "inline");
         jm._classEls("OkBut", "toggleable");
-        jm._ELs.OkBut.textContent= "Yes"; //was "OK", no need to cleanup on_end, always resets on dialog start
+        jm._ELs.OkBut.textContent= "Yes"; //was "OK"
         var state_flag= !!value_str; //to boolean
         //.. local var
         if (!state_flag) jm._ELs.aliasIO.value= "NO";
@@ -2864,7 +2872,7 @@ var jm= {
 
     //} else if (type_str.search(/PROMPT$|PROMPT_TEXTAREA/) > -1) {
     } else if (typeHas("PROMPT_")) {
-      if (typeHas("PROMPT_TEXTAREA")) jm._ELs.aliasIO= jm._ELs.Textarea;
+      if (typeHas("PROMPT_TEXTAREA")) jm._ELs.aliasIO= jm._ELs.Textarea; //.Textarea
 
       jm._ELs.aliasIO.value= value_str;
 
@@ -2905,6 +2913,7 @@ var jm= {
         jm.bool_kc0= undefined;
         jm.bool_kc1= undefined;
       }
+      //needed by _booleanKeystroke()
     }
 
     jm.openModal("jwmModal");
@@ -2978,7 +2987,7 @@ var jm= {
     if (cb) {
 
       var resp= true;
-      if (act_code.search(/Overlay Click|Escape|CANCEL|CLOSE/) > -1) {
+      if (act_code.search(/Overlay Click|Escape|CANCEL|CLOSE/) > -1) { //multiple ways to "cancel"
         resp= null;
       } else if (jm._type.includes("PROMPT_")) {
         resp= jm._ELs.aliasIO.value;
@@ -2997,37 +3006,33 @@ var jm= {
     if (jm._queue.length) jm._queue.shift()(); //remove it from queue and then run it as a function!
   }, //_respond
 
-  _cbObject: function(cbO, add_flag) {
-    var el_jid, el, evt_key;
-    Object.keys(cbO).forEach(ce_code => {
-      if (ce_code == "buttonText") {
-        var but_hash= cbO[ce_code];
-        if (typeof(but_hash) == "object") {
-          //eg. {CancelBut: "SNOOZE"}
+  _cbObject: function(cbO, add_flag) { //add_flag, true for begin / false for end
+    var jid, el, evt_key;
+    Object.keys(cbO).forEach(c_code => {
+      if (c_code=="custButText" && add_flag) {
+        var but_hash= cbO[c_code];
+        if (typeof(but_hash) == "object") { //eg. {CancelBut: "SNOOZE"}
           Object.keys(but_hash).forEach(b_key => {
-            if (el= jm._ELs[b_key]) {
-              if (add_flag) el.$text= el.textContent; //preserve original .textContent
-              el.textContent= add_flag ? but_hash[b_key] : el.$text;
-            }
+            if (el= jm._ELs[b_key]) el.textContent= but_hash[b_key];
           });
         }
 
-      } else {
-        //custom hooks
-        [el_jid, evt_key]= ce_code.split("_");
+      } else { //custom hooks
+        [jid, evt_key]= c_code.split("_");
         if (evt_key) {
-          if (el= jm._ELs[el_jid]) {
-            if (add_flag) el.addEventListener(evt_key, cbO[ce_code]);
-            else el.removeEventListener(evt_key, cbO[ce_code]);
+          if (el= jm._ELs[jid]) {
+            if (add_flag) el.addEventListener(evt_key, cbO[c_code]);
+            else el.removeEventListener(evt_key, cbO[c_code]);
           }
         }
       }
     });
 
-    //possible 'e_codes':
+    //c_code
+      //custButText
       //begin_cb, returns nothing
       //end_cb, returns resp
-      //(handler on any event on any jm._ELs item, returns event)
+      //(custom hooks, handler on any event on any jm._ELs item, returns event)
         //eg. "Input_keyup" is 'keyup' event on input#jwmInput
         //eg. "OkBut_mouseover" is 'mouseover' event on button#jwmOkBut
 
@@ -3036,15 +3041,19 @@ var jm= {
   //jm utils
   _mouseHandler: function(el, clk_cb) { //default is "click", but can cutomize, eg. "Overlay_mousedown"
     var act_str;
-    if (typeof(el) == "string") {
+    if (typeof(el) == "string") { //'el' param can be a jid str
       [el, act_str]= el.split("_"); //eg. "Overlay" and "mousedown"
       el= jm._ELs[el];
     }
     if (el) el.addEventListener(act_str || "click", clk_cb);
   },
 
+  //'jids' param is a csv string, ._iterEls() splits and iterates
   _displayEls: function(jids, display_v) {
-    jm._iterEls(jids, el => showEl(el, display_v) );
+    jm._iterEls(jids, (el, jid) => {
+      showEl(el, display_v);
+      if (display_v && jid.includes("But")) el.textContent= el.$origText; //init-button with orig text
+    });
   },
 
   _classEls: function(jids, class_str, flag= true) {
@@ -3054,7 +3063,7 @@ var jm= {
   _iterEls: function(jids, itr_cb) {
     var el;
     jids.split(",").forEach(jid => {
-      if (el= jm._ELs[jid]) itr_cb(el);
+      if (el= jm._ELs[jid]) itr_cb(el, jid);
     });
   },
 
@@ -3070,6 +3079,8 @@ var jm= {
   }
 }; //jm
 jm.init();
+
+
 
 
 //INIT
