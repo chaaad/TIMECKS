@@ -18,7 +18,10 @@ Top Left Buttons
 Settings & Info Buttons
 
   Default Snooze
-  Opens dialog for default Snooze duration.
+  Opens dialog to edit default Snooze duration.
+
+  Default AlarmTime View
+  Opens dialog to edit default Time View for new alarm.
 
   Alarms raw data
   Edit with care, this is basically the database in JSON text.
@@ -34,6 +37,10 @@ Alarms
   Usually, the top (soonest) alarm gets auto-activated, will ring at set time.
   However, you can prevent an alarm from ringing by turning it off.
 
+  AlarmTime View
+  AlarmTime View can be either, the time, or the countdown (example: "1h 15m")
+  Time/Countdown temporarily toggles when your mouse cursor hovers over it.
+  Also, a mouse longpress will persistently toggle Time/Countdown.
 
   Inputting time
   The dialog contains a live "preview" of the time based on your input.

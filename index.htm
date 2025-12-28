@@ -598,7 +598,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
   .jw-modal-item { /*modal instance*/
     font-size: larger;
-    width: 420px;
+    width: 450px;
     padding: 4px 8px;
     background: #fff;
     margin: 0px auto; /*center horiz*/
@@ -759,6 +759,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 <div id="stgContainer">
   <div id="stgdSnzBut" class="squareButton">Default Snooze</div>
+  <div id="stgdATVBut" class="squareButton">Default AlarmTime View</div>
   <div id="stgRDatBut" class="squareButton">Alarms raw data</div>
   <div id="stgRdMeBut" class="squareButton">Read Me</div>
 </div>
@@ -1176,6 +1177,7 @@ var activeCountdown_EL= activeDiv_EL.querySelector("div#activeCountdown");
 
 
 var snooze_def_num;
+var timeview_def_flag;
 
 document.addEventListener("keyup", evt => { //capture any keyup
   if (!document.body.classList.contains("jw-modal-active")) { //modal inactive
@@ -1203,6 +1205,8 @@ stgCont_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
   if (targ_EL.id == "stgdSnzBut") {
     stgs_dSnz();
+  } else if (targ_EL.id == "stgdATVBut") {
+    stgs_dATV();
   } else if (targ_EL.id == "stgRDatBut") {
     stgs_rDat();
   } else if (targ_EL.id == "stgRdMeBut") {
@@ -1381,7 +1385,7 @@ function stgs_tog(but_EL) {
   classEl(but_EL, "down", stg_mode);
 } //stgs_tog()
 
-function stgs_dSnz() {
+function stgs_dSnz(key) {
   jm.prompt("<p>Default Snooze duration</p>(minutes, 1-30)", snooze_def_num, resp => {
     if (resp == null) return; //-->
 
@@ -1398,6 +1402,17 @@ function stgs_dSnz() {
     }
   }, "highlight");
 } //stgs_dSnz()
+
+function stgs_dATV(key) {
+  jm.boolean("<p>Default AlarmTime View", timeview_def_flag, {
+    buttonText: {OkBut: "Countdown", NoBut: "Time"},
+    end_cb: resp => {
+      if (resp==null || resp==timeview_def_flag) return; //cancel or same, do nothing //-->
+      timeview_def_flag= resp;
+      data_save("timeview_flag", timeview_def_flag);
+    }
+  });
+} //stgs_dATV()
 
 function xParseJSON(str) {
   var json_dat;
@@ -1746,13 +1761,14 @@ function alrm_editTime(NEW_str) {
 
   function timePrompt_fn() {
     jm.prompt(prom_str, alrm_str, {
-      //jm custom hooks object
+      //jm custom cb object
 
       begin_cb: () => {
         livePreview_EL= jm._ELs.Description.querySelector(".livePreview");
         pop_prompt();
       },
 
+      //custom hook
       Input_keyup: evt => { //or "aliasIO_keyup" would work also
         if (alrm_str != jm._ELs.Input.value) pop_prompt();
         //ignore many unwanted keys like "Shift"
@@ -2079,6 +2095,7 @@ function alrm_execAdd() { //add 1
   alarmsCont_EL.appendChild(clAlrmInst_EL); //add to DOM
   if (disabler_mode) alrm_drawDisablerMode(clAlrmInst_EL);
   alarmInst_EL= clAlrmInst_EL;
+  if (timeview_def_flag) alrm_setTorC(alarmInst_EL, true, "persist");
 } //alrm_execAdd()
 
 function alrm_delete() { //from alarm delete-button
@@ -2357,8 +2374,6 @@ var wakey_aI_EL;
 var ring_intimerId;
 var snooze_ctdn_m;
 
-var jm_cancelBut= document.getElementById("jwmCancelBut");
-
 function ringer_start(aI_EL) {
   if (aI_EL) wakey_aI_EL= aI_EL; //1st ringer_start, as opposed to snooze-end ringer_start
 
@@ -2372,17 +2387,11 @@ function ringer_start(aI_EL) {
     sound_play("rngr");
   }, 5000);
 
-  jm.confirm("", { //text_str= "", filled later
-    //jm custom hooks object
-    begin_cb: () => {
-      if (!wakey_aI_EL) return false; //abort jm.dialog
-
-      jm._ELs.Description.innerHTML= "<p>" +active_aI_EL.$E.Info.textContent +"</p>Alarm off?";
-      jm_cancelBut.textContent= "SNOOZE";
-    },
+  jm.confirm("<p>" +active_aI_EL.$E.Info.textContent +"</p>Alarm off?", { //////////////// //text_str= "", filled later
+    //jm custom cb object
+    buttonText: {CancelBut: "SNOOZE"},
     end_cb: resp => {
-      jm_cancelBut.textContent= "Cancel";
-      if (resp) resp= "off"; //else snooze
+      if (resp) resp= "off"; //true .. "off" //else snooze
       ringer_stop(resp);
     }
   });
@@ -2770,7 +2779,6 @@ function classEl(el, class_param, flag =true) { //class_param can be string or a
 var jm= {
   _ELs: {},
   _type: 0,
-  _end_cb: 0,
   _queue: [],
 
   init: function() {
@@ -2786,7 +2794,7 @@ var jm= {
         if (evt.key=="Escape" || (evt.key=="Enter" && !evt.shiftKey)) jm._respond(evt.key);
         //since modal can contain textarea, no 'nav' keys should be captured (arrow, tab)
         //also shift-enter allows linebreak in textarea
-        else if (jm._type.includes("BOOLEAN")) jm._booleanProc(evt.key); //however, this does do 'nav' keys
+        else if (jm._type == "BOOLEAN") jm._booleanKeystroke(evt.key); //however, this does do 'nav' keys
       }
     });
 
@@ -2799,7 +2807,7 @@ var jm= {
     });
 
     jm._mouseHandler("OkBut", evt => {
-      if (jm._type.includes("BOOLEAN")) jm._ELs.aliasIO.value= "OK";
+      if (jm._type == "BOOLEAN") jm._ELs.aliasIO.value= "OK";
       jm._respond();
     });
 
@@ -2834,21 +2842,20 @@ var jm= {
     jm._classEls("OkBut,NoBut", "hilite", false);
     jm._classEls("OkBut", "toggleable", false);
     jm._ELs.aliasIO= jm._ELs.Input; //for .Input or .Textarea
-    jm._ELs.OkBut.textContent= "OK";
+    jm._ELs.OkBut.textContent= "OK"; //always resets itself
 
     if (typeHas(/ALERT|ERROR|CONFIRM|BOOLEAN/)) {
       jm._ELs.aliasIO.value= "OK";
 
-      if (typeHas("BOOLEAN_")) {
+      if (typeHas("BOOLEAN")) {
         jm._displayEls("NoBut,CancelBut", "inline");
         jm._classEls("OkBut", "toggleable");
-        jm._ELs.OkBut.textContent= typeHas("AGREE") ? "Yes" : "On";
-        jm._ELs.NoBut.textContent= typeHas("AGREE") ? "No" : "Off";
+        jm._ELs.OkBut.textContent= "Yes"; //was "OK", no need to cleanup on_end, always resets on dialog start
         var state_flag= !!value_str; //to boolean
         //.. local var
         if (!state_flag) jm._ELs.aliasIO.value= "NO";
         //.. actual value kept in aliasIO.value as string ("OK", "NO")
-        jm._booleanProc(); //hilte only
+        jm._booleanKeystroke(); //hilte only
 
       } else if (typeHas("CONFIRM")) { //CONFIRM is just an ALERT with a Cancel button
         jm._displayEls("CancelBut", "inline");
@@ -2878,15 +2885,27 @@ var jm= {
 
     if (cb) {
       if (typeof(cb) == "object") { //custom hooks object
+
         if (cb.begin_cb && typeof(cb.begin_cb)=="function") {
           if (cb.begin_cb() == false) return; //caller can abort //-->
         }
-        jm._customHooks(cb, true); //add listeners
+
+        jm._cbObject(cb, true); //true, add listeners
+
       } else if (typeof(cb) != "function") { //otherwise should a fn (that is the 'end' callback)
         cb= undefined; //error, no message
       }
     }
     jm._cb= cb;
+
+    if (typeHas("BOOLEAN")) {
+      jm.bool_kc0= jm._ELs.NoBut.textContent[0]; //1st char, "No" .. "N"
+      jm.bool_kc1= jm._ELs.OkBut.textContent[0]; //1st char, "Yes" .. "Y"
+      if (jm.bool_kc0 == jm.bool_kc1) { //need different keystrokes
+        jm.bool_kc0= undefined;
+        jm.bool_kc1= undefined;
+      }
+    }
 
     jm.openModal("jwmModal");
 
@@ -2905,17 +2924,13 @@ var jm= {
   error: function(text_str, cb) {
     jm.dialog("ERROR", '<p class="bad">' +text_str +'</p>', "", cb); //returns true or null
   },
+
   confirm: function(text_str, cb) {
     jm.dialog("CONFIRM", text_str, "", cb); //returns true or null
   },
 
-  agree: function(text_str, value_flag, cb) {
-    jm.dialog("BOOLEAN_AGREE", text_str, value_flag, cb); //returns true or false or null
-    //param called value_flag here, but jm.dialog will still call it value_str
-  },
-
-  state: function(text_str, value_flag, cb) {
-    jm.dialog("BOOLEAN_STATE", text_str, value_flag, cb); //returns true or false or null
+  boolean: function(text_str, value_flag, cb) {
+    jm.dialog("BOOLEAN", text_str, value_flag, cb); //returns true or false or null
     //param called value_flag here, but jm.dialog will still call it value_str
   },
 
@@ -2926,16 +2941,16 @@ var jm= {
     jm.dialog("PROMPT_TEXTAREA", text_str, value_str, cb, highlight_flag); //returns string or null
   },
 
-  _booleanProc: function(key) {
-    //boolean dialogs have 2 buttons (Yes/No or On/Off) and Cancel
+  _booleanKeystroke: function(key) {
+    //boolean dialogs have 3 buttons, Yes, No and Cancel
     //they are highlightable by nav keys, and is submittable by shortcut key (Y/N)
     var state_flag= jm._ELs.aliasIO.value == "OK"; //local var
     var submit_flag;
 
     if (key) { //key capture
       key= key.toUpperCase();
-      if (key=="Y" || key=="N") {
-        state_flag= value= key=="Y";
+      if (key==jm.bool_kc1 || key==jm.bool_kc0) { //"Y" or "N"
+        state_flag= value= key==jm.bool_kc1; //"Y"
         submit_flag= true;
       } else if (key.indexOf("ARROW") == 0) {
         state_flag= !state_flag; //toggle
@@ -2967,12 +2982,12 @@ var jm= {
         resp= null;
       } else if (jm._type.includes("PROMPT_")) {
         resp= jm._ELs.aliasIO.value;
-      } else if (jm._type.includes("BOOLEAN_")) {
+      } else if (jm._type == "BOOLEAN") {
         resp= (jm._ELs.aliasIO.value == "OK"); //to boolean
       }
 
       if (typeof(cb) == "object") {
-        jm._customHooks(cb, false); //remove listeners
+        jm._cbObject(cb, false); //false, remove listeners
         if (cb.end_cb) cb.end_cb(resp);
       } else {
         cb(resp);
@@ -2982,14 +2997,29 @@ var jm= {
     if (jm._queue.length) jm._queue.shift()(); //remove it from queue and then run it as a function!
   }, //_respond
 
-  _customHooks: function(cbO, add_flag) {
+  _cbObject: function(cbO, add_flag) {
     var el_jid, el, evt_key;
     Object.keys(cbO).forEach(ce_code => {
-      [el_jid, evt_key]= ce_code.split("_");
-      if (evt_key) {
-        if (el= jm._ELs[el_jid]) {
-          if (add_flag) el.addEventListener(evt_key, cbO[ce_code]);
-          else el.removeEventListener(evt_key, cbO[ce_code]);
+      if (ce_code == "buttonText") {
+        var but_hash= cbO[ce_code];
+        if (typeof(but_hash) == "object") {
+          //eg. {CancelBut: "SNOOZE"}
+          Object.keys(but_hash).forEach(b_key => {
+            if (el= jm._ELs[b_key]) {
+              if (add_flag) el.$text= el.textContent; //preserve original .textContent
+              el.textContent= add_flag ? but_hash[b_key] : el.$text;
+            }
+          });
+        }
+
+      } else {
+        //custom hooks
+        [el_jid, evt_key]= ce_code.split("_");
+        if (evt_key) {
+          if (el= jm._ELs[el_jid]) {
+            if (add_flag) el.addEventListener(evt_key, cbO[ce_code]);
+            else el.removeEventListener(evt_key, cbO[ce_code]);
+          }
         }
       }
     });
@@ -3001,7 +3031,7 @@ var jm= {
         //eg. "Input_keyup" is 'keyup' event on input#jwmInput
         //eg. "OkBut_mouseover" is 'mouseover' event on button#jwmOkBut
 
-  }, //_customHooks
+  }, //_cbObject
 
   //jm utils
   _mouseHandler: function(el, clk_cb) { //default is "click", but can cutomize, eg. "Overlay_mousedown"
@@ -3050,8 +3080,9 @@ var fClick_flag= true;
 alarms_urlImport(window.location.search);
 if (fClick_flag) { //satisfy browser requirement to allow play-sound
 
-  data_load(["snooze_num"], dataO => {
+  data_load(["snooze_num", ""], dataO => {
     snooze_def_num= (dataO.snooze_num || 5) *1; //default 5
+    timeview_def_flag= dataO.timeview_flag; //true is view-countdown
   });
 
   setTimeout(() => {
