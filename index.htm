@@ -249,7 +249,7 @@ div#alarmsContainer {
       user-select: none;
     }
 
-    div.alarmInfo {
+    div.alarmName {
 
       .PC_tid {
         color: orangered;
@@ -286,7 +286,7 @@ div#alarmsContainer {
     }
 
     &.soon {
-      div.alarmInfo {
+      div.alarmName {
         background: #ddf;
         opacity: 100%;
       }
@@ -296,7 +296,7 @@ div#alarmsContainer {
     }
 
     &.alarmActive {
-      div.alarmInfo {
+      div.alarmName {
         background: black;
         color:white;
         opacity: 100%;
@@ -329,18 +329,18 @@ div#alarmsContainer {
   }
 
   div.disablableContainer {
-    div.alarmInfo {
+    div.alarmName {
       color: white;
       background: #666;
       opacity: 100%;
     }
 
-    .soon div.alarmInfo {
+    .soon div.alarmName {
       background: darkblue;
     }
 
     div.disabledInstance {
-      div.alarmInfo {
+      div.alarmName {
         color: gray;
         background: #eee;
       }
@@ -734,7 +734,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 <div id="templates">
 
   <div class="alarmInstance" draggable="true">
-    <div class="textBox alarmInfo" title="Edit info"></div>
+    <div class="textBox alarmName" title="Edit Name"></div>
     <span class="alarmActivate squareButton" title="On/Off">⏹</span>
     <span class="alarmT alarmTime" title="Edit time (LONG PRESS to change default view)">@</span>
     <span class="alarmT alarmCountdown" title="Edit time (LONG PRESS to change default view)"></span>
@@ -1141,7 +1141,7 @@ function g_fmatSDM() { //formatted sync_diff_ms string, eg. "dif+12"
   return str +sync_diff_ms;
 } //g_fmatSDM()
 function aId(aI_EL) { //not really an id, but good for debugging
-  if (aI_EL) return aI_EL.$E.Info.textContent +", " +aI_EL.$E.Ctdn.textContent;
+  if (aI_EL) return aI_EL.$E.Name.textContent +", " +aI_EL.$E.Ctdn.textContent;
 } //aId()
 function log_aIs(str ="") {
   var arr= [];
@@ -1325,9 +1325,9 @@ alarmsCont_EL.addEventListener("click", evt => {
           alrm_activate(toggleOff_flag ? false : alarmInst_EL);
         }
 
-      } else if (targ_EL.closest("div.alarmInfo")) {
+      } else if (targ_EL.closest("div.alarmName")) {
         if (targ_EL.classList.contains("PC_tid")) PClink(targ_EL);
-        else alrm_editInfo();
+        else alrm_editName();
 
       } else if (targ_EL.classList.contains("alarmT")) {
         longPress_timerStop();
@@ -1495,7 +1495,6 @@ function alarms_start() {
   alarmsCont_EL.innerHTML= "";
   alarmInst_EL= undefined;
 
-  //var alarms_json= localStorage.getItem("alarms");
   data_load("alarms", dataO => {
     var json_str= dataO.alarms;
     var storedAl_arr= xParseJSON(json_str);
@@ -1509,7 +1508,8 @@ function alarms_start() {
       aInst_EL= template_alarmInst_EL.cloneNode(true); //clone
       alarmsCont_EL.appendChild(aInst_EL); //add
       alrm_addHelpers(aInst_EL, a_obj.id);
-      aInst_EL.$E.Info.innerHTML= a_obj.i || ""; //alarm info
+      aInst_EL.$E.Name.innerHTML= a_obj.n                     || a_obj.i || ""; //alarm name
+///////////////////////////tbd
       aInst_EL.$E.Time.textContent= a_obj.t; //alarm time
       alrm_initCountdown(aInst_EL);
       if (a_obj.c) alrm_setTorC(aInst_EL, true, "persist"); //init alarm countdown view
@@ -1675,7 +1675,7 @@ function alrm_addHelpers(aI_EL, id) { //.dataset only stores strings
   aI_EL.$D= {};
   aI_EL.$E= { //pointers to sub els
     Activ: aI_EL.querySelector("span.alarmActivate"),
-    Info: aI_EL.querySelector("div.alarmInfo"),
+    Name: aI_EL.querySelector("div.alarmName"),
     Time: aI_EL.querySelector("span.alarmTime"),
     Ctdn: aI_EL.querySelector("span.alarmCountdown")
   };
@@ -1723,46 +1723,44 @@ function alrm_scrollTo(noExp_flag) {
 } //alrm_scrollTo()
 
 
-function alrm_editInfo(info_str, NEW_flag= "") {
-  var t_str= NEW_flag ? "?" : alarmInst_EL.$E.Time.textContent;
-  if (!info_str && !NEW_flag) info_str= alarmInst_EL.$E.Info.innerHTML.replaceAll("<br>", "\n"); //autoreplace "<br>"s
-  jm.prompt_textarea('<p>' +NEW_flag +'Alarm name</p>80 chars max, shift-enter for linebreak<br>(html allowed)<br>Time:<b>' +t_str +'</b>', info_str, resp => {
-    if (resp==null || (resp==info_str && !NEW_flag)) return; //-->
+function alrm_editName(NEW_flag) { //if new, NEW_flag is "NEW"
+  var name_str= NEW_flag || alarmInst_EL.$E.Name.innerHTML.replaceAll("<br>", "\n"); //autoreplace "<br>"s
+  var orig_name_str= name_str;
+  var prom_str= (NEW_flag?"New ":"") +'Alarm name' +g_promStr(name_str, NEW_flag?"?":"") +'<br>80 chars max, shift-enter for linebreak<br>(html allowed)'
+  namePrompt_fn(); //so can be reused as err cb
 
-    info_str= (resp || "").trim();
-    if (info_str.length > 80) {
-      jm.error(`<p class="bad">Info length is up to 80 chars</p>Your text is ${info_str.length} chars`, () => {
-        alrm_editInfo(info_str, NEW_flag); //try again (and we dont throw away what you typed in)
-      });
-    } else {
-      info_str= info_str.replaceAll("\n", "<br>"); //autoreplace "\n"s
-      if (NEW_flag) {
-        alrm_editTime(info_str || "*"); //so NEW_str not empty
+  function namePrompt_fn() {
+    jm.prompt_textarea(prom_str, name_str, resp => {
+      if (resp==null || (resp==orig_name_str && !NEW_flag)) return; //-->
+
+      name_str= (resp || "").trim();
+      if (name_str.length > 80) {
+        jm.error(`<p class="bad">Name length is up to 80 chars</p>Your text is ${name_str.length} chars`, () => {
+          namePrompt_fn();
+        });
       } else {
-        alarmInst_EL.$E.Info.innerHTML= info_str;
-        alrm_glow();
-        alarms_save();
+        name_str= name_str.replaceAll("\n", "<br>"); //autoreplace "\n"s
+        if (NEW_flag) {
+          alrm_editTime(name_str || "*"); //so NEW_str not empty
+        } else {
+          alarmInst_EL.$E.Name.innerHTML= name_str;
+          alrm_glow();
+          alarms_save();
+        }
       }
-    }
-  }, NEW_flag); //NEW_flag as highlight
-} //alrm_editInfo()
+    }, NEW_flag); //NEW_flag as highlight
+  } //namePrompt_fn()
 
-function alrm_editTime(NEW_str) {
-  var orig_alrm_str= NEW_str ? "12:00" : alarmInst_EL.$E.Time.textContent;
-  var alrm_str= orig_alrm_str;
-  var livePreview_EL;
+} //alrm_editName()
 
-  function pop_prompt() {
-    alrm_str= jm._ELs.Input.value;
-    var alarmNow_obj= alrm_procTimeText(alrm_str, "preview");
-    livePreview_EL.innerHTML= alarmNow_obj ? (alarmNow_obj.time +"<br>" +alarmNow_obj.modifier) : "";
-  }
-
-  var prom_str= g_promStr(NEW_str, alrm_str);
+function alrm_editTime(NEW_str) { //if new, NEW_str is alarm name
+  var orig_time_str= NEW_str ? "12:00" : alarmInst_EL.$E.Time.textContent;
+  var time_str= orig_time_str;
+  var prom_str= "Alarm time" +g_promStr(NEW_str, time_str);
   timePrompt_fn(); //so can be reused as err fn
 
   function timePrompt_fn() {
-    jm.prompt(prom_str, alrm_str, {
+    jm.prompt(prom_str, time_str, {
       //jm custom cb object
 
       begin_cb: () => {
@@ -1772,23 +1770,23 @@ function alrm_editTime(NEW_str) {
 
       //custom hook
       Input_keyup: evt => { //or "aliasIO_keyup" would work also
-        if (alrm_str != jm._ELs.Input.value) pop_prompt();
+        if (time_str != jm._ELs.Input.value) pop_prompt();
         //ignore many unwanted keys like "Shift"
       },
 
       end_cb: resp => {
-        var mod_alrm_str= resp;
-        if (mod_alrm_str==null || (mod_alrm_str==orig_alrm_str && !NEW_str)) return; //-->
+        var mod_time_str= resp;
+        if (mod_time_str==null || (mod_time_str==orig_time_str && !NEW_str)) return; //-->
 
         //proc input str
         var alarmNow_obj;
-        if (alarmNow_obj= alrm_procTimeText(mod_alrm_str, timePrompt_fn)) {
-          //pass time_prompt() as err_cb (try again)
+        if (alarmNow_obj= alrm_procTimeText(mod_time_str, timePrompt_fn)) {
+          //time_prompt() as err cb (try again)
 
           if (NEW_str) {
             alrm_execAdd();
             sound_play("bell");
-            alarmInst_EL.$E.Info.innerHTML= NEW_str;
+            alarmInst_EL.$E.Name.innerHTML= NEW_str;
           }
 
           alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
@@ -1802,6 +1800,13 @@ function alrm_editTime(NEW_str) {
       }
     }, NEW_str); //NEW_str as highlight
   } //time_prompt()
+
+  var livePreview_EL;
+  function pop_prompt() {
+    time_str= jm._ELs.Input.value;
+    var alarmNow_obj= alrm_procTimeText(time_str, "preview");
+    livePreview_EL.innerHTML= alarmNow_obj ? (alarmNow_obj.time +"<br>" +alarmNow_obj.modifier) : "";
+  }
 
 } //alrm_editTime()
 
@@ -2088,7 +2093,7 @@ function alrm_initCountdown(aI_EL =alarmInst_EL) {
 } //alrm_initCountdown()
 
 function alrm_add() { //from UI
-  alrm_editInfo("NEW", "New ");
+  alrm_editName("NEW");
 } //alrm_add()
 
 function alrm_execAdd() { //add 1
@@ -2101,10 +2106,8 @@ function alrm_execAdd() { //add 1
 } //alrm_execAdd()
 
 function alrm_delete() { //from alarm delete-button
-  var prom_str= g_promStr();
-  jm.confirm('<p>Delete alarm?</p>' +prom_str, resp => {
-    if (resp != true) return; //null or false //-->
-
+  jm.confirm('Delete alarm?' +g_promStr(), resp => {
+    if (resp != true) return; //null-->
     alrm_execDelete();
   });
 } //deleteAlarm()
@@ -2128,19 +2131,19 @@ function alrm_exeDel() { //from alrm_execDelete() or alarms_import()
 } //alrm_exeDel()
 
 
-function g_promStr(str, t_str) {
+function g_promStr(n_str, t_str) {
   var alStrO;
-  if (!str || !t_str) alStrO= g_alStrO(alarmInst_EL);
-  return `<p>${str || alStrO.inf}</p>Time:<b class="livePreview">${t_str || alStrO.tim}</b>`;
+  if (!n_str || !t_str) alStrO= g_alStrO(alarmInst_EL);
+  return `<p>${n_str || alStrO.name}</p>Time:<b class="livePreview">${t_str || alStrO.time}</b>`;
 } //g_promStr()
 
 function g_alStrO(aI_EL) {
-  var str= aI_EL.$E.Info.innerHTML.replaceAll("<br>", " | ");
+  var str= aI_EL.$E.Name.innerHTML.replaceAll("<br>", " | ");
   var tmp_doc= new DOMParser().parseFromString(str, 'text/html');
   str= (tmp_doc.body.textContent || "").substring(0, 40);
   return {
-    inf: str,
-    tim: aI_EL.$E.Time.textContent
+    name: str,
+    time: aI_EL.$E.Time.textContent
   };
 } //g_alStrO()
 
@@ -2198,7 +2201,7 @@ console.log("bad alarm time", alrm_str)
 
 function alrm_silentExpire(aI_EL) { //alarm not active, so no ringer
   var alStrO= g_alStrO(aI_EL);
-  var msg_EL= message_add("Alarm expired: " +alStrO.tim +" | " +alStrO.inf, "pink");
+  var msg_EL= message_add("Alarm expired: " +alStrO.time +" | " +alStrO.name, "pink");
   msg_EL.$exp_aI_EL= aI_EL;
   aI_EL.$exp_msg_EL= msg_EL;
 } //alrm_silentExpire()
@@ -2307,7 +2310,7 @@ function alarms_import(imported_str) {
 
           k_str= spl_ar[4] ? " (K)" : ""; //keeper league
           html_str= `${tSpl_ar[0]} <br><b>${spl_ar[3]}</b>${k_str} <b class="PC_tid" title="?">${spl_ar[5]}</b>`;
-          alarmInst_EL.$E.Info.innerHTML= html_str;
+          alarmInst_EL.$E.Name.innerHTML= html_str;
 
           alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
           alrm_initCountdown();
@@ -2350,10 +2353,10 @@ function alarms_save() {
   var saveAl_arr= []; //another temporary data model
   if (aI_NL.length) {
     var a_obj;
-    var info_str;
+    var name_str;
     [...aI_NL].forEach(aI_EL => {
       a_obj= {id:aI_EL.id *1, t:aI_EL.$E.Time.textContent}; //id, time
-      if (info_str= aI_EL.$E.Info.innerHTML) a_obj.i= info_str;
+      if (name_str= aI_EL.$E.Name.innerHTML) a_obj.n= name_str;
       if (aI_EL.$D.vu_cd) a_obj.c= 1; //countdown view
 
       if (disabler_mode ? !aI_EL.querySelector("input").checked : !aI_EL.checkVisibility()) a_obj.d= 1; //disabled
@@ -2389,9 +2392,9 @@ function ringer_start(aI_EL) {
     sound_play("rngr");
   }, 5000);
 
-  jm.confirm("<p>" +active_aI_EL.$E.Info.textContent +"</p>Alarm off?", {
+  jm.confirm("Alarm ring<p>" +active_aI_EL.$E.Name.textContent +"</p>", {
     //jm custom cb object
-    custButText: {CancelBut: "SNOOZE"},
+    custButText: {OkBut:"OFF", CancelBut:"SNOOZE"},
     end_cb: resp => {
       if (resp) resp= "off"; //true .. "off" //else snooze
       ringer_stop(resp);
@@ -2479,8 +2482,8 @@ bC.onmessage= evt => {
 function PClink(tid_EL) { //PennantChase
   var tid= tid_EL.textContent;
   var lgid= tid.split("-")[0];
-  var tname= tid_EL.closest("div.alarmInfo").querySelector("b").textContent; //tree up then down
-  //div.alarmInfo will contain 2 <b>, 1st will be teamname, 2nd will be tid with <b class="PC_tid">
+  var tname= tid_EL.closest("div.alarmName").querySelector("b").textContent; //tree up then down
+  //div.alarmName will contain 2 <b>, 1st will be teamname, 2nd will be tid with <b class="PC_tid">
   jm.alert(`PennantChase<br>lg${lgid} ${tname}<a href="https://www.pennantchase.com/lgTeamLineup.aspx?tid=${tid}&lgid=${lgid}" target="_blank">Lineup</a>`);
 } //PClink()
 
