@@ -1508,8 +1508,7 @@ function alarms_start() {
       aInst_EL= template_alarmInst_EL.cloneNode(true); //clone
       alarmsCont_EL.appendChild(aInst_EL); //add
       alrm_addHelpers(aInst_EL, a_obj.id);
-      aInst_EL.$E.Name.innerHTML= a_obj.n                     || a_obj.i || ""; //alarm name
-///////////////////////////tbd
+      aInst_EL.$E.Name.innerHTML= a_obj.n || ""; //alarm name
       aInst_EL.$E.Time.textContent= a_obj.t; //alarm time
       alrm_initCountdown(aInst_EL);
       if (a_obj.c) alrm_setTorC(aInst_EL, true, "persist"); //init alarm countdown view
