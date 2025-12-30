@@ -190,11 +190,12 @@ div#topButtons {
   }
 }
 
-div#wakeLockEnable {
+div#wakeLockIndicator {
   line-height: 24px;
   position: fixed;
   right: 4px;
   bottom: 4px;
+  cursor: default;
 
   &.on {
     background-color: lightskyblue;
@@ -787,7 +788,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 </div>
 
 
-<div id="wakeLockEnable" class="squareButton" title="Wake Lock">🔒</div>
+<div id="wakeLockIndicator" class="squareButton" title="Wake Lock">🔒</div>
 
 
 <div id="clockFace">
@@ -1152,7 +1153,7 @@ var disabler_EL= topButs_EL.querySelector("div#diasablerModeBut");
 //var add_EL= topButs_EL.querySelector("div#addAlarmBut");
 var trash_EL= topButs_EL.querySelector("div#trashCan");
 
-var wlEnable_EL= document.querySelector("div#wakeLockEnable");
+var wakeLock_EL= document.querySelector("div#wakeLockIndicator");
 
 var msgCont_EL= document.querySelector("div#msgContainer");
 
@@ -1340,7 +1341,7 @@ alarmsCont_EL.addEventListener("click", evt => {
 });
 
 
-wlEnable_EL.addEventListener("click", wakeLock_set); //toggle //no more toggle, just a msg
+wakeLock_EL.addEventListener("click", wakeLock_set); //toggle //no more toggle, just a msg
 
 //https://developer.chrome.com/blog/new-in-chrome-79/#wake-lock
 var wakeLock_OBJ;
@@ -1348,12 +1349,12 @@ async function _wakeLock_on() {
   if (document.hidden) return; //-->
 	try {
 		wakeLock_OBJ= await navigator.wakeLock.request();
-    classEl(wlEnable_EL, "on");
+    classEl(wakeLock_EL, "on");
 
   	wakeLock_OBJ.addEventListener("release", () => {
       sound_play("snoz");
   		wakeLock_OBJ= undefined; //clear global
-      classEl(wlEnable_EL, "on", false);
+      classEl(wakeLock_EL, "on", false);
   	});
 	} catch (err) {console.log(err.message); }
 } //_wakeLock_on()
@@ -1982,8 +1983,12 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
   function g_fromHTimeToDateObj(htO) { //from human time 12:59am/pm, to computer time 23:59
     var dtO= new Date(); //dateobj, start as now, but most items will be re-set
 
-    if (htO.MD) dtO.setMonth(htO.MD.mo -1, htO.MD.da); //m 0..11 //d 1..31
-    //.. dont set month and date separately, because months having diff number of days, mistake can happen
+    if (htO.MD) {
+      dtO.setMonth(htO.MD.mo -1, htO.MD.da); //m 0..11 //d 1..31
+      //.. dont set month and date separately, because months having diff number of days, mistake can happen
+
+      if (htO.MD.yr) dtO.setFullYear(htO.MD.yr); //for december
+    }
 
     var h= htO.h;
     if (h == 12) h= 0;
@@ -1994,12 +1999,12 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     dtO.setSeconds(0);
 
     var diff_ms= dtO -new Date();
-
     if (diff_ms < 1) { //if reqTime less than nowTime
       if (htO.MD) {
         if (htO.MD.DoW) dtO.setDate(dtO.getDate() +7); //+1 week //DayOfWeek
         else if (htO.MD.mW) dtO.setMonth(dtO.getMonth() +1); //+1 month //mon_wildcard_str
         else dtO.setFullYear(dtO.getFullYear() +1); //+1 year
+
       } else {
         dtO.setDate(dtO.getDate() +1); //+1 day
       }
@@ -2020,7 +2025,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     var mon_wildcard_str;
     var DoW_str;
     if (mD_str.includes("/")) { //mon/day
-      var month, day;
+      var month, day, year;
       [month, day]= mD_str.split("/");
 
       month*= 1;
@@ -2046,6 +2051,8 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
       if (DoW_diff_n) {
         if (DoW_diff_n < 0) DoW_diff_n+= 7;
         copy_dtO.setDate(copy_dtO.getDate() +DoW_diff_n); //getDate() will change month/day correctly
+        year= copy_dtO.getFullYear();
+        if (year == time_dtO.getFullYear()) year= undefined; //no need
       }
       month= copy_dtO.getMonth() +1;
       day= copy_dtO.getDate(); //.getDate(), could be called getDay, returns 1-31
@@ -2056,7 +2063,8 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
 
     var o= {
       mo: month,
-      da: day
+      da: day,
+      yr: year
     };
     if (DoW_str) o.DoW= DoW_str;
     if (mon_wildcard_str) o.mW= mon_wildcard_str;
@@ -2153,11 +2161,8 @@ function alrm_activate(aI_EL) {
   if (on_flag) {
     var alrm_str= aI_EL.$E.Time.textContent;
     var alarmNow_obj= alrm_procTimeText(alrm_str); //nrn, final check of alrm_str
-    if (!alarmNow_obj) {
-      flag= false;
-console.log("bad alarm time", alrm_str)
-    }
-  } //on_flag
+    if (!alarmNow_obj) {on_flag= false; console.log("bad alarm time", alrm_str); }
+  }
 
 //console.log("prev alarm off? active_aI_EL", aId(active_aI_EL))
   if (active_aI_EL) { //prev active-alarm off
