@@ -3105,7 +3105,7 @@ var fClick_flag= true;
 alarms_urlImport(window.location.search);
 if (fClick_flag) { //satisfy browser requirement to allow play-sound
 
-  data_load(["snooze_num", ""], dataO => {
+  data_load(["snooze_num", "timeview_flag"], dataO => {
     snooze_def_num= (dataO.snooze_num || 5) *1; //default 5
     timeview_def_flag= dataO.timeview_flag; //true is view-countdown
   });
