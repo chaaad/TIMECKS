@@ -1804,19 +1804,20 @@ function alrm_editTime(NEW_str) { //if new, NEW_str is alarm name
   var livePreview_EL;
   function pop_prompt() {
     time_str= jm._ELs.Input.value;
-    var alarmNow_obj= alrm_procTimeText(time_str, "preview");
-    livePreview_EL.innerHTML= alarmNow_obj ? (alarmNow_obj.time +"<br>" +alarmNow_obj.modifier) : "";
+    var alarmNow_obj= alrm_procTimeText(time_str, "previewLive");
+    livePreview_EL.innerHTML= alarmNow_obj ? (alarmNow_obj.time +"<br>" +alarmNow_obj.lpUntil) : "";
   }
 
 } //alrm_editTime()
 
 
-var DoW2_arr= "SU,MO,TU,WE,TH,FR,SA".split(",");
 var DoW_arr= "SUN,MON,TUE,WED,THU,FRI,SAT".split(",");
 
 function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is good
-  var preview_flag= (typeof(param) == "string"); //'preview' will not alert errors
-  var err_cb= (typeof(param) == "function") ? param : undefined;
+  var preview_flag;
+  var err_cb;
+  if (typeof(param) == "string") preview_flag= param; //'preview' will not alert errors
+  else if (typeof(param) == "function") err_cb= param;
 
   //.. geared toward keypad input, with some shortcuts baked in
   input_str= input_str.trim();
@@ -1870,12 +1871,12 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
 
   if (moDaO) raw_hTimO.MD= moDaO;
 
-  time_dtO= g_fromHTimeToDateObj(raw_hTimO);
+  time_dtO= g_dtO_fromHumanDtO(raw_hTimO);
 
-  var modifier_str= "";
+  var lpUntil_str;
 
-  var ofsO;
   if (offset_str) {
+    var ofsO;
     ofsO= g_procRawTime(offset_str, "offset");
     if (ofsO.h +ofsO.m < 1) return err("0 hour+minute (offset mode)"); //-->
 
@@ -1892,9 +1893,12 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
       time_ms+= sgn_num *ofsO.h *3600000; //60*60*1000 //modify hrs
     }
 
-    modifier_str= "(" +get_fmatHTime_str(raw_hTimO);
-    modifier_str+= " OFFSET";
-    modifier_str+= offsetMod_str +g_untilStr(ofsO.m, ofsO.h) +")";
+    if (preview_flag == "previewLive") {
+      lpUntil_str= "(" +get_fmatHTime_str(raw_hTimO);
+      lpUntil_str+= " OFFSET";
+      lpUntil_str+= offsetMod_str +g_untilStr(ofsO.m, ofsO.h) +")";
+    }
+
     time_dtO= new Date(time_ms);
     //DST handled here by js date ?
 
@@ -1904,11 +1908,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
         da: time_dtO.getDate()
       };
     }
-
-  } else { //no offset given, derive for modifier_str
-    let modifier_ms= time_dtO -new Date();
-    modifier_str= `(in: ${g_untilStr(Math.ceil(modifier_ms /60000))})`;
-  }
+  } //offset_str
 
   function g_procRawTime(str, offset_flag) {
     var h= m= 0;
@@ -1952,10 +1952,15 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
   proc_24to12(hTimO);
   if (moDaO) hTimO.MD= moDaO;
 
+  if (preview_flag=="previewLive" && !lpUntil_str) {
+    let diff_ms= time_dtO -new Date(); //ms
+    lpUntil_str= `(in: ${g_untilStr(Math.ceil(diff_ms /60000))})`; //ms to minutes
+  }
+
   //success
   return {
     time: get_fmatHTime_str(hTimO),
-    modifier: modifier_str,
+    lpUntil: lpUntil_str,
     ms: time_dtO.getTime(),
     hTimO: hTimO
   };
@@ -1968,7 +1973,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
 
   function get_fmatHTime_str(tO) {
     var str= "";
-    if (tO.MD) str= (tO.MD.DoW ? tO.MD.DoW : ((tO.MD.mW || tO.MD.mo) +"/" +tO.MD.da)) +" ";
+    if (tO.MD) str= (tO.MD.DoW ? tO.MD.DoW : ((tO.MD.mW || tO.MD.mo) +"/" +tO.MD.da)) +" "; //DoW or m/d
     return str +tO.h +":" +String(tO.m).padStart(2, "0")  +(tO.p?" PM":" AM"); //human time
   } //get_fmatHTime_str()
 
@@ -1980,15 +1985,11 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     tO.h= h;
   }
 
-  function g_fromHTimeToDateObj(htO) { //from human time 12:59am/pm, to computer time 23:59
+  function g_dtO_fromHumanDtO(htO) { //from human time 12:59am/pm, to computer time 23:59
     var dtO= new Date(); //dateobj, start as now, but most items will be re-set
 
-    if (htO.MD) {
-      dtO.setMonth(htO.MD.mo -1, htO.MD.da); //m 0..11 //d 1..31
-      //.. dont set month and date separately, because months having diff number of days, mistake can happen
-
-      if (htO.MD.yr) dtO.setFullYear(htO.MD.yr); //for december
-    }
+    if (htO.MD) dtO.setMonth(htO.MD.mo -1, htO.MD.da); //m 0..11 //d 1..31
+    //.. dont set month and date separately, because months having diff number of days, mistake can happen
 
     var h= htO.h;
     if (h == 12) h= 0;
@@ -1999,11 +2000,17 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     dtO.setSeconds(0);
 
     var diff_ms= dtO -new Date();
-    if (diff_ms < 1) { //if reqTime less than nowTime
+    if (diff_ms < 1) { //if less than nowTime
+      //dtO to future
       if (htO.MD) {
-        if (htO.MD.DoW) dtO.setDate(dtO.getDate() +7); //+1 week //DayOfWeek
-        else if (htO.MD.mW) dtO.setMonth(dtO.getMonth() +1); //+1 month //mon_wildcard_str
-        else dtO.setFullYear(dtO.getFullYear() +1); //+1 year
+        if (htO.MD.DoW) {
+          if (diff_ms > -604800000) dtO.setDate(dtO.getDate() +7); //+1 week, DayOfWeek
+          else dtO.setFullYear(dtO.getFullYear() +1); //+1 year, for December
+        } else if (htO.MD.mW) {
+          dtO.setMonth(dtO.getMonth() +1); //+1 month, mon_wildcard_str
+        } else {
+          dtO.setFullYear(dtO.getFullYear() +1); //+1 year, m/d
+        }
 
       } else {
         dtO.setDate(dtO.getDate() +1); //+1 day
@@ -2012,7 +2019,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     }
 
     return dtO;
-  } //g_fromHTimeToDateObj()
+  } //g_dtO_fromHumanDtO()
 
   function err(err_str) {
     if (preview_flag) return; //-->
@@ -2024,38 +2031,33 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
   function proc_moDa(mD_str) { //if success, returns obj
     var mon_wildcard_str;
     var DoW_str;
-    if (mD_str.includes("/")) { //mon/day
-      var month, day, year;
+    if (mD_str.includes("/")) { // m/d (mon/day)
+      var month, day;
       [month, day]= mD_str.split("/");
 
       month*= 1;
       if (isNaN(month) || month<1 || month>12) {
-        mon_wildcard_str= "?"; //month wildcard
+        mon_wildcard_str= "?"; // ?/d (month wildcard)
         month= time_dtO.getMonth() +1; //no month? assume this month
       }
 
       day*= 1;
       if (isNaN(day) || day<1 || day>31) day= 1; //not verifying against number of days in month
 
-    } else if (mD_str.search(/^[SMTWF]/) == 0) { //Day of Week
-      var f2_str= mD_str.substring(0, 2); //"SU" is ok, "S" is not
-      if (f2_str.length < 2) return; //-->
+    } else if (mD_str.search(/^[SMTWF]/) == 0) { // DoW (Day of Week)
+      var match_arr= [];
+      DoW_arr.forEach((str, i) => {if (str.indexOf(mD_str)==0) match_arr.push(i); });
+      if (match_arr.length != 1) return; //-->
 
-      var raw_DoW_n= DoW2_arr.indexOf(f2_str);
-      if (raw_DoW_n < 0) return; //-->
-
-      DoW_str= DoW_arr[raw_DoW_n];
-
+      var DoW_n= match_arr[0];
       var copy_dtO= new Date(time_dtO); //lets not change time_dtO here
-      var DoW_diff_n= raw_DoW_n -copy_dtO.getDay(); //.getDay(), could be called getDoW, returns 0-6 (sun-sat)
-      if (DoW_diff_n) {
-        if (DoW_diff_n < 0) DoW_diff_n+= 7;
-        copy_dtO.setDate(copy_dtO.getDate() +DoW_diff_n); //getDate() will change month/day correctly
-        year= copy_dtO.getFullYear();
-        if (year == time_dtO.getFullYear()) year= undefined; //no need
-      }
+      var DoW_diff_n= DoW_n -copy_dtO.getDay(); //.getDay(), could be called getDoW, returns 0-6 (sun-sat)
+      if (DoW_diff_n) copy_dtO.setDate(copy_dtO.getDate() +DoW_diff_n); //getDate() will change month/day correctly
+
       month= copy_dtO.getMonth() +1;
       day= copy_dtO.getDate(); //.getDate(), could be called getDay, returns 1-31
+
+      DoW_str= DoW_arr[DoW_n];
 
     } else {
       return; //fail //-->
@@ -2063,11 +2065,11 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
 
     var o= {
       mo: month,
-      da: day,
-      yr: year
+      da: day
+      //yr: year
     };
     if (DoW_str) o.DoW= DoW_str;
-    if (mon_wildcard_str) o.mW= mon_wildcard_str;
+    else if (mon_wildcard_str) o.mW= mon_wildcard_str;
 
     //success
     return o;
@@ -2451,20 +2453,21 @@ function snooze_check() {
 } //snooze_check()
 
 function g_untilStr(m, h) {
+  var str;
   if (m >= 1440) {
    str= Math.floor(m /1440) +"d";
 
   } else {
-    var mnt_flag;
+    var minute_flag;
     if (h == undefined) {
-      mnt_flag= true;
+      minute_flag= true;
       if (m > 59) {
         h= Math.floor(m /60);
         m= m %60;
       }
     }
-    var str= h ? (h +"h") : "";
-    if (mnt_flag || m) str+= " " +m +"m";
+    str= h ? (h +"h") : "";
+    if (minute_flag || m) str+= " " +m +"m";
   }
 
   return str || "0";
