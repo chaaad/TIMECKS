@@ -237,7 +237,6 @@ div#alarmsContainer {
   font-size: larger;
   padding: 8px;
   position: relative;
-  margin-bottom: 40px; /*so its possible for wakelock button to not overlay anything */
 
   div.alarmInstance {
     margin-bottom: 20px;
@@ -952,7 +951,7 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
   var minute_ms= start_dtO.getSeconds()*1000 +start_dtO.getMilliseconds();
   var topOfMinute_ms= 60000 -minute_ms;
   setTimeout(() => {
-    clock_elapse_ms+= topOfMinute_ms;//inc (1st min)
+    clock_elapse_ms+= topOfMinute_ms; //inc (1st min)
     clock_advance(); //1st
 
     mainloop(); //kickoff
@@ -967,12 +966,6 @@ console.log("clock_start", start_dtO.toLocaleTimeString());
           if (imported_str) alarms_import(imported_str);
         });
         //.. like a poll, for "importedAlarm" in localStorage
-
-        if (active_flag) {
-          if (!wakeLock_OBJ) wakeLock_toggle(); //on
-        } else {
-          if (wakeLock_OBJ) wakeLock_toggle(); //off
-        }
 
         mainloop(); //recurse-->
 
@@ -1347,36 +1340,48 @@ alarmsCont_EL.addEventListener("click", evt => {
 });
 
 
-wlEnable_EL.addEventListener("click", wakeLock_toggle);
+wlEnable_EL.addEventListener("click", wakeLock_set); //toggle //no more toggle, just a msg
 
 //https://developer.chrome.com/blog/new-in-chrome-79/#wake-lock
 var wakeLock_OBJ;
-async function wakeLock_request() {
+async function _wakeLock_on() {
   if (document.hidden) return; //-->
-
 	try {
 		wakeLock_OBJ= await navigator.wakeLock.request();
     classEl(wlEnable_EL, "on");
 
   	wakeLock_OBJ.addEventListener("release", () => {
+      sound_play("snoz");
   		wakeLock_OBJ= undefined; //clear global
       classEl(wlEnable_EL, "on", false);
   	});
 	} catch (err) {console.log(err.message); }
-} //wakeLock_request()
+} //_wakeLock_on()
 
-async function wakeLock_release() { //note: minimizing of browser, or unfocus of browser tab, will automatically release wakeLock
+async function _wakeLock_off() { //note: minimizing of browser, or unfocus of browser tab, will automatically release wakeLock
 	if (!wakeLock_OBJ) return; //-->
-
   try {await wakeLock_OBJ.release(); }
 	catch (err) {console.log(err.message); }
-} //wakeLock_release()
+} //_wakeLock_off()
 
+function wakeLock_set(flag) { //on, off, click-evt (toggle)
+	if (flag=="on") {
+    if (!wakeLock_OBJ) _wakeLock_on();
+  } else if (flag=="off") {
+    if (wakeLock_OBJ) _wakeLock_off();
+  } else { //wakeLock button click
+    //wakeLock_set(wakeLock_OBJ ? "off" : "on"); //toggle
 
-async function wakeLock_toggle() {
-	if (wakeLock_OBJ) await wakeLock_release(); //off
-	else await wakeLock_request(); //on
-} //wakeLock_toggle()
+    //no more toggle, wakeLock became auto, just show msg
+    jm.alert("Wake Lock prevents sleep mode.<br>However, Wake Lock is disabled when this page is hidden.");
+  }
+} //wakeLock_set()
+
+document.addEventListener("visibilitychange", function() {
+  //wakeLock auto
+  if (!document.hidden) wakeLock_set("on"); //on "wake" or "show"
+  //else (on sleep, browser minimized or tab switch, another window covers this window), do nothing
+});
 
 var stg_mode;
 function stgs_tog(but_EL) {
@@ -1482,7 +1487,7 @@ function trash_clicked() {
   jm.alert("You can delete an alarm by Dragging and Dropping it onto the Trash button");
 } //trash_clicked()
 
-var active_flag;
+var activeCountdown_flag;
 var active_ctdn_m;
 var active_hTimO;
 
@@ -1492,7 +1497,7 @@ var vis_ct;
 function alarms_start() {
   disblr_ct= 0;
   vis_ct= 0;
-  alarmsCont_EL.innerHTML= "";
+  alarmsCont_EL.innerHTML= ""; //clear container el
   alarmInst_EL= undefined;
 
   data_load("alarms", dataO => {
@@ -1526,6 +1531,7 @@ function alarms_start() {
     aI_NL= alarmsCont_EL.getElementsByClassName("alarmInstance");
 
     alarms_sort();
+    wakeLock_set("on");
   });
 } //alarms_start()
 
@@ -1534,20 +1540,14 @@ var disabler_mode;
 var disblr_ct; //for css checkbox label to work
 
 function disablerMode_toggle() {
-  if (!disabler_mode) { //turn disabler mode on}
-    if (wakeLock_OBJ) wakeLock_toggle(); //off
-    showEl(wlEnable_EL, false);
-
-  } else { //turn disabler mode off
-    showEl(wlEnable_EL);
+  disabler_mode= !disabler_mode; //toggle
+  if (!disabler_mode) { //turn disabler mode off
     active_aI_EL= undefined; //so will auto-activate top alarm (alarms_sort)
   }
 
-  disabler_mode= !disabler_mode; //toggle
   classEl(disabler_EL, "down", disabler_mode);
   classEl(alarmsCont_EL, "disablableContainer", disabler_mode);
   alarms_start();
-
 } //disablerMode_toggle()
 
 
@@ -1680,7 +1680,7 @@ function alrm_addHelpers(aI_EL, id) { //.dataset only stores strings
   };
 } //alrm_addHelpers()
 
-function alrm_genId() {
+function alrm_genId() { //keeps id values low by utilizing unused slots
   var id_arr= [];
   var id;
   [...aI_NL].forEach(aI_EL => {
@@ -2169,11 +2169,11 @@ console.log("bad alarm time", alrm_str)
   }
 
   if (on_flag) { //alarm on
-    active_flag= true;
     active_aI_EL= aI_EL;
+    activeCountdown_flag= true;
     active_ctdn_m= aI_EL.$D.ctdn_m;
-    active_hTimO= alarmNow_obj.hTimO;
     activeCountdown_EL.textContent= g_untilStr(active_ctdn_m);
+    active_hTimO= alarmNow_obj.hTimO;
 
     classEl(aI_EL, "alarmActive");
     aI_EL.after(activeDiv_EL);
@@ -2186,11 +2186,10 @@ console.log("bad alarm time", alrm_str)
 
     sound_play("beep");
     alrm_scrollTo();
-    if (!wakeLock_OBJ) wakeLock_toggle(); //on
 
   } else { //alarm off
-    active_flag= false;
     active_aI_EL= undefined;
+    activeCountdown_flag= false;
     active_ctdn_m= 0;
 
     showEl(activeDiv_EL, false);
@@ -2215,7 +2214,7 @@ function alarms_minuteUpdate() {
   [...aI_NL].forEach(aI_EL => {
     if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
       aI_EL.$D.ctdn_m-= 1; //-1 minute
-      if (aI_EL==active_aI_EL && active_flag) active_ctdn_m= aI_EL.$D.ctdn_m;
+      if (aI_EL==active_aI_EL && activeCountdown_flag) active_ctdn_m= aI_EL.$D.ctdn_m;
 
       if (aI_EL.$D.ctdn_m <1 ) { //expire
         if (!aI_EL.classList.contains("expired")) { //new expire
@@ -2231,12 +2230,12 @@ function alarms_minuteUpdate() {
       if (until_str != aI_EL.$E.Ctdn.textContent) aI_EL.$E.Ctdn.textContent= until_str;
       //.. alarms 1+ days, dont need to re-render every minute
 
-    } //skip not visible
+    } //visible
   });
 
-  if (active_flag) {
+  if (activeCountdown_flag) {
     if (active_ctdn_m < 1) { //end active countdown
-      active_flag= false;
+      activeCountdown_flag= false;
       showEl(activeCountdown_EL, false);
       ringer_start(active_aI_EL);
     } else {
@@ -2507,6 +2506,14 @@ var alrmExpChange_flag;
 function alrm_unexpire(aI_EL) {
   alrmExpChange_flag= true;
   delete aI_EL.$exp_msg_EL;
+
+  if (!aI_EL.closest("div#alarmsContainer")) { //is orphan
+    //after an alarms_start() (various ways), this aI_EL is an "orphan" (not in current DOM)
+    //find inteneded alarm..
+    aI_EL= alarmsCont_EL.querySelector('[id="' +aI_EL.id +'"]'); //note: els dont have .getElementById()
+    if (!aI_EL) return; //inteneded alarm not found //-->
+  }
+
   classEl(aI_EL, ["expired", "soon"], false);
   alrm_initCountdown(aI_EL);
   alrm_glow(2, aI_EL, "pink");
