@@ -831,18 +831,28 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 //<a href="https://www.freepik.com/icon/alarm-clock_15092469#fromView=keyword&page=1&position=21&uuid=6aee3d4d-c58a-453e-8681-22457f5c0a34">Icon by sonnycandra</a>
 //https://realfavicongenerator.net/
 
-var audioClips= {
-  beep: new Audio("https://cdn.freesound.org/previews/426/426892_7913959-lq.mp3"),
-  bell: new Audio("https://cdn.freesound.org/previews/173/173000_2193194-lq.mp3"),
-  buzz: new Audio("https://cdn.freesound.org/previews/696/696600_14786418-lq.mp3"),
-  //oops: new Audio("https://cdn.freesound.org/previews/124/124897_1707984-lq.mp3"),
-  slam: new Audio("https://cdn.freesound.org/previews/421/421472_3387258-lq.mp3"),
-  trsh: new Audio("https://cdn.freesound.org/previews/655/655617_13805813-lq.mp3"),
-  clik: new Audio("https://cdn.freesound.org/previews/668/668985_14100561-lq.mp3"),
-  snoz: new Audio("https://cdn.freesound.org/previews/425/425727_760420-lq.mp3"),
-  rngr: new Audio("https://cdn.freesound.org/previews/246/246332_4486188-lq.mp3")
-};
+var audioClips= {};
+init_audio();
 
+function init_audio() {
+  var nvO= {
+    beep: "426892_7913959",
+    bell: "173000_2193194",
+    clik: "668985_14100561",
+    buzz: "696600_14786418",
+    knoc: "425727_760420",
+    oops: "124897_1707984",
+    rngr: "246332_4486188",
+    slam: "421472_3387258",
+    trsh: "655617_13805813"
+  };
+  var val_str;
+  Object.keys(nvO).forEach(key => {
+    val_str= nvO[key];
+    audioClips[key]= new Audio("https://cdn.freesound.org/previews/" +val_str.substring(0, 3) +"/" +val_str +"-lq.mp3");
+    //beep= new Audio("https://cdn.freesound.org/previews/426/426892_7913959-lq.mp3")
+  });
+} //init_audio()
 
 var clockFace_EL= document.querySelector("DIV#clockFace");
 
@@ -933,7 +943,7 @@ function clock_start() {
   //start_dtO= dbgdate();
 
 console.log("clock_start", start_dtO.toLocaleTimeString());
-  sound_play("clik");
+  sound_play("oops");
 
   clock_elapse_ms= start_dtO.getTime();
 
@@ -1352,7 +1362,7 @@ async function _wakeLock_on() {
     classEl(wakeLock_EL, "on");
 
   	wakeLock_OBJ.addEventListener("release", () => {
-      sound_play("snoz");
+      sound_play("knoc");
   		wakeLock_OBJ= undefined; //clear global
       classEl(wakeLock_EL, "on", false);
   	});
@@ -2435,7 +2445,7 @@ function ringer_stop(flag, snooze_n) { //without flag, default is 'snooze'
     //note: snooze wont be exact, since it only checks/fires at top of minute
     //eg. 5 minutes will be 4-5 minutes
     snooze_ctdn_m= snooze_n || snooze_def_num;
-    sound_play("snoz");
+    sound_play("knoc");
   }
 
   snooze_draw(); //if needed
