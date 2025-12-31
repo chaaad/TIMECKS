@@ -1769,6 +1769,7 @@ function alrm_editTime(NEW_str) { //if new, NEW_str is alarm name
   var orig_time_str= NEW_str ? "12:00" : alarmInst_EL.$E.Time.textContent;
   var time_str= orig_time_str;
   var prom_str= "Alarm time" +g_promStr(NEW_str, time_str);
+  if (NEW_str) prom_str= "New " +prom_str;
   timePrompt_fn(); //so can be reused as err fn
 
   function timePrompt_fn() {
@@ -2127,9 +2128,12 @@ function alrm_execAdd() { //add 1
 } //alrm_execAdd()
 
 function alrm_delete() { //from alarm delete-button
-  jm.confirm('Delete alarm?' +g_promStr(), resp => {
-    if (resp != true) return; //null-->
-    alrm_execDelete();
+  jm.confirm('Delete alarm' +g_promStr(), {
+    custButText: {OkBut:"Delete"},
+    end_cb: resp => {
+      if (resp != true) return; //null-->
+      alrm_execDelete();
+    }
   });
 } //deleteAlarm()
 
@@ -2938,6 +2942,7 @@ var jm= {
     if (typeHas("BOOLEAN")) {
       jm.bool_kc0= jm._ELs.NoBut.textContent[0]; //1st char, "No" .. "N"
       jm.bool_kc1= jm._ELs.OkBut.textContent[0]; //1st char, "Yes" .. "Y"
+      //note: only boolean accepts button-first-letter keystrokes
       if (jm.bool_kc0 == jm.bool_kc1) { //need different keystrokes
         jm.bool_kc0= undefined;
         jm.bool_kc1= undefined;
