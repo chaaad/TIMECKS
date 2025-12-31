@@ -365,30 +365,32 @@ div#alarmsContainer {
         line-height:60px;
         text-align: center;
         margin-top: 12px;
-        color: black;
+        color: white;
         font-weight: bold;
         font-size: 24px;
         border-radius: 8px;
         cursor: pointer;
+        opacity: 50%;
 
         &:hover {
-          color: white;
+          opacity: 100%;
         }
       }
       div#wakeyOffBut {
-        background: gray;
+        background: #0078d0;
       }
       div#wakeySnoozeBut {
-        background: chartreuse;
+        background: chocolate;
 
         div { /*snooze numbers*/
           margin-top: -3px; /*weird but works*/
           span {
-            color: lightgray;
+            color: chocolate;
             cursor: pointer;
+            opacity: 50%;
 
             &:hover {
-              color: limegreen;
+              opacity: 100%;
             }
           }
         }
