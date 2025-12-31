@@ -1738,7 +1738,7 @@ function alrm_scrollTo(noExp_flag) {
 function alrm_editName(NEW_flag) { //if new, NEW_flag is "NEW"
   var name_str= NEW_flag || alarmInst_EL.$E.Name.innerHTML.replaceAll("<br>", "\n"); //autoreplace "<br>"s
   var orig_name_str= name_str;
-  var prom_str= (NEW_flag?"New ":"") +'Alarm name' +g_promStr(name_str, NEW_flag?"?":"") +'<br>80 chars max, shift-enter for linebreak<br>(html allowed)'
+  var prom_str= "Name, for " +(NEW_flag?"new ":"") +'alarm:' +g_promStr(name_str, NEW_flag?"?":"") +'<br>80 chars max, shift-enter for linebreak<br>(html allowed)'
   namePrompt_fn(); //so can be reused as err cb
 
   function namePrompt_fn() {
@@ -1768,8 +1768,7 @@ function alrm_editName(NEW_flag) { //if new, NEW_flag is "NEW"
 function alrm_editTime(NEW_str) { //if new, NEW_str is alarm name
   var orig_time_str= NEW_str ? "12:00" : alarmInst_EL.$E.Time.textContent;
   var time_str= orig_time_str;
-  var prom_str= "Alarm time" +g_promStr(NEW_str, time_str);
-  if (NEW_str) prom_str= "New " +prom_str;
+  var prom_str= "Time, for " +(NEW_str?"new ":"") +"alarm:" +g_promStr(NEW_str, time_str);
   timePrompt_fn(); //so can be reused as err fn
 
   function timePrompt_fn() {
@@ -2128,7 +2127,7 @@ function alrm_execAdd() { //add 1
 } //alrm_execAdd()
 
 function alrm_delete() { //from alarm delete-button
-  jm.confirm('Delete alarm' +g_promStr(), {
+  jm.confirm('Delete alarm:' +g_promStr(), {
     custButText: {OkBut:"Delete"},
     end_cb: resp => {
       if (resp != true) return; //null-->
