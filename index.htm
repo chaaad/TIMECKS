@@ -2582,7 +2582,7 @@ var clock_tzo;
 var tzoc_arr;
 
 function tzoc_start() { //runs upon startup
-  clockFace_EL.title= clock_TZ;
+  clockFace_EL.querySelector("div#dtDisplay").title= clock_TZ;
 
   clock_tzo= start_dtO.getTimezoneOffset();
   var year_n= start_dtO.getFullYear();
