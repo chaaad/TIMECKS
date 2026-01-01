@@ -1457,9 +1457,9 @@ function stgs_rDat() {
       if (json_dat) {
         data_save("alarms", json_str);
         alarms_start();
-        message_add("Alarms raw data saved", "lightblue");
+        message_add("Alarms raw data (JSON) saved", "lightblue");
       } else {
-        message_add("Loading Alarms raw data failed");
+        message_add("Saving Alarms raw data (JSON) failed");
       }
     }); //jm.prompt_textarea()
 
