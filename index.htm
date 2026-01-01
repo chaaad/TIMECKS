@@ -22,12 +22,6 @@ body {
 ul {list-style: none; }
 /*prereq css end*/
 
-i {
-  font-style: normal;
-  font-weight: bold;
-  font-size: 24px;
-}
-
 .squareButton {
   color: lightgray;
   background: #eee;
@@ -524,7 +518,11 @@ div#clockFace {
       left: 0;
       transform-origin: 50% 100%;
 
-      i {
+      i { /*comandeer i*/
+        font-style: normal;
+        font-weight: bold;
+        font-size: 24px;
+
         position: absolute;
         left: 50%;
         transform: translateX(-50%);
@@ -600,8 +598,8 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
   .jw-modal-item { /*modal instance*/
     font-size: larger;
-    width: 450px;
-    padding: 4px 8px;
+    width: 430px;
+    padding: 24px;
     background: #fff;
     margin: 0px auto; /*center horiz*/
     border-radius: 16px;
@@ -614,17 +612,19 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       width: auto;
     }
 
-    * {
-      margin:12px;
+    div#jwmContent {
+      margin-top: 8px;
     }
 
-    div#jwmContent {
-      margin-top: 50px;
-    }
     div#jwmDescription {
+      margin-bottom: 12px;
       line-height: 28px;
 
       b {
+        font-weight: 600;
+      }
+
+      i {
         color: cornflowerblue;
         &.E {
           color: red;
@@ -637,7 +637,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
         font-weight: bold;
         color: #0078d0;
 
-        .b {
+        .i {
           color: darkorange;
         }
       }
@@ -649,11 +649,13 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
     }
     input#jwmInput {
+      margin-bottom: 12px;
       width: 360px;
       font-size: xxx-large;
       padding: 4px;
     }
     textarea#jwmTextarea {
+      margin-bottom: 12px;
       width: 360px;
       height: 100px;
       padding: 8px;
@@ -685,6 +687,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       -webkit-user-select: none;
       touch-action: manipulation;
       min-width: 160px; /*timecks addition*/
+      margin: 12px 24px 12px 0;
     }
 
     button:before {
@@ -1386,7 +1389,7 @@ function wakeLock_set(flag) { //on, off, click-evt (toggle)
     //wakeLock_set(wakeLock_OBJ ? "off" : "on"); //toggle
 
     //no more toggle, wakeLock became auto, just show msg
-    jm.alert("Wake Lock prevents sleep mode.<br>However, Wake Lock is disabled when this page is hidden.");
+    jm.alert("<b>Wake Lock</b> prevents sleep mode.<br>However, Wake Lock is disabled when this page is hidden.");
   }
 } //wakeLock_set()
 
@@ -1411,7 +1414,7 @@ function stgs_dSnz(key) {
     if (v_num == snooze_def_num) return; //same, do nothing //-->
 
     if (isNaN(v_num) || v_num<1 || v_num>30) {
-      jm.error('<p class="bad">Snooze must be 1-30 minutes</p>Your input:<b class="E">' +resp +'</b>', () => {
+      jm.error('<p class="bad">Snooze must be 1-30 minutes</p>Your input:<i class="E">' +resp +'</i>', () => {
         timecksStgs_edit(); //try again
       });
     } else {
@@ -1497,7 +1500,7 @@ async function txtFile_fetch(url_str, cb) {
 } //txtFile_fetch()
 
 function trash_clicked() {
-  jm.alert("You can delete an alarm by Dragging and Dropping it onto the Trash button");
+  jm.alert("You can delete an alarm by Dragging and Dropping it onto the <b>Trash</b> button");
 } //trash_clicked()
 
 var activeCountdown_flag;
@@ -1738,7 +1741,7 @@ function alrm_scrollTo(noExp_flag) {
 function alrm_editName(NEW_flag) { //if new, NEW_flag is "NEW"
   var name_str= NEW_flag || alarmInst_EL.$E.Name.innerHTML.replaceAll("<br>", "\n"); //autoreplace "<br>"s
   var orig_name_str= name_str;
-  var prom_str= "Name, for " +(NEW_flag?"new ":"") +'alarm:' +g_promStr(name_str, NEW_flag?"?":"") +'<br>80 chars max, shift-enter for linebreak<br>(html allowed)'
+  var prom_str= "<b>Name</b> for " +(NEW_flag?"new ":"") +'alarm:' +g_promStr(name_str, NEW_flag?"?":"") +'<br>80 chars max, shift-enter for linebreak<br>(html allowed)'
   namePrompt_fn(); //so can be reused as err cb
 
   function namePrompt_fn() {
@@ -1768,7 +1771,7 @@ function alrm_editName(NEW_flag) { //if new, NEW_flag is "NEW"
 function alrm_editTime(NEW_str) { //if new, NEW_str is alarm name
   var orig_time_str= NEW_str ? "12:00" : alarmInst_EL.$E.Time.textContent;
   var time_str= orig_time_str;
-  var prom_str= "Time, for " +(NEW_str?"new ":"") +"alarm:" +g_promStr(NEW_str, time_str);
+  var prom_str= "<b>Time</b> for " +(NEW_str?"new ":"") +"alarm:" +g_promStr(NEW_str, time_str);
   timePrompt_fn(); //so can be reused as err fn
 
   function timePrompt_fn() {
@@ -1855,8 +1858,8 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
   if (time_str) {
     raw_hTimO= g_procRawTime(time_str);
 
-    if (raw_hTimO.h > 12) return err('bad hour:<b class="E">' +raw_hTimO.h +'"</b>max is 12'); //-->
-    if (raw_hTimO.m > 59) return err('bad minute:<b class="E">' +raw_hTimO.m +'</b>max is 59'); //-->
+    if (raw_hTimO.h > 12) return err('bad hour:<i class="E">' +raw_hTimO.h +'"</i>max is 12'); //-->
+    if (raw_hTimO.m > 59) return err('bad minute:<i class="E">' +raw_hTimO.m +'</i>max is 59'); //-->
 
     raw_hTimO.p= time_str.search(/P|\*/) > -1; //chars: P *
     let rawAmPm_flag= raw_hTimO.p || time_str.search(/A/) > -1; //chars: A (AM)
@@ -1896,12 +1899,12 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     var sgn_num= offsetMod_str=="+" ? 1 : -1;
 
     if (ofsO.m) {
-      if (ofsO.m > 59) return err(`modifier minutes:<b>${ofsO.m}</b>max is 59`); //-->
+      if (ofsO.m > 59) return err(`modifier minutes:<i class="E">${ofsO.m}</i>max is 59`); //-->
       time_ms+= sgn_num *ofsO.m *60000; //60*1000 //modify mns
     }
     if (ofsO.h) {
       let max_h= ofsO.m ? 23 : 24; //max 24 hrs modifier
-      if (ofsO.h > max_h) return err(`modifier hours:<b>${ofsO.h}</b>max is ${max_h}`); //-->
+      if (ofsO.h > max_h) return err(`modifier hours:<i class="E">${ofsO.h}</i>max is ${max_h}`); //-->
       time_ms+= sgn_num *ofsO.h *3600000; //60*60*1000 //modify hrs
     }
 
@@ -2036,7 +2039,7 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
   function err(err_str) {
     if (preview_flag) return; //-->
 
-    jm.error('<p class="bad">Alarm time error</p>' +err_str +'<br><br>Your raw input: <b class="E">' +input_str +'</b>', err_cb);
+    jm.error('<p class="bad">Alarm time error</p>' +err_str +'<br><br>Your raw input: <i class="E">' +input_str +'</i>', err_cb);
     //multiple errors are not returned, only the first error encountered
   }
 
@@ -2127,7 +2130,7 @@ function alrm_execAdd() { //add 1
 } //alrm_execAdd()
 
 function alrm_delete() { //from alarm delete-button
-  jm.confirm('Delete alarm:' +g_promStr(), {
+  jm.confirm("<b>Delete</b> alarm:" +g_promStr(), {
     custButText: {OkBut:"Delete"},
     end_cb: resp => {
       if (resp != true) return; //null-->
@@ -2158,7 +2161,7 @@ function alrm_exeDel() { //from alrm_execDelete() or alarms_import()
 function g_promStr(n_str, t_str) {
   var alStrO;
   if (!n_str || !t_str) alStrO= g_alStrO(alarmInst_EL);
-  return `<p>${n_str || alStrO.name}</p>Time:<b class="livePreview">${t_str || alStrO.time}</b>`;
+  return `<p>${n_str || alStrO.name}</p>Time:<i class="livePreview">${t_str || alStrO.time}</i>`;
 } //g_promStr()
 
 function g_alStrO(aI_EL) {
@@ -2329,7 +2332,7 @@ function alarms_import(imported_str) {
           alrm_execAdd();
 
           k_str= spl_ar[4] ? " (K)" : ""; //keeper league
-          html_str= `${tSpl_ar[0]} <br><b>${spl_ar[3]}</b>${k_str} <b class="PC_tid" title="?">${spl_ar[5]}</b>`;
+          html_str= `${tSpl_ar[0]} <br><i>${spl_ar[3]}</i>${k_str} <i class="PC_tid" title="?">${spl_ar[5]}</i>`;
           alarmInst_EL.$E.Name.innerHTML= html_str;
 
           alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
@@ -2342,7 +2345,7 @@ function alarms_import(imported_str) {
         //externalDelete|123-1|PC
         //0              1   2
         let tid= spl_ar[1];
-        let delTid_EL= [...alarmsCont_EL.querySelectorAll("b.PC_tid")]
+        let delTid_EL= [...alarmsCont_EL.querySelectorAll("i.PC_tid")]
           .find(EL => EL.textContent == tid)
         ;
 //console.log("externalDelete tid",tid, "delTid_EL",delTid_EL) //debug
@@ -2503,9 +2506,9 @@ bC.onmessage= evt => {
 function PClink(tid_EL) { //PennantChase
   var tid= tid_EL.textContent;
   var lgid= tid.split("-")[0];
-  var tname= tid_EL.closest("div.alarmName").querySelector("b").textContent; //tree up then down
-  //div.alarmName will contain 2 <b>, 1st will be teamname, 2nd will be tid with <b class="PC_tid">
-  jm.alert(`PennantChase<br>lg${lgid} ${tname}<a href="https://www.pennantchase.com/lgTeamLineup.aspx?tid=${tid}&lgid=${lgid}" target="_blank">Lineup</a>`);
+  var tname= tid_EL.closest("div.alarmName").querySelector("i").textContent; //tree up then down
+  //div.alarmName will contain 2 <i>, 1st will be teamname, 2nd will be tid with <i class="PC_tid">
+  jm.alert(`PennantChase<br>lg${lgid} <b>${tname}</b> <a href="https://www.pennantchase.com/lgTeamLineup.aspx?tid=${tid}&lgid=${lgid}" target="_blank">Lineup</a>`);
 } //PClink()
 
 
