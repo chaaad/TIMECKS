@@ -245,13 +245,20 @@ div#alarmsContainer {
 
     div.alarmName {
 
-      .PC_tid {
+      .PC_tid { /*PennantChase*/
         color: orangered;
       }
     }
 
     span.alarmActivate {
       color: lightgray;
+      margin-right: 0;
+    }
+
+    span.alarmEoM {
+      color: blue;
+      display: inline-block;
+      min-width: 8px;
     }
 
     span.alarmT {
@@ -741,7 +748,8 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   <div class="alarmInstance" draggable="true">
     <div class="textBox alarmName" title="Edit Name"></div>
     <span class="alarmActivate squareButton" title="On/Off">⏹</span>
-    <span class="alarmT alarmTime" title="Edit time (LONG PRESS to change default view)">@</span>
+    <span class="alarmEoM"></span>
+    <span class="alarmT alarmTime" title="Edit time (LONG PRESS to change default view)"></span>
     <span class="alarmT alarmCountdown" title="Edit time (LONG PRESS to change default view)"></span>
     <span class="alarmDeleteBut closeButton" title="Delete"></span>
   </div>
@@ -1030,8 +1038,8 @@ function clock_advance() { //+1 clock minute
     if (clock_hr24 %12 == 0) { //noon or midnite
       cf_degO.hr= 0;
 
-      var toh_dtO= clock_hr24==0 && sync_diff_ms>0 ? new Date(sync_ms +3600000) : undefined; //if midnite, and real time is behind, add 1 hr (to next day)
-      //.. add hr, dont care about time here, just month/day
+      var toh_dtO= clock_hr24==0 && sync_diff_ms>0 ? new Date(sync_ms +3600000) : undefined;
+      //if midnite, and real time is behind, add 1 hr to toh_dtO (advance day), toh_dtO is just for month/day
 
       clock_drawDay(toh_dtO || sync_dtO);
       tzoc_check(sync_dtO);
@@ -1692,7 +1700,8 @@ function alrm_addHelpers(aI_EL, id) { //.dataset only stores strings
     Activ: aI_EL.querySelector("span.alarmActivate"),
     Name: aI_EL.querySelector("div.alarmName"),
     Time: aI_EL.querySelector("span.alarmTime"),
-    Ctdn: aI_EL.querySelector("span.alarmCountdown")
+    Ctdn: aI_EL.querySelector("span.alarmCountdown"),
+    EoM: aI_EL.querySelector("span.alarmEoM")
   };
 } //alrm_addHelpers()
 
@@ -1828,7 +1837,7 @@ function alrm_editTime(NEW_str) { //if new, NEW_str is alarm name
 
 var DoW_arr= "SUN,MON,TUE,WED,THU,FRI,SAT".split(",");
 
-function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is good
+function alrm_procTimeText(input_str, param) { //returns alarmNow_obj if raw_str is good
   var preview_flag;
   var err_cb;
   if (typeof(param) == "string") preview_flag= param; //'preview' will not alert errors
@@ -1967,18 +1976,36 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
   proc_24to12(hTimO);
   if (moDaO) hTimO.MD= moDaO;
 
+  //EndofMonth auto-adjust
+  if (moDaO && !moDaO.DoW) {
+    if (hTimO.MD.da != time_dtO.getDate()) { //days mismatch
+      time_dtO.setMonth(hTimO.MD.mo, 0); //no month-1 (so, next month), day 0 is -1 day
+      moDaO.EoM= time_dtO.getDate(); //day (eg. for Apr, will be 30)
+    }
+  }
+
+
+  //success
+  var aNow_obj= {
+    hTimO: hTimO,
+    time: get_fmatHTime_str(hTimO),
+    ms: time_dtO.getTime()
+  };
+
+
   if (preview_flag=="previewLive" && !lpUntil_str) {
     let diff_ms= time_dtO -new Date(); //ms
     lpUntil_str= `(in: ${g_untilStr(Math.ceil(diff_ms /60000))})`; //ms to minutes
   }
 
-  //success
-  return {
-    time: get_fmatHTime_str(hTimO),
-    lpUntil: lpUntil_str,
-    ms: time_dtO.getTime(),
-    hTimO: hTimO
-  };
+  if (lpUntil_str) {
+    if (moDaO && moDaO.EoM) lpUntil_str+= " MonthEnd=" +moDaO.EoM;
+    aNow_obj.lpUntil= lpUntil_str;
+  }
+
+  return aNow_obj;
+
+
 
 
   function get_nstr(str) {
@@ -2003,8 +2030,11 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
   function g_dtO_fromHumanDtO(htO) { //from human time 12:59am/pm, to computer time 23:59
     var dtO= new Date(); //dateobj, start as now, but most items will be re-set
 
-    if (htO.MD) dtO.setMonth(htO.MD.mo -1, htO.MD.da); //m 0..11 //d 1..31
-    //.. dont set month and date separately, because months having diff number of days, mistake can happen
+    if (htO.MD) {
+      if (htO.MD.yr) dtO.setFullYear(htO.MD.yr, htO.MD.mo -1, htO.MD.da); //y //m 0..11 //d 1..31 //near New Year day
+      else dtO.setMonth(htO.MD.mo -1, htO.MD.da); //m 0..11 //d 1..31
+      //.. dont set month and date separately, because months having diff number of days, mistake can happen
+    }
 
     var h= htO.h;
     if (h == 12) h= 0;
@@ -2018,14 +2048,9 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     if (diff_ms < 1) { //if less than nowTime
       //dtO to future
       if (htO.MD) {
-        if (htO.MD.DoW) {
-          if (diff_ms > -604800000) dtO.setDate(dtO.getDate() +7); //+1 week, DayOfWeek
-          else dtO.setFullYear(dtO.getFullYear() +1); //+1 year, for December
-        } else if (htO.MD.mW) {
-          dtO.setMonth(dtO.getMonth() +1); //+1 month, mon_wildcard_str
-        } else {
-          dtO.setFullYear(dtO.getFullYear() +1); //+1 year, m/d
-        }
+        if (htO.MD.DoW) dtO.setDate(dtO.getDate() +7); //+1 week, DayOfWeek
+        else if (htO.MD.mW) dtO.setMonth(dtO.getMonth() +1); //+1 month, mon_wildcard_str
+        else dtO.setFullYear(dtO.getFullYear() +1); //+1 year, m/d
 
       } else {
         dtO.setDate(dtO.getDate() +1); //+1 day
@@ -2046,8 +2071,8 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
   function proc_moDa(mD_str) { //if success, returns obj
     var mon_wildcard_str;
     var DoW_str;
-    if (mD_str.includes("/")) { // m/d (mon/day)
-      var month, day;
+    if (mD_str.includes("/")) { // m/d (month/day)
+      var month, day, year;
       [month, day]= mD_str.split("/");
 
       month*= 1;
@@ -2071,6 +2096,8 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
 
       month= copy_dtO.getMonth() +1;
       day= copy_dtO.getDate(); //.getDate(), could be called getDay, returns 1-31
+      var copy_year= copy_dtO.getFullYear();
+      if (copy_year != time_dtO.getFullYear()) year= copy_year; //near New Year day
 
       DoW_str= DoW_arr[DoW_n];
 
@@ -2081,8 +2108,8 @@ function alrm_procTimeText(input_str, param) { //returns truthy if raw_str is go
     var o= {
       mo: month,
       da: day
-      //yr: year
     };
+    if (year) o.yr= year;
     if (DoW_str) o.DoW= DoW_str;
     else if (mon_wildcard_str) o.mW= mon_wildcard_str;
 
@@ -2113,6 +2140,11 @@ function alrm_initCountdown(aI_EL =alarmInst_EL) {
     aI_EL.$D.ctdn_m= Math.ceil(ms /60000);
     aI_EL.$E.Ctdn.textContent= g_untilStr(aI_EL.$D.ctdn_m);
     check_soon(aI_EL);
+
+    //EndofMonth display
+    var EoM_num= alarmNow_obj.hTimO.MD && alarmNow_obj.hTimO.MD.EoM;
+    aI_EL.$E.EoM.textContent= EoM_num ? "✱" :"";
+    aI_EL.$E.EoM.title= EoM_num ? "MonthEnd=" +EoM_num : "";
   }
 } //alrm_initCountdown()
 
@@ -2177,20 +2209,21 @@ function g_alStrO(aI_EL) {
 
 function alrm_activate(aI_EL) {
 //console.trace("alrm_activate:", aId(aI_EL))
-  var on_flag= !!aI_EL; //to boolean
-  if (on_flag) {
-    var alrm_str= aI_EL.$E.Time.textContent;
-    var alarmNow_obj= alrm_procTimeText(alrm_str); //nrn, final check of alrm_str
-    if (!alarmNow_obj) {on_flag= false; console.log("bad alarm time", alrm_str); }
-  }
 
-//console.log("prev alarm off? active_aI_EL", aId(active_aI_EL))
   if (active_aI_EL) { //prev active-alarm off
+//console.log("prev alarm off? active_aI_EL", aId(active_aI_EL))
     classEl(active_aI_EL, ["alarmActive", "expired", "soon"], false);
     alrm_initCountdown(active_aI_EL);
     alrm_setCtdnView(active_aI_EL, active_aI_EL.$D.vu_cd);
     alrm_glow(4, active_aI_EL, "burlywood");
     sound_play("slam");
+  }
+
+  var on_flag= !!aI_EL; //to boolean
+  if (on_flag) {
+    var alrm_str= aI_EL.$E.Time.textContent;
+    var alarmNow_obj= alrm_procTimeText(alrm_str, "preview"); //nrn, final check of alrm_str
+    if (!alarmNow_obj) {on_flag= false; message_add("bad alarm time: " +alrm_str +" | " +alStrO.name, "pink"); }
   }
 
   if (on_flag) { //alarm on
@@ -2630,15 +2663,15 @@ function tzoc_start() { //runs upon startup
 } //tzoc_start()
 
 function tzoc_check(dtO) { //noon and midnite
-  if (tzoc_arr.length <= 1) return; //just tzYear_key, no dates //-->
+  if (tzoc_arr.length <= 1) return; //just tzYear_key, no dateTimes (no daylight savings) //-->
 
   var now_ms= dtO.getTime();
   var until_ms= now_ms +43200000; //12hr
   var ms;
   tzoc_arr.forEach((tzO, i) => {
-    if (i) { //skip tzYear_key
+    if (i) { //skip 0, tzYear_key
       ms= tzO.ms;
-      if (ms >= now_ms && ms <= until_ms) add_sysAlm(tzO);
+      if (ms >= now_ms && ms <= until_ms) add_sysAlm(tzO); //daylight savings on/off
     }
   });
 
@@ -2803,6 +2836,9 @@ function sound_play(ac_key, repeat_n =1, step_ms =750) {
 
 //utils
 function showEl(el, display_str ="block") {
+  //showEl(el) //on
+  //showEl(el, falsy) //off
+  //showEl(el, "inline") //on, other than "block"
   if (el) el.style.display= display_str==false ? "none" : display_str;
 }
 function classEl(el, class_param, flag =true) { //class_param can be string or array
