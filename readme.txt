@@ -38,7 +38,7 @@ Alarms
   However, you can prevent an alarm from ringing by turning it off.
 
   AlarmTime View
-  AlarmTime View can be either, the time, or the countdown (example: "1h 15m")
+  AlarmTime View can be either, the time, or the countdown (example: "1h 15m").
   Time/Countdown temporarily toggles when your mouse cursor hovers over it.
   Also, a mouse longpress will persistently toggle Time/Countdown.
 
@@ -52,7 +52,7 @@ Alarms
 
     Weekly
     example: SUN 11:00 PM
-    Note the 3 letter day of the week, shorthand requires at least 2 letters
+    Note the 3 letter day of the week, shorthand requires at least 2 letters.
 
     Monthly
     example: ?/13 7:00 PM
@@ -61,33 +61,33 @@ Alarms
     Annually
     example: 12/26 2:39 AM
 
-  Default is "AM". For PM, append "PM", or shorthand "p", or even "*" (numpad friendly)
+  Default is "AM". For PM, append "PM", or shorthand "p", or even "*" (numpad friendly).
   example: 12/26 2:39p
 
-  Instead of ":", you can use "." (numpad friendly)
+  Instead of ":", you can use "." (numpad friendly).
   example: 2.39 becomes: 2:39 AM
-  In fact, you can even leave out the ":" altogether
+  In fact, you can even leave out the ":" altogether.
   example: 316p becomes: 3:16 PM
 
 
-  Time with Offset (only used when inputting the time, offset is factored in to create a normal time)
-  Right after the time portion, you can add or subtract an amount of time (max 24 hrs)
+  Time with Offset (only used when inputting the time, offset is factored in to create a normal time).
+  Right after the time portion, you can add or subtract an amount of time (max 24 hrs).
   example for subtract 1hr:
     1:45 PM-1 becomes: 12:45 PM
   example for add 2hr:
     1:45 PM+2 becomes: 3:45 PM
 
-  For minutes, number starts with a "0"
+  For minutes, number starts with a "0".
   example for subtract 1min:
     1:45 PM-01 becomes: 1:44 PM
   example for add 15min:
     1:45 PM+015 becomes: 2:00 PM
 
-  Can also do offset with hr AND min
+  Can also do offset with hr AND min.
   example for add 1hr and 30min:
     3:30 PM+1:30 becomes: 5:00 PM
 
-  Offet by itself is also possible
+  Offet by itself is also possible.
   example for 5hr from now:
     +5
   example for 5min from now:
@@ -96,10 +96,10 @@ Alarms
     +230
 
 
-  For Annually and Monthly, its possible to specify "last day" of the month
+  For Annually and Monthly, its possible to specify "last day" of the month.
     Annually, last day of the month
       example: 2/31 2:39 AM
     Monthly, last day of the month
       example: ?/31 7:00 PM
   Note day "31", any day beyond the last day of the month will be considered "MonthEnd".
-  So, 2/30 will also "MonthEnd" to the day 28 (leap year, day 29)
+  So, 2/30 will also "MonthEnd" to day 28 (leap year, day 29).
