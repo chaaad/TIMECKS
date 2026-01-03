@@ -69,7 +69,8 @@ Alarms
   In fact, you can even leave out the ":" altogether
   example: 316p becomes: 3:16 PM
 
-  Time with Offset
+
+  Time with Offset (only used when inputting the time, offset is factored in to create a normal time)
   Right after the time portion, you can add or subtract an amount of time (max 24 hrs)
   example for subtract 1hr:
     1:45 PM-1 becomes: 12:45 PM
@@ -82,7 +83,7 @@ Alarms
   example for add 15min:
     1:45 PM+015 becomes: 2:00 PM
 
-  Can also do offset with hr and min
+  Can also do offset with hr AND min
   example for add 1hr and 30min:
     3:30 PM+1:30 becomes: 5:00 PM
 
@@ -93,3 +94,12 @@ Alarms
     +05
   example for 2hr and 30min from now:
     +230
+
+
+  For Annually and Monthly, its possible to specify "last day" of the month
+    Annually, last day of the month
+      example: 2/31 2:39 AM
+    Monthly, last day of the month
+      example: ?/31 7:00 PM
+  Note day "31", any day beyond the last day of the month will be considered "MonthEnd".
+  So, 2/30 will also "MonthEnd" to the day 28 (leap year, day 29)
