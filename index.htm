@@ -1141,8 +1141,10 @@ function restart() { //post long sleep
     } //skip not visible
   });
 
-  ringer_stop("off"); //if needed
   clock_start();
+
+  ringer_stop("off"); //if needed
+  active_aI_EL= undefined; //allows aa
   alarms_start();
 } //restart()
 
@@ -2568,9 +2570,11 @@ function alrm_unexpire(aI_EL) {
 
   if (!aI_EL.closest("div#alarmsContainer")) { //is orphan
     //after an alarms_start() (various ways), this aI_EL is an "orphan" (not in current DOM)
-    //find inteneded alarm..
-    aI_EL= alarmsCont_EL.querySelector('[id="' +aI_EL.id +'"]'); //note: els dont have .getElementById()
-    if (!aI_EL) return; //inteneded alarm not found //-->
+    //reacquire alarm..
+    let _aI_EL= alarmsCont_EL.querySelector('[id="' +aI_EL.id +'"]'); //note: els dont have .getElementById()
+//console.log("alrm_unexpire, orphan:",aI_EL, "reacquire:",_aI_EL);
+    if (_aI_EL) aI_EL= _aI_EL; //reacquired
+    else return; //could not reacquire alarm //-->
   }
 
   classEl(aI_EL, ["expired", "soon"], false);
