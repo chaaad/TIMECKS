@@ -1817,7 +1817,7 @@ function alrm_editTime(NEW_str) { //if new, NEW_str is alarm name
 
           alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
           alrm_initCountdown();
-
+          if (active_aI_EL == alarmInst_EL) activeCountdown_EL.textContent= alarmInst_EL.$E.Ctdn.textContent;
           alarms_sort([alarmInst_EL]);
 
           alarms_save();
@@ -2511,19 +2511,17 @@ function g_untilStr(m, h) {
    str= Math.floor(m /1440) +"d";
 
   } else {
-    var minute_flag;
     if (h == undefined) {
-      minute_flag= true;
       if (m > 59) {
         h= Math.floor(m /60);
         m= m %60;
       }
     }
     str= h ? (h +"h") : "";
-    if (minute_flag || m) str+= " " +m +"m";
+    if (m) str+= " " +m +"m";
   }
 
-  return str || "0";
+  return str;
 } //g_untilStr()
 
 
