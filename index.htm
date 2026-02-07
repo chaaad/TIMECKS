@@ -1340,10 +1340,9 @@ alarmsCont_EL.addEventListener("click", evt => {
         alrm_unexpire(alarmInst_EL);
         alarms_sort();
         if (msg_EL) message_remove(msg_EL);
-        return; //-->
-      } //expired alarm, so only unexpire it, ignore other commands
+        //expired alarm, so only unexpire it, ignore other commands
 
-      if (targ_EL.classList.contains("alarmActivate")) {
+      } else if (targ_EL.classList.contains("alarmActivate")) {
         var toggleOff_flag= alarmInst_EL==active_aI_EL;
         if (wakey_aI_EL) {
           ringer_stop("off");
@@ -1714,19 +1713,6 @@ function alrm_addHelpers(aI_EL, id) { //.dataset only stores strings
     EoM: aI_EL.querySelector("span.alarmEoM")
   };
 } //alrm_addHelpers()
-
-function alrm_genId() { //keeps id values low by utilizing unused slots
-  var id_arr= [];
-  var id;
-  [...aI_NL].forEach(aI_EL => {
-    if (id= aI_EL.id) id_arr.push(id *1);
-  });
-  var new_id= 1;
-  while (id_arr.includes(new_id)) {
-    new_id++;
-  }
-  return new_id;
-} //alrm_genId()
 
 function alrm_drawDisablerMode(aI_EL, dsbl_flag) {
   var checked_str= dsbl_flag ? "" : " checked";
@@ -2158,6 +2144,7 @@ function alrm_initCountdown(aI_EL =alarmInst_EL) {
   }
 } //alrm_initCountdown()
 
+
 function alrm_add() { //from UI
   alrm_editName("NEW");
 } //alrm_add()
@@ -2170,6 +2157,19 @@ function alrm_execAdd() { //add 1
   alarmInst_EL= clAlrmInst_EL;
   if (timeview_def_flag) alrm_setTorC(alarmInst_EL, true, "persist");
 } //alrm_execAdd()
+
+function alrm_genId() { //keeps id values low by utilizing unused "slots"
+  var ids_set= new Set(delIds_set); //shallow copy
+  [...aI_NL].forEach(aI_EL => {
+    ids_set.add(aI_EL.id *1);
+  });
+  var new_id= 1;
+  while (ids_set.has(new_id)) {
+    new_id++;
+  }
+  return new_id;
+} //alrm_genId()
+
 
 function alrm_delete() { //from alarm delete-button
   jm.confirm("<b>Delete</b> alarm:" +g_promStr(), {
@@ -2187,6 +2187,8 @@ function alrm_execDelete() { //from alrm_delete() or drag&drop
   sound_play("trsh");
 } //alrm_execDelete()
 
+delIds_set= new Set(); //alrm_genId() will "reuse" lower ids, this ensures unique ids (per session)
+
 function alrm_exeDel() { //from alrm_execDelete() or alarms_import()
   if (!alarmInst_EL) return; //-->
   alarmInst_EL.remove(); //from DOM
@@ -2196,6 +2198,7 @@ function alrm_exeDel() { //from alrm_execDelete() or alarms_import()
     alrm_activate(false);
     alarms_autoActivate();
   }
+  delIds_set.add(alarmInst_EL.id *1);
   alarmInst_EL= undefined;
 } //alrm_exeDel()
 
