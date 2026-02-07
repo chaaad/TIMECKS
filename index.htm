@@ -1335,6 +1335,14 @@ alarmsCont_EL.addEventListener("click", evt => {
     if (_alarmInst_EL= targ_EL.closest("div.alarmInstance")) {
       alarmInst_EL= _alarmInst_EL;
 
+      if (alarmInst_EL.classList.contains("expired")) {
+        var msg_EL= alarmInst_EL.$exp_msg_EL; //alrm_unexpire() will clear .$exp_msg_EL
+        alrm_unexpire(alarmInst_EL);
+        alarms_sort();
+        if (msg_EL) message_remove(msg_EL);
+        return; //-->
+      } //expired alarm, so only unexpire it, ignore other commands
+
       if (targ_EL.classList.contains("alarmActivate")) {
         var toggleOff_flag= alarmInst_EL==active_aI_EL;
         if (wakey_aI_EL) {
@@ -2217,7 +2225,7 @@ function alrm_activate(aI_EL) {
     classEl(active_aI_EL, ["alarmActive", "expired", "soon"], false);
     alrm_initCountdown(active_aI_EL);
     alrm_setCtdnView(active_aI_EL, active_aI_EL.$D.vu_cd);
-    alrm_glow(4, active_aI_EL, "burlywood");
+    alrm_glow(4, active_aI_EL, "darkgray");
     sound_play("slam");
   }
 
@@ -2578,7 +2586,7 @@ function alrm_unexpire(aI_EL) {
   classEl(aI_EL, ["expired", "soon"], false);
   alrm_initCountdown(aI_EL);
   alrm_glow(2, aI_EL, "pink");
-}
+} //alrm_unexpire()
 
 
 var sysAlarms_arr= [];
