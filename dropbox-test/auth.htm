@@ -54,6 +54,9 @@
 
   // Parses the url and gets the access token if it is in the urls hash
   function getCodeFromUrl() {
+    var usp= new URLSearchParams(window.location.search);
+    usp.get(act_str);
+
     return utils.parseQueryString(window.location.search).code;
   }
 
@@ -65,9 +68,9 @@
 
   // Render a list of items to #files
   function renderItems(items) {
-    var filesContainer= document.getElementById('files');
+    var filesContainer= document.getElementById("files");
     items.forEach(function(item) {
-      var li= document.createElement('li');
+      var li= document.createElement("li");
       li.innerHTML= item.name;
       filesContainer.appendChild(li);
     });
@@ -76,30 +79,30 @@
   // This example keeps both the authenticated and non-authenticated setions
   // in the DOM and uses this function to show/hide the correct section.
   function showPageSection(elementId) {
-    document.getElementById(elementId).style.display= 'block';
+    document.getElementById(elementId).style.display= "block";
   }
 
   function doAuth() {
-    dbxAuth.getAuthenticationUrl(REDIRECT_URI, undefined, 'code', 'offline', undefined, undefined, true)
+    dbxAuth.getAuthenticationUrl(REDIRECT_URI, undefined, "code", "offline", undefined, undefined, true)
       .then(authUrl => {
         window.sessionStorage.clear();
-        window.sessionStorage.setItem("codeVerifier", dbxAuth.codeVerifier);
-        window.location.href = authUrl;
+        window.sessionStorage.setItem("dbx_codeVerifier", dbxAuth.codeVerifier);
+        window.location.href= authUrl; //-->
       })
       .catch((error) => console.error(error));
   };
 
   if (hasRedirectedFromAuth()) {
     showPageSection('authed-section');
-    dbxAuth.setCodeVerifier(window.sessionStorage.getItem('codeVerifier'));
+    dbxAuth.setCodeVerifier(window.sessionStorage.getItem('dbx_codeVerifier'));
     dbxAuth.getAccessTokenFromCode(REDIRECT_URI, getCodeFromUrl())
       .then((response) => {
         dbxAuth.setAccessToken(response.result.access_token);
-        var dbx = new Dropbox.Dropbox({
+        var dbx= new Dropbox.Dropbox({
           auth: dbxAuth
         });
         return dbx.filesListFolder({
-          path: ''
+          path: "/timecks-data"
         });
       })
       .then((response) => {
@@ -109,7 +112,7 @@
         console.error(error.error || error);
       });
   } else {
-    showPageSection('pre-auth-section');
+    showPageSection("pre-auth-section");
   }
 </script>
 
