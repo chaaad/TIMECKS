@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+<head>
+  <title>Dropbox JavaScript SDK</title>
+  <link rel="stylesheet" href="styles.css">
+  <!--script src="/__build__/Dropbox-sdk.min.js"></script-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dropbox.js/10.34.0/Dropbox-sdk.min.js" integrity="sha512-PTKs+sPreCz6TLyLj9CYx3LxxPZmY5k1k5Yb5Y5mUQzngf/XUxNdtyWwYjcPcOZJm4wSYiicZr0kotLmDIRFmQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+  <!-- Example layout boilerplate -->
+  <header class="page-header">
+    <div class="container">
+      <nav>
+        <a href="/">
+          <h1>
+            <img src="https://cfl.dropboxstatic.com/static/images/brand/logotype_white-vflRG5Zd8.svg" class="logo" />
+            JavaScript SDK Examples
+          </h1>
+        </a>
+        <a href="https://github.com/dropbox/dropbox-sdk-js/tree/main/examples/javascript" class="view-source">View Source</a>
+      </nav>
+      <h2 class="code">
+        <a href="/">examples</a> / upload generated data, download that data
+      </h2>
+    </div>
+  </header>
+
+  <!-- Example description and UI -->
+  <section class="container main">
+    <p>This example shows how to use
+      the <code>Dropbox.filesUpload()</code> [<a href="http://dropbox.github.io/dropbox-sdk-js/Dropbox.html#filesUpload">docs</a>] method to upload data (file)
+      and the <code>Dropbox.filesDownload()</code> [<a href="http://dropbox.github.io/dropbox-sdk-js/Dropbox.html#filesDownload">docs</a>] method to download data (file).
+    </p>
+
+    <p class="info">To obtain an access token for quick testing, you can go to <a href="https://dropbox.github.io/dropbox-api-v2-explorer/#files_list_folder" target="_blank">API Explorer</a> click the "Get Token" button on the top right, copy the token it creates and then paste it here.</p>
+    Access token
+    <input type="text" id="access-token" placeholder="Access token" value="sl.u.AGRrBNrWPn_X1h4cLzlC9GFdo3A1NtQM2T6qwc8xxxS1LdhuLedQRrozfoPQHgwddTevElVJUhspyCXY59IIkkhiQnZkpSfM8aQMcdASkDLrnL9oyNRcJRGzPOeY9CcKw62JArXfuPvmdqNIghNImnrD0Lk-rPQmF9_NkjsyOLFTd5kHPrMjXDmaLCP87sua8oci8BfIbHYIQbc6xKwvMq-kC_ZO5KKAo7K55zpnZreO_wmZp5g92M4rAJ1-CgFFkEvWuqQ0ZhqmR3e5WjloCfuYPvWr71H-C67GOrognitBQQN8w0Dv7z70TIsd8loJ0G6OCQUOYmgkYo6JpFfo2v8fKpUd0CE4J97Sv30beVhpAbJ8tQe5-uGROQnjTyq1tcbaivRhMlZRjd6QBJS4HqGJl33r02JwcWoy1xu3kkkT2_bhgejtKXIEjAZSYipM62UdA-Kh_ZFlYdgBM1ecHtz86srmsuPidK5YmUJG_alhZ7nZBP_qq2MBZWPMXZJxo6gMZwaZxfQlWbQP-DZCg2rtObEzcikwFCZXOYS7LeK8R5oI6_pjTeUGn7G6y6bAJYV7HYZLHcItSc486Vf15g9s05wNt8njXfm_3r8eleYT3fnrmSycstz0FhvhDFlcwDl9JygGRbmzqwDr2HSdF3dk0JR4JO9YJQDog7k2MCHJpRg7OGcvk977jZ_YEaSvZK00Wo4L-lurnXYTi7PX0g5QLU23cIhcJHqrc61e-BqobiNRyRNdljbf3Osp9FXGgA0c0ygTwHdHYQ_cMRWmH4AzJSRD0ngdifN0nvOAE8oFhxSt-Ro4yzbPQFBjHocRz1kbpRIqVrDufARV_rigyX66vaIUngsE3_gopJKCBNEaQKkTJn2e7Y9KmN7Nt2ygGCFzUjCvW8p6sBW1L947lC4-5gvg8uR_emzqIg0rOOyURT1-T5wTpcBha_c_ZsDzkbLGwL0OOs4HTWrQE4FnP6MvE-rlrtb7AtIMta548SEK5-Lr0cI34aI25WrGOX1H90uGsvgZKC4VRJ_loHtlsxZcHtvw6oG9OcC3dEgY10psl9WYvnoWXooHZqhWhhj_POQCRudJlBGsTCjBgxm99DPSDs6q9Qm94_Zefo659gOZqFo4jfWrnvurZIxmwQpTLh0UFHUP81X1wfXasycAkd8_f0k7VQm7GKCyUOPexZcyDs4jZhiRp9kIE_GtsN3G6pLrE_lkEOVi7XXbNM9ak_sWTqa2C2R_ZVRmIlFZjUWaiOX_fRT2EEbc510V4eTLwpSW4YfIi87CwvimEF9Me1Ks"/>
+
+    <button id="uploadData_BUT">upload data</button>
+    <button id="downloadData_BUT">download data</button>
+
+    <!-- A place to show the data -->
+    <h2 id="results"></h2>
+  </section>
+
+
+
+<script>
+const filePath_str= "/timecks-data/alarms.json"; // The path in your Dropbox folder
+
+function get_dbx() {
+  var ACCESS_TOKEN= document.getElementById("access-token").value;
+  return new Dropbox.Dropbox({accessToken: ACCESS_TOKEN});
+}
+
+const results_H2= document.getElementById("results");
+function msg_err(err) {
+  results_H2.textContent= "Error, see console for details";
+  console.error(err);
+}
+
+
+document.getElementById("uploadData_BUT")
+  .addEventListener("click", evt => {
+    uploadData();
+  })
+;
+function uploadData() {
+  results_H2.textContent= "";
+  const fileContent_str= JSON.stringify( {Hello: "world!", ts: Date.now()} ); //generate data here
+  var dbx= get_dbx();
+
+  dbx.filesUpload({
+    path: filePath_str,
+    contents: fileContent_str,
+    mode: {".tag": "overwrite"} // Optional: Overwrite if the file already exists
+  })
+    .then(function(response) {
+      results_H2.innerHTML= "UPLOAD:<br>" +fileContent_str;
+    })
+    .catch(function(err) {
+      msg_err(err);
+    })
+  ;
+} //uploadData()
+
+document.getElementById("downloadData_BUT")
+  .addEventListener("click", evt => {
+    downloadData();
+  })
+;
+function downloadData() {
+  results_H2.textContent= "";
+  var dbx= get_dbx();
+
+  dbx.filesDownload({path: filePath_str}) // Use the full path, starting with a '/'
+    .then(function(response) {
+      //The response contains a 'fileBlob' field with the file data
+      const file_blob= response.result.fileBlob;
+
+      //Use FileReader to read the Blob content in the browser
+      const reader= new FileReader();
+      reader.onloadend= function() {
+        results_H2.innerHTML= "DOWNLOAD:<br>" +reader.result;
+        //console.log(reader.result); //This will print the file content
+      };
+      reader.readAsText(file_blob); //Read the blob as plain text
+    })
+    .catch(function(err) {
+      msg_err(err);
+    })
+  ;
+} //downloadData()
+
+</script>
+
+
+</body>
+</html>
