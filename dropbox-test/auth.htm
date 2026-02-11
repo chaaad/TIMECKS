@@ -55,7 +55,7 @@
   // Parses the url and gets the access token if it is in the urls hash
   function getCodeFromUrl() {
     var usp= new URLSearchParams(window.location.search);
-var usp.get("code");
+var code_str= usp.get("code");
 console.log("code_str (usp)",code_str)
 
 code_str= utils.parseQueryString(window.location.search).code;
