@@ -55,9 +55,12 @@
   // Parses the url and gets the access token if it is in the urls hash
   function getCodeFromUrl() {
     var usp= new URLSearchParams(window.location.search);
-    usp.get(act_str);
+var usp.get("code");
+console.log("code_str (usp)",code_str)
 
-    return utils.parseQueryString(window.location.search).code;
+code_str= utils.parseQueryString(window.location.search).code;
+console.log("code_str",code_str)
+    return code_str;
   }
 
   // If the user was just redirected from authenticating, the urls hash will
@@ -93,8 +96,8 @@
   };
 
   if (hasRedirectedFromAuth()) {
-    showPageSection('authed-section');
-    dbxAuth.setCodeVerifier(window.sessionStorage.getItem('dbx_codeVerifier'));
+    showPageSection("authed-section");
+    dbxAuth.setCodeVerifier(window.sessionStorage.getItem("dbx_codeVerifier"));
     dbxAuth.getAccessTokenFromCode(REDIRECT_URI, getCodeFromUrl())
       .then((response) => {
         dbxAuth.setAccessToken(response.result.access_token);
