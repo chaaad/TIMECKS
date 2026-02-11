@@ -8,7 +8,6 @@
     <script src="https://cdn.jsdelivr.net/npm/promise-polyfill@7/dist/polyfill.min.js"></script>
     <!--script src="/__build__/Dropbox-sdk.min.js"></script-->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dropbox.js/10.34.0/Dropbox-sdk.min.js" integrity="sha512-PTKs+sPreCz6TLyLj9CYx3LxxPZmY5k1k5Yb5Y5mUQzngf/XUxNdtyWwYjcPcOZJm4wSYiicZr0kotLmDIRFmQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="utils.js"></script>
 </head>
 
 <body>
@@ -52,21 +51,13 @@
     clientId: CLIENT_ID,
   });
 
+  var authCode_str= getCodeFromUrl();
+console.log("authCode_str (usp)",authCode_str)
+
   // Parses the url and gets the access token if it is in the urls hash
   function getCodeFromUrl() {
     var usp= new URLSearchParams(window.location.search);
-var code_str= usp.get("code");
-console.log("code_str (usp)",code_str)
-
-code_str= utils.parseQueryString(window.location.search).code;
-console.log("code_str",code_str)
-    return code_str;
-  }
-
-  // If the user was just redirected from authenticating, the urls hash will
-  // contain the access token.
-  function hasRedirectedFromAuth() {
-    return !!getCodeFromUrl();
+    return usp.get("code");
   }
 
   // Render a list of items to #files
@@ -95,10 +86,10 @@ console.log("code_str",code_str)
       .catch((error) => console.error(error));
   };
 
-  if (hasRedirectedFromAuth()) {
+  if (authCode_str) { //hasRedirectedFromAuth
     showPageSection("authed-section");
     dbxAuth.setCodeVerifier(window.sessionStorage.getItem("dbx_codeVerifier"));
-    dbxAuth.getAccessTokenFromCode(REDIRECT_URI, getCodeFromUrl())
+    dbxAuth.getAccessTokenFromCode(REDIRECT_URI, authCode_str)
       .then((response) => {
         dbxAuth.setAccessToken(response.result.access_token);
         var dbx= new Dropbox.Dropbox({
