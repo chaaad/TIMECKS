@@ -1540,7 +1540,7 @@ function alarms_start() {
     if (!storedAl_arr) storedAl_arr= [{t:"12:00 AM"}]; //default if empty
 
     //storedAl_arr is closest thing to a data model in this app
-    //is totally temporary, rest of the time, data is solely in the DOM
+    //totally temporary, rest of the time, data is solely in the DOM
 
     storedAl_arr.forEach(a_obj => {
       aInst_EL= template_alarmInst_EL.cloneNode(true); //clone
@@ -2419,7 +2419,7 @@ function alarms_import(imported_str) {
 
 function alarms_save() {
   vis_ct= 0;
-  var saveAl_arr= []; //another temporary data model
+  var saveAl_arr= []; //data model, temporary
   if (aI_NL.length) {
     var a_obj;
     var name_str;
