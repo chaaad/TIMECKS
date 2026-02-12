@@ -95,7 +95,7 @@ console.log("authCode_str (usp)",authCode_str)
   };
 
   var dbx;
-  var accessToken_str= window.localStorage.getItem("dbx_accessToken") || "test";//////////////////////
+  var accessToken_str= window.localStorage.getItem("dbx_accessToken");
   var refreshToken_str= window.localStorage.getItem("dbx_refreshToken");
 
   if (authCode_str) { //hasRedirectedFromAuth
@@ -125,20 +125,29 @@ console.log("authCode_str (usp)",authCode_str)
 
   } else {
     showPageSection("pre-auth-section");
-    if (accessToken_str) initDbx();
+    if (accessToken_str) initDbx({accessToken: accessToken_str});
   }
 
-  function initDbx() {
-    dbx= new Dropbox.Dropbox({accessToken: accessToken_str});
+  function initDbx(pO) {
+    dbx= new Dropbox.Dropbox(pO);
     dbx.usersGetCurrentAccount()
       .then((response) => {
-        console.log('Authentication successful:', response);
+        console.log("Authentication successful:", response);
       })
       .catch(error => {
         console.error(error);
+        dbx= undefined;
+        if (pO.accessToken) {
+          accessToken_str= undefined;
+          window.localStorage.removeItem("dbx_accessToken");
+        } else if (pO.refreshToken) {
+          refreshToken_str= undefined;
+          window.localStorage.removeItem("dbx_refreshToken");
+        }
+
         if (error.status == 401) {
-          //console.error('401 Unauthorized error: Invalid or expired token.');
-          if (refreshToken_str) dbx= new Dropbox.Dropbox({refreshToken: refreshToken_str});
+          if (pO.accessToken && refreshToken_str) initDbx({refreshToken: refreshToken_str});
+/////////////else doAuth();
         }
       })
     ;
