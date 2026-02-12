@@ -21,7 +21,7 @@
                 <a href="https://github.com/dropbox/dropbox-sdk-js/tree/main/examples/javascript" class="view-source">View Source</a>
             </nav>
             <h2 class="code">
-                <a href="/">examples</a> / PKCE browser
+                <a href="/">examples</a> / PKCE
             </h2>
         </div>
     </header>
@@ -36,13 +36,13 @@
 
         <div id="authed-section" style="display:none;">
             <p>You have successfully authenticated. Below are the contents of your root directory. They were fetched using the SDK and access token.</p>
-            <ul id="files"></ul>
+            <ul id="files_UL"></ul>
 
             <button id="uploadData_BUT">upload data</button>
             <button id="downloadData_BUT">download data</button>
 
             <!-- A place to show the data -->
-            <h2 id="results"></h2>
+            <h2 id="results_H2"></h2>
         </div>
 
         </div>
@@ -50,15 +50,15 @@
     </section>
 
 <script>
-// Render a list of items to #files
+// Render a list of items to #files_UL
 function renderItems() {
   showPageSection("authed-section");
   dBX.api.filesListFolder({path: ""}) // C:\Users\chaaad\Dropbox\Apps\TIMECKS
     .then(response => {
       var items_arr= response.result.entries;
-      var filesContainer_EL= document.getElementById("files");
+      var filesContainer_EL= document.getElementById("files_UL");
       items_arr.forEach(function(item) {
-        var li_EL= document.createElement("li");
+        var li_EL= document.createElement("LI");
         li_EL.textContent= item.name;
         filesContainer_EL.appendChild(li_EL);
       });
@@ -73,9 +73,10 @@ function showPageSection(elementId) {
 }
 
 
+const results_H2= document.getElementById("results_H2");
+
 document.getElementById("uploadData_BUT")
   .addEventListener("click", evt => {
-    const results_H2= document.getElementById("results");
     results_H2.textContent= "";
 
     var fileContent_str= JSON.stringify( {Hello: "world!", ts: Date.now()} );
@@ -89,7 +90,6 @@ console.log("response",response)
 
 document.getElementById("downloadData_BUT")
   .addEventListener("click", evt => {
-    const results_H2= document.getElementById("results");
     results_H2.textContent= "";
 
     dBX.downloadData("/alarms.json", cb);
