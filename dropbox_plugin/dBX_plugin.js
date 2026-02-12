@@ -1,3 +1,6 @@
+//alarms json
+//[{"id":4,"t":"11:00 AM","n":"Start DAILY","c":1},{"id":2,"t":"1:00 AM","n":"PC Latest Drops DAILY"},{"id":1,"t":"12:00 AM","n":"test disabled","d":1},{"id":6,"t":"?/13 7:00 PM","n":"Chase CC MONTHLY","c":1},{"id":3,"t":"SUN 11:00 PM","n":"Recycle day WEEKLY","c":1}]
+
 function createCssRule(css_str) { //lib fn
   const styleSheet= document.createElement("style");
   styleSheet.type= "text/css";
@@ -7,7 +10,7 @@ function createCssRule(css_str) { //lib fn
 
 
 alarmsSave_hook= function(fileContent_str) { //hook to fn in main page
-  if (status_num != 9) return; //-->
+  if (dBX.status_num != 9) return; //-->
 
   dBX.uploadData(dBX.fPath_str, fileContent_str, cb, err_cb);
   function cb(response) {
