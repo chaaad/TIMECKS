@@ -34,7 +34,6 @@
         <p>This example shows how to use PKCE in the browser</p>
         <div id="pre-auth-section" style="display:none;">
             <button onClick="doAuth()">Start PKCE Auth Flow</button>
-
             <p class="info">Once authenticated, it will use the access token to list the files in your root directory.</p>
         </div>
 
@@ -57,25 +56,6 @@ console.log("authCode_str (usp)",authCode_str)
     var usp= new URLSearchParams(window.location.search);
     return usp.get("code");
   }
-
-  // Render a list of items to #files
-  function renderItems(items) {
-    var filesContainer= document.getElementById("files");
-    items.forEach(function(item) {
-      var li= document.createElement("li");
-      li.innerHTML= item.name;
-      filesContainer.appendChild(li);
-    });
-  }
-
-  // This example keeps both the authenticated and non-authenticated setions
-  // in the DOM and uses this function to show/hide the correct section.
-  function showPageSection(elementId) {
-    document.getElementById(elementId).style.display= "block";
-  }
-
-
-
 
   function initAuth() {
     dbxAuth= new Dropbox.DropboxAuth({
@@ -112,27 +92,23 @@ console.log("authCode_str (usp)",authCode_str)
         dbx= new Dropbox.Dropbox({
           auth: dbxAuth
         });
-        return dbx.filesListFolder({
-          path: "" // C:\Users\chaaad\Dropbox\Apps\TIMECKS
-        });
-      })
-      .then(response => {
-        renderItems(response.result.entries);
+        renderItems();
       })
       .catch(error => {
         console.error(error.error || error);
       });
 
   } else {
-    showPageSection("pre-auth-section");
     if (accessToken_str) initDbx({accessToken: accessToken_str});
+    else showPageSection("pre-auth-section");
   }
 
   function initDbx(pO) {
     dbx= new Dropbox.Dropbox(pO);
     dbx.usersGetCurrentAccount()
       .then((response) => {
-        console.log("Authentication successful:", response);
+        //console.log("Auto-Authentication successful:", response);
+        renderItems();
       })
       .catch(error => {
         console.error(error);
@@ -147,11 +123,32 @@ console.log("authCode_str (usp)",authCode_str)
 
         if (error.status == 401) {
           if (pO.accessToken && refreshToken_str) initDbx({refreshToken: refreshToken_str});
-/////////////else doAuth();
+          else showPageSection("pre-auth-section");
         }
       })
     ;
   } //initDbx()
+
+  // Render a list of items to #files
+  function renderItems() {
+    dbx.filesListFolder({path: ""}) // C:\Users\chaaad\Dropbox\Apps\TIMECKS
+      .then(response => {
+        var items_arr= response.result.entries;
+        var filesContainer_EL= document.getElementById("files");
+        items_arr.forEach(function(item) {
+          var li_EL= document.createElement("li");
+          li_EL.textContent= item.name;
+          filesContainer_EL.appendChild(li);
+        });
+      })
+    ;
+  }
+
+  // This example keeps both the authenticated and non-authenticated setions
+  // in the DOM and uses this function to show/hide the correct section.
+  function showPageSection(elementId) {
+    document.getElementById(elementId).style.display= "block";
+  }
 
 </script>
 
