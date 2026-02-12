@@ -53,7 +53,7 @@
 // Render a list of items to #files_UL
 function renderItems() {
   showPageSection("authed-section");
-  dBX.api.filesListFolder({path: ""}) // C:\Users\chaaad\Dropbox\Apps\TIMECKS
+  dBX.API.filesListFolder({path: ""}) // C:\Users\chaaad\Dropbox\Apps\TIMECKS
     .then(response => {
       var items_arr= response.result.entries;
       var filesContainer_EL= document.getElementById("files_UL");
@@ -101,15 +101,14 @@ document.getElementById("downloadData_BUT")
 
 
 const dBX= {
-  CLIENT_ID: "fizj6vrhaqvnlix",
-  CLIENT_SECRET: "k1jhpcjaavnwg7m",
-  REDIRECT_URI: "https://chaaad.github.io/TIMECKS/dropbox-test/auth.htm",
+  clientId_str: "fizj6vrhaqvnlix",
+  clientSecret_str: "k1jhpcjaavnwg7m",
+  redirectUri_str: "https://chaaad.github.io/TIMECKS/dropbox-test/auth.htm",
 
-  //app
+  //API
   //accessToken_str, refreshToken_str
 
-  //auth;
-  //authCode_str: getCodeFromUrl(),
+  //AUTH
 
   init: function() {
     var usp= new URLSearchParams(window.location.search); //Parses the url and gets the access token if it is in the urls hash
@@ -118,17 +117,17 @@ const dBX= {
     if (authCode_str) { //hasRedirectedFromAuth
       history.replaceState("", document.title, window.location.pathname); //url remove hash
       dBX.initAuth();
-      dBX.auth.setCodeVerifier(window.sessionStorage.getItem("dbx_codeVerify_key"));
+      dBX.AUTH.setCodeVerifier(window.sessionStorage.getItem("dbx_codeVerify_key"));
       window.sessionStorage.removeItem("dbx_codeVerify_key");
-      dBX.auth.getAccessTokenFromCode(dBX.REDIRECT_URI, authCode_str)
+      dBX.AUTH.getAccessTokenFromCode(dBX.redirectUri_str, authCode_str)
         .then((response) => {
           dBX.accessToken_str= response.result.access_token;
-          dBX.ls("dbx_accessToken", dBX.accessToken_str); //set
+          dBX.ls("dbx_accessToken", dBX.accessToken_str); //ls set
           dBX.refreshToken_str= response.result.refresh_token;
-          dBX.ls("dbx_refreshToken", dBX.refreshToken_str); //set
-          dBX.auth.setAccessToken(dBX.accessToken_str);
-          dBX.api= new Dropbox.Dropbox({
-            auth: dBX.auth
+          dBX.ls("dbx_refreshToken", dBX.refreshToken_str); //ls set
+          dBX.AUTH.setAccessToken(dBX.accessToken_str);
+          dBX.API= new Dropbox.Dropbox({
+            auth: dBX.AUTH
           });
 renderItems();
         })
@@ -137,8 +136,8 @@ renderItems();
         })
 
     } else { //normal page
-      dBX.accessToken_str= dBX.ls("dbx_accessToken"); //get
-      dBX.refreshToken_str= dBX.ls("dbx_refreshToken"); //get
+      dBX.accessToken_str= dBX.ls("dbx_accessToken"); //ls get
+      dBX.refreshToken_str= dBX.ls("dbx_refreshToken"); //ls get
 
       if (dBX.accessToken_str || dBX.refreshToken_str) dBX.initApi();
 else showPageSection("pre-auth-section"); //display button that starts auth
@@ -147,24 +146,24 @@ else showPageSection("pre-auth-section"); //display button that starts auth
 
   ls: function(key, v) { //localStorage: get, set, v="" to rem
     if (v != undefined) {
-      if (v == "") window.localStorage.removeItem(key); //rem
-      else window.localStorage.setItem(key, v); //set
+      if (v == "") window.localStorage.removeItem(key); //ls rem
+      else window.localStorage.setItem(key, v); //ls set
     } else {
-      return window.localStorage.getItem(key); //get
+      return window.localStorage.getItem(key); //ls get
     }
   },
 
   initAuth: function() {
-    dBX.auth= new Dropbox.DropboxAuth({
-      clientId: dBX.CLIENT_ID
+    dBX.AUTH= new Dropbox.DropboxAuth({
+      clientId: dBX.clientId_str
     });
   },
 
   doAuth: function() {
     dBX.initAuth();
-    dBX.auth.getAuthenticationUrl(dBX.REDIRECT_URI, undefined, "code", "offline", undefined, undefined, true)
+    dBX.AUTH.getAuthenticationUrl(dBX.redirectUri_str, undefined, "code", "offline", undefined, undefined, true)
       .then(auth_url => {
-        window.sessionStorage.setItem("dbx_codeVerify_key", dBX.auth.codeVerifier);
+        window.sessionStorage.setItem("dbx_codeVerify_key", dBX.AUTH.codeVerifier);
         window.location.href= auth_url; //-->
       })
       .catch(function(err) {
@@ -174,31 +173,31 @@ else showPageSection("pre-auth-section"); //display button that starts auth
 
 
   initApi: function() {
-    var pO;
-    if (dBX.accessToken_str) pO= {accessToken: dBX.accessToken_str};
-    else pO= {clientId: dBX.CLIENT_ID, clientSecret: dBX.CLIENT_SECRET, refreshToken: dBX.refreshToken_str};
+    var paramO;
+    if (dBX.accessToken_str) paramO= {accessToken:dBX.accessToken_str};
+    else paramO= {clientId:dBX.clientId_str, clientSecret:dBX.clientSecret_str, refreshToken:dBX.refreshToken_str};
 
-    dBX.api= new Dropbox.Dropbox(pO);
-    dBX.api.usersGetCurrentAccount()
+    dBX.API= new Dropbox.Dropbox(paramO);
+    dBX.API.usersGetCurrentAccount()
       .then((response) => {
-        console.log(pO, "Auto-Authentication successful:", response);
+        console.log(paramO, "Auto-Authentication successful:", response);
 renderItems();
       })
       .catch(err => {
         dBX.msg_err(err);
 
-        dBX.api= undefined;
-        if (pO.accessToken) {
+        dBX.API= undefined;
+        if (paramO.accessToken) {
           dBX.accessToken_str= undefined;
-          dBX.ls("dbx_accessToken", ""); //rem
-        } else if (pO.refreshToken) {
+          dBX.ls("dbx_accessToken", ""); //ls rem
+        } else if (paramO.refreshToken) {
           dBX.refreshToken_str= undefined;
-          dBX.ls("dbx_refreshToken", ""); //rem
+          dBX.ls("dbx_refreshToken", ""); //ls rem
         }
 
-        if (pO.accessToken && dBX.refreshToken_str) {
+        if (paramO.accessToken && dBX.refreshToken_str) {
             //accessToken failed (prob error.status 401), try refreshToken
-            dBX.initApi(pO);
+            dBX.initApi(paramO); //recurse (cant go endless)
 
         } else {
           //refreshToken failed, do auth from the top
@@ -212,7 +211,7 @@ renderItems();
 //var fileContent_str= JSON.stringify( {Hello: "world!", ts: Date.now()} );
 //dBX.uploadData("/alarms.json", fileContent_str, cb);
   uploadData: function(filePath_str, fileContent_str, cb) {
-    dBX.api.filesUpload({
+    dBX.API.filesUpload({
       path: filePath_str,
       contents: fileContent_str,
       mode: {".tag": "overwrite"} // Optional: Overwrite if the file already exists
@@ -228,7 +227,7 @@ renderItems();
 
 //var fileContent_str= dBX.downloadData("/alarms.json", cb);
   downloadData: function(filePath_str, cb) {
-    dBX.api.filesDownload({path: filePath_str}) // Use the full path, starting with a '/'
+    dBX.API.filesDownload({path: filePath_str}) // Use the full path, starting with a '/'
       .then(function(response) {
         //The response contains a 'fileBlob' field with the file data
         const file_blob= response.result.fileBlob;
@@ -248,7 +247,7 @@ renderItems();
   }, //downloadData()
 
   msg_err: function(err) {
-    //results_H2.textContent= "Error, see console for details";
+results_H2.textContent= "Error, see console for details";
     console.error(err.error || err);
   }
 
