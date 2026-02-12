@@ -107,7 +107,7 @@ console.log("authCode_str (usp)",authCode_str)
     dbx= new Dropbox.Dropbox(pO);
     dbx.usersGetCurrentAccount()
       .then((response) => {
-        //console.log("Auto-Authentication successful:", response);
+        console.log(pO, "Auto-Authentication successful:", response);
         renderItems();
       })
       .catch(error => {
