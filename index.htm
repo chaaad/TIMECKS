@@ -2417,9 +2417,9 @@ function alarms_import(imported_str) {
   }
 } //alarms_import()
 
-function alarms_save() {
+function alarms_getDataArr() {
   vis_ct= 0;
-  var saveAl_arr= []; //data model, temporary
+  var al_arr= []; //data model, temporary
   if (aI_NL.length) {
     var a_obj;
     var name_str;
@@ -2431,12 +2431,18 @@ function alarms_save() {
       if (disabler_mode ? !aI_EL.querySelector("input").checked : !aI_EL.checkVisibility()) a_obj.d= 1; //disabled
       else vis_ct++;
 
-      saveAl_arr.push(a_obj);
+      al_arr.push(a_obj);
     });
   }
-//console.trace("alarms_save",savestoredAl_arr)
-  //localStorage.setItem("alarms", JSON.stringify(saveAl_arr));
-  data_save("alarms", JSON.stringify(saveAl_arr));
+  return al_arr;
+} //alarms_getDataArr()
+
+function alarms_save() {
+  var saveAl_arr= alarms_getDataArr();
+//console.trace("alarms_save",saveAl_arr)
+  var json_str= JSON.stringify(saveAl_arr);
+  data_save("alarms", json_str);
+  if (alarmsSave_hook) alarmsSave_hook(json_str);
 } //alarms_save()
 
 
@@ -3245,5 +3251,7 @@ function alarms_urlImport(q_str) { //import from via url querystring, stores "im
 
 
 </script>
+
+<script src="dropbox_plugin/dBX_plugin.js"></script>
 
 </html>
