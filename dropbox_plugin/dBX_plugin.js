@@ -132,7 +132,7 @@ console.log(fileContent_str);
             var alarmsLS_arr= alarms_getDataArr(); //fn in main page
             alarmsLS_arr.sort((a, b) => a.id -b.id);
 
-            if (JSON.stringify(alarmsLS_arr) != JSON.stringify(alarmsDBX_arr) { //different
+            if (JSON.stringify(alarmsLS_arr) != JSON.stringify(alarmsDBX_arr)) { //different
 console.log("dif", alarmsLS_arr,alarmsDBX_arr);
 
               //do prompt???? //////////////
