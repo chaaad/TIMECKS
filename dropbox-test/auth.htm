@@ -49,22 +49,55 @@
 
     </section>
 
+
 <script>
-// Render a list of items to #files_UL
-function renderItems() {
-  showPageSection("authed-section");
-  dBX.API.filesListFolder({path: ""}) // C:\Users\chaaad\Dropbox\Apps\TIMECKS
-    .then(response => {
-      var items_arr= response.result.entries;
-      var filesContainer_EL= document.getElementById("files_UL");
-      items_arr.forEach(function(item) {
-        var li_EL= document.createElement("LI");
-        li_EL.textContent= item.name;
-        filesContainer_EL.appendChild(li_EL);
-      });
-    })
-  ;
-}
+
+function createCssRule(css_str) {
+  const styleSheet= document.createElement("style");
+  styleSheet.type= "text/css";
+  styleSheet.innerHTML= css_str;
+  document.head.appendChild(styleSheet);
+} //createCssRule()
+
+createCssRule(`
+  IMG#dropboxLogo {
+    background: lightgray;
+    transition: background-color 0.75s ease-out;
+    width: 32px; /*scaled*/
+
+    position: fixed;
+    bottom: 4px;
+    margin: 8px;
+
+    cursor: pointer;
+
+    &.activeState {
+      background: #0062FF;
+    }
+
+    &.errorState {
+      background: red;
+    }
+  }
+`);
+
+const dropboxLogo_IMG= document.createElement("img");
+document.body.appendChild(dropboxLogo_IMG);
+dropboxLogo_IMG.id= "dropboxLogo";
+dropboxLogo_IMG.src= "dropbox_logo-mask64.png";
+dropboxLogo_IMG.classList= "activeState"; // +class "activeState", "errorState" (if has both, "errorState" will override "activeState")
+dropboxLogo_IMG.addEventListener("click", evt => {
+console.log("======"); ///////////////////////////
+});
+
+function dropboxLogo_glow(color_str ="#0062FF") { //dropbox blue
+  dropboxLogo_IMG.style.background= color_str;
+  setTimeout(() => {dropboxLogo_IMG.style.background= ""; }, 1500); //1.5 sec
+} //dropboxLogo_glow()
+
+
+
+
 
 // This example keeps both the authenticated and non-authenticated setions
 // in the DOM and uses this function to show/hide the correct section.
@@ -110,8 +143,18 @@ const dBX= {
 
   //AUTH
 
+  ls: function(key, v) { //localStorage: get, set, v="" to rem
+    if (v != undefined) {
+      if (v == "") window.localStorage.removeItem(key); //ls rem
+      else window.localStorage.setItem(key, v); //ls set
+    } else {
+      return window.localStorage.getItem(key); //ls get
+    }
+  }, //ls()
+
+
   init: function() {
-    var usp= new URLSearchParams(window.location.search); //Parses the url and gets the access token if it is in the urls hash
+    var usp= new URLSearchParams(window.location.search);
     var authCode_str= usp.get("code");
 
     if (authCode_str) { //hasRedirectedFromAuth
@@ -129,7 +172,7 @@ const dBX= {
           dBX.API= new Dropbox.Dropbox({
             auth: dBX.AUTH
           });
-renderItems();
+          dBX.loadFilesList();
         })
         .catch(function(err) {
           dBX.msg_err(err);
@@ -144,20 +187,20 @@ else showPageSection("pre-auth-section"); //display button that starts auth
     }
   }, //init()
 
-  ls: function(key, v) { //localStorage: get, set, v="" to rem
-    if (v != undefined) {
-      if (v == "") window.localStorage.removeItem(key); //ls rem
-      else window.localStorage.setItem(key, v); //ls set
-    } else {
-      return window.localStorage.getItem(key); //ls get
-    }
-  },
+  loadFilesList: function() {
+    dBX.API.filesListFolder({path: ""}) // C:\Users\chaaad\Dropbox\Apps\TIMECKS
+      .then(response => {
+        var files_arr= response.result.entries;
+        if (dBX.hook_loadFilesList) dBX.hook_loadFilesList(files_arr);
+      })
+    ;
+  }, //loadFilesList()
 
   initAuth: function() {
     dBX.AUTH= new Dropbox.DropboxAuth({
       clientId: dBX.clientId_str
     });
-  },
+  }, //initAuth()
 
   doAuth: function() {
     dBX.initAuth();
@@ -169,7 +212,7 @@ else showPageSection("pre-auth-section"); //display button that starts auth
       .catch(function(err) {
         dBX.msg_err(err);
       })
-  },
+  }, //doAuth()
 
 
   initApi: function() {
@@ -180,8 +223,8 @@ else showPageSection("pre-auth-section"); //display button that starts auth
     dBX.API= new Dropbox.Dropbox(paramO);
     dBX.API.usersGetCurrentAccount()
       .then((response) => {
-        console.log(paramO, "Auto-Authentication successful:", response);
-renderItems();
+//console.log(paramO, "Auto-Authentication successful:", response);
+        dBX.loadFilesList();
       })
       .catch(err => {
         dBX.msg_err(err);
@@ -208,8 +251,6 @@ renderItems();
   }, //initApi()
 
 
-//var fileContent_str= JSON.stringify( {Hello: "world!", ts: Date.now()} );
-//dBX.uploadData("/alarms.json", fileContent_str, cb);
   uploadData: function(filePath_str, fileContent_str, cb) {
     dBX.API.filesUpload({
       path: filePath_str,
@@ -225,7 +266,6 @@ renderItems();
     ;
   }, //uploadData()
 
-//var fileContent_str= dBX.downloadData("/alarms.json", cb);
   downloadData: function(filePath_str, cb) {
     dBX.API.filesDownload({path: filePath_str}) // Use the full path, starting with a '/'
       .then(function(response) {
@@ -249,11 +289,23 @@ renderItems();
   msg_err: function(err) {
 results_H2.textContent= "Error, see console for details";
     console.error(err.error || err);
-  }
+  } //msg_err()
 
 }; //dBX
 
-dBX.init(); //self init
+//hooks
+dBX.hook_loadFilesList= function(files_arr) {
+  showPageSection("authed-section");
+  var filesContainer_EL= document.getElementById("files_UL");
+  files_arr.forEach(function(file_item) {
+    var li_EL= document.createElement("LI");
+    li_EL.textContent= file_item.name;
+    filesContainer_EL.appendChild(li_EL);
+  });
+};
+
+//dBX self-init
+dBX.init();
 
 </script>
 
