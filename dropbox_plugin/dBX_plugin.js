@@ -54,7 +54,7 @@ const dBX= {
 
   init: function() {
     dBX.BUT.logo_create();
-    dBX.fPath_str= "/" +dBX.fPath_str;
+    dBX.fPath_str= "/" +dBX.file_str;
 
     var usp= new URLSearchParams(window.location.search);
     var authCode_str= usp.get("code");
