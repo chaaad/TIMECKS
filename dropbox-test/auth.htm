@@ -228,9 +228,6 @@ renderItems();
 
 //var fileContent_str= dBX.downloadData("/alarms.json", cb);
   downloadData: function(filePath_str, cb) {
-const results_H2= document.getElementById("results");
-results_H2.textContent= "";
-
     dBX.api.filesDownload({path: filePath_str}) // Use the full path, starting with a '/'
       .then(function(response) {
         //The response contains a 'fileBlob' field with the file data
