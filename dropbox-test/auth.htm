@@ -134,7 +134,6 @@ document.getElementById("uploadData_BUT")
 console.log("response",response)
       if (response.status == 200) {
         results_H2.innerHTML= "UPLOAD:<br>" +fileContent_str;
-        dropboxLogo_glow("limegreen");
       }
     }
   })
@@ -245,7 +244,6 @@ showPageSection("pre-auth-section"); //display button that starts auth
 //console.log("found alarms.json")
           dBX.downloadData("/alarms.json", fileContent_str => {
 console.log(fileContent_str);
-            dropboxLogo_glow("pink");
 //compare ////////////
 
 
@@ -317,6 +315,7 @@ console.log(fileContent_str);
       mode: {".tag": "overwrite"} // Optional: Overwrite if the file already exists
     })
       .then(function(response) {
+        dropboxLogo_glow("limegreen");
         if (cb) cb(response);
       })
       .catch(function(err) {
@@ -335,6 +334,7 @@ console.log(fileContent_str);
         const reader= new FileReader();
         reader.onloadend= function() {
 //console.log(reader.result); //This will print the file content
+          dropboxLogo_glow("pink");
           if (cb) cb(reader.result);
         };
         reader.readAsText(file_blob); //Read the blob as plain text
