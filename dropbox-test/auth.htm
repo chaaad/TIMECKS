@@ -104,7 +104,7 @@ renderItems();
       dBX.accessToken_str= dBX.ls("dbx_accessToken"); //get
       dBX.refreshToken_str= dBX.ls("dbx_refreshToken"); //get
 
-      if (dBX.accessToken_str || dBX.refreshToken_str) initApi();
+      if (dBX.accessToken_str || dBX.refreshToken_str) dBX.initApi();
 else showPageSection("pre-auth-section"); //display button that starts auth
     }
   }, //init()
