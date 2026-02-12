@@ -80,6 +80,7 @@ console.log("authCode_str (usp)",authCode_str)
   var refreshToken_str= window.localStorage.getItem("dbx_refreshToken");
 
   if (authCode_str) { //hasRedirectedFromAuth
+    history.replaceState("", document.title, window.location.pathname); //url remove hash
     initAuth();
     dbxAuth.setCodeVerifier(sessionStorage.getItem("dbx_codeVerifier"));
     dbxAuth.getAccessTokenFromCode(REDIRECT_URI, authCode_str)
@@ -129,7 +130,6 @@ console.log("authCode_str (usp)",authCode_str)
               refreshToken: refreshToken_str
             });
           } else {
-            ////or doAuth()?????????
             showPageSection("pre-auth-section");
           }
         }
