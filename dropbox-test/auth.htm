@@ -132,7 +132,10 @@ document.getElementById("uploadData_BUT")
     dBX.uploadData("/alarms.json", fileContent_str, cb);
     function cb(response) {
 console.log("response",response)
-      if (response.status == 200) results_H2.innerHTML= "UPLOAD:<br>" +fileContent_str;
+      if (response.status == 200) {
+        results_H2.innerHTML= "UPLOAD:<br>" +fileContent_str;
+        dropboxLogo_glow("limegreen");
+      }
     }
   })
 ;
@@ -239,11 +242,14 @@ showPageSection("pre-auth-section"); //display button that starts auth
         dBX.setStatus(9); /////////??????
 
         if (files_arr.find(file_item => file_item.name == "alarms.json")) {
-console.log("found alarms.json")
+//console.log("found alarms.json")
           dBX.downloadData("/alarms.json", fileContent_str => {
 console.log(fileContent_str);
+            dropboxLogo_glow("pink");
+//compare ////////////
 
-//compare, if different, do prompt???? //////////////
+
+//if different, do prompt???? //////////////
           });
 
         }
