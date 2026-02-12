@@ -33,10 +33,10 @@ const dBX= {
 
   file_str: "alarms.json",
 
-  //status_num, badSave_flag
-  //API
-  //accessToken_str, refreshToken_str
-  //AUTH
+  //.status_num, .badSave_flag
+  //.API
+  //.accessToken_str, .refreshToken_str
+  //.AUTH
 
   ls: function(key, v) { //localStorage: get, set, v="" to rem
     if (v != undefined) {
@@ -232,6 +232,7 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
   }, //downloadData()
 
   BUT: {
+    //.IMG
     logo_create: function() {
       createCssRule(`
         IMG#dropboxLogo {
@@ -255,11 +256,11 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
         }
       `);
 
-      const dropboxLogo_IMG= document.createElement("img");
-      document.body.appendChild(dropboxLogo_IMG);
-      dropboxLogo_IMG.id= "dropboxLogo";
-      dropboxLogo_IMG.src= "dropbox_plugin/dropbox_logo-mask64.png";
-      dropboxLogo_IMG.addEventListener("click", evt => {
+      const IMG= document.createElement("img");
+      document.body.appendChild(IMG);
+      IMG.id= "dropboxLogo";
+      IMG.src= "dropbox_plugin/dropbox_logo-mask64.png";
+      IMG.addEventListener("click", evt => {
 
         //status_num, buttons
         //0, Enable
@@ -274,17 +275,18 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
 
         dBX.changeStatus(status_n);
       });
+      dBX.BUT.IMG= IMG;
     }, //logo_create()
 
     logo_glow: function(color_str ="#0062FF") { //dropbox blue
-      dropboxLogo_IMG.style.background= color_str;
+      dBX.BUT.IMG.style.background= color_str;
       setTimeout(() => {dropboxLogo_IMG.style.background= ""; }, 1500); //1.5 sec
     }, //logo_glow()
 
     logo_set: function() {
       var state_str= "";
       if (dBX.status_num > 1) state_str= dBX.badSave_flag ? "errorState" : "activeState"
-      dropboxLogo_IMG.classList= state_str;
+      dBX.BUT.IMG.classList= state_str;
       // +class "activeState", "errorState" (if has both, "errorState" will override "activeState")
     } //logo_set
   } //BUT.
