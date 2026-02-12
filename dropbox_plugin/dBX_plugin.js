@@ -127,7 +127,8 @@ console.log(fileContent_str);
 
             //compare
             var alarmsDBX_arr= xParseJSON(fileContent_str); //fn in main page
-            alarmsDBX_arr.sort((a, b) => a.id -b.id);
+            if (Array.isArray(alarmsDBX_arr)) alarmsDBX_arr.sort((a, b) => a.id -b.id);
+            else alarmsDBX_arr= [];
 
             var alarmsLS_arr= alarms_getDataArr(); //fn in main page
             alarmsLS_arr.sort((a, b) => a.id -b.id);
@@ -280,7 +281,7 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
 
     logo_glow: function(color_str ="#0062FF") { //dropbox blue
       dBX.BUT.IMG.style.background= color_str;
-      setTimeout(() => {dropboxLogo_IMG.style.background= ""; }, 1500); //1.5 sec
+      setTimeout(() => {dBX.BUT.IMG.style.background= ""; }, 1500); //1.5 sec
     }, //logo_glow()
 
     logo_set: function() {
