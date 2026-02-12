@@ -9,7 +9,11 @@ function createCssRule(css_str) { //lib fn
 } //createCssRule()
 
 
-alarmsSave_hook= function(fileContent_str) { //hook to fn in main page
+tmx_init_hook= function() { //hook to fn in main page
+  dBX.init();
+};
+
+tmx_alarmsSave_hook= function(fileContent_str) { //hook to fn in main page
   if (dBX.status_num != 9) return; //-->
 
   dBX.uploadData(dBX.fPath_str, fileContent_str, cb, err_cb);
@@ -26,7 +30,7 @@ console.log("response, json",response)
     dBX.badSave_flag= ok_flag;
     dBX.BUT.logo_set();
   }
-}; //alarmsSave_hook()
+}; //tmx_alarmsSave_hook()
 
 
 const dBX= {
@@ -296,5 +300,3 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
   } //BUT.
 
 }; //dBX
-
-dBX.init(); //self-init

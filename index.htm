@@ -2442,7 +2442,7 @@ function alarms_save() {
 //console.trace("alarms_save",saveAl_arr)
   var json_str= JSON.stringify(saveAl_arr);
   data_save("alarms", json_str);
-  if (alarmsSave_hook) alarmsSave_hook(json_str);
+  if (tmx_alarmsSave_hook) tmx_alarmsSave_hook(json_str);
 } //alarms_save()
 
 
@@ -3196,6 +3196,7 @@ if (fClick_flag) { //satisfy browser requirement to allow play-sound
         alarmsDrag_init();
         clock_start();
         alarms_start();
+        if (tmx_init_hook) tmx_init_hook();
       }
     });
   }, 100); //allow 1st data_load and bC to complete
