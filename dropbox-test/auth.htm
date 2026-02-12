@@ -175,7 +175,7 @@ const dBX= {
 
     if (authCode_str) { //hasRedirectedFromAuth
       history.replaceState("", document.title, window.location.pathname); //url remove hash
-      dBX.initAuth();
+      dBX.AUTH= new Dropbox.DropboxAuth({clientId: dBX.clientId_str});
       dBX.AUTH.setCodeVerifier(window.sessionStorage.getItem("dbx_codeVerify_key"));
       window.sessionStorage.removeItem("dbx_codeVerify_key");
       dBX.AUTH.getAccessTokenFromCode(dBX.redirectUri_str, authCode_str)
@@ -238,7 +238,7 @@ showPageSection("pre-auth-section"); //display button that starts auth
 
         dBX.setStatus(9); /////////??????
 
-        if (files_arr.includes("alarms.json")) {
+        if (files_arr.find(file_item => file_item.name == "alarms.json")) {
 console.log("found alarms.json")
           //do download ///////////
           //compare, if different, do prompt???? //////////////
@@ -251,14 +251,8 @@ console.log("found alarms.json")
     ;
   }, //loadFilesList()
 
-  initAuth: function() {
-    dBX.AUTH= new Dropbox.DropboxAuth({
-      clientId: dBX.clientId_str
-    });
-  }, //initAuth()
-
   doAuth: function() { //redirect to dropbox site, then redirects back to this site with querystring "&code=.. "
-    dBX.initAuth();
+    dBX.AUTH= new Dropbox.DropboxAuth({clientId: dBX.clientId_str});
     dBX.AUTH.getAuthenticationUrl(dBX.redirectUri_str, undefined, "code", "offline", undefined, undefined, true)
       .then(auth_url => {
         window.sessionStorage.setItem("dbx_codeVerify_key", dBX.AUTH.codeVerifier);
