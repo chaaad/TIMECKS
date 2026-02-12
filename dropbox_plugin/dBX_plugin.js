@@ -29,7 +29,7 @@ console.log("response, json",response)
 const dBX= {
   clientId_str: "fizj6vrhaqvnlix",
   clientSecret_str: "k1jhpcjaavnwg7m",
-  redirectUri_str: "https://chaaad.github.io/TIMECKS/dropbox-test/auth.htm",
+  redirectUri_str: "https://chaaad.github.io/TIMECKS/",
 
   file_str: "alarms.json",
 
