@@ -47,10 +47,8 @@
 <script>
   var CLIENT_ID= "fizj6vrhaqvnlix";
   var REDIRECT_URI= "https://chaaad.github.io/TIMECKS/dropbox-test/auth.htm";
-  var dbxAuth= new Dropbox.DropboxAuth({
-    clientId: CLIENT_ID,
-  });
 
+  var dbxAuth;
   var authCode_str= getCodeFromUrl();
 console.log("authCode_str (usp)",authCode_str)
 
@@ -76,38 +74,77 @@ console.log("authCode_str (usp)",authCode_str)
     document.getElementById(elementId).style.display= "block";
   }
 
-  function doAuth() {
+
+
+
+  function initAuth() {
+    dbxAuth= new Dropbox.DropboxAuth({
+      clientId: CLIENT_ID
+    });
+  }
+
+  function doAuth() { //from UI
+    initAuth();
     dbxAuth.getAuthenticationUrl(REDIRECT_URI, undefined, "code", "offline", undefined, undefined, true)
-      .then(authUrl => {
+      .then(auth_url => {
         window.sessionStorage.clear();
         window.sessionStorage.setItem("dbx_codeVerifier", dbxAuth.codeVerifier);
-        window.location.href= authUrl; //-->
+        window.location.href= auth_url; //-->
       })
-      .catch((error) => console.error(error));
+      .catch(error => console.error(error));
   };
 
+  var dbx;
+  var accessToken_str= window.localStorage.getItem("dbx_accessToken") || "test";//////////////////////
+  var refreshToken_str= window.localStorage.getItem("dbx_refreshToken");
+
   if (authCode_str) { //hasRedirectedFromAuth
+    initAuth();
     showPageSection("authed-section");
-    dbxAuth.setCodeVerifier(window.sessionStorage.getItem("dbx_codeVerifier"));
+    dbxAuth.setCodeVerifier(sessionStorage.getItem("dbx_codeVerifier"));
     dbxAuth.getAccessTokenFromCode(REDIRECT_URI, authCode_str)
       .then((response) => {
-        dbxAuth.setAccessToken(response.result.access_token);
-        var dbx= new Dropbox.Dropbox({
+        accessToken_str= response.result.access_token;
+        window.localStorage.setItem("dbx_accessToken", accessToken_str);
+        refreshToken_str= response.result.refresh_token;
+        window.localStorage.setItem("refreshToken", refreshToken_str);
+        dbxAuth.setAccessToken(accessToken_str);
+        dbx= new Dropbox.Dropbox({
           auth: dbxAuth
         });
         return dbx.filesListFolder({
           path: "" // C:\Users\chaaad\Dropbox\Apps\TIMECKS
         });
       })
-      .then((response) => {
+      .then(response => {
         renderItems(response.result.entries);
       })
-      .catch((error) => {
+      .catch(error => {
         console.error(error.error || error);
       });
   } else {
     showPageSection("pre-auth-section");
+    if (accessToken_str) initDbx();
   }
+
+  function initDbx() {
+    dbx= new Dropbox.Dropbox({accessToken: accessToken_str});
+/*
+    dbx.usersGetCurrentAccount()
+      .then((response) => {
+        console.log('Authentication successful:', response);
+      })
+      .catch(error => {
+        console.error(error);
+        if (error.status == 401) {
+          //console.error('401 Unauthorized error: Invalid or expired token.');
+          if (refreshToken_str) dbx= new Dropbox.Dropbox({refreshToken: refreshToken_str});
+        }
+      })
+    ;
+*/
+  } //initDbx()
+
 </script>
 
 </body>
