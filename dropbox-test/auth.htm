@@ -82,7 +82,7 @@ document.getElementById("uploadData_BUT")
     dBX.uploadData("/alarms.json", fileContent_str, cb);
     function cb(response) {
 console.log("response",response)
-      results_H2.innerHTML= "UPLOAD:<br>" +fileContent_str;
+      if (response.status == 200) results_H2.innerHTML= "UPLOAD:<br>" +fileContent_str;
     }
   })
 ;
