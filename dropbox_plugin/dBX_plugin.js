@@ -130,7 +130,7 @@ const dBX= {
 
         if (files_arr.find(file_item => file_item.name == dBX.file_str)) {
           dBX.downloadData(dBX.fPath_str, fileContent_str => {
-console.log("loadFilesList->dBX.downloadData, dBX.fPath_str, "loaded");
+console.log("loadFilesList->dBX.downloadData", dBX.fPath_str, "loaded");
 //console.log(fileContent_str);
             dBX.BUT.logo_glow("pink");
 
