@@ -85,9 +85,20 @@ const dropboxLogo_IMG= document.createElement("img");
 document.body.appendChild(dropboxLogo_IMG);
 dropboxLogo_IMG.id= "dropboxLogo";
 dropboxLogo_IMG.src= "dropbox_logo-mask64.png";
-dropboxLogo_IMG.classList= "activeState"; // +class "activeState", "errorState" (if has both, "errorState" will override "activeState")
 dropboxLogo_IMG.addEventListener("click", evt => {
-console.log("======"); ///////////////////////////
+
+  //status_num, buttons
+  //0, Enable
+  //1, Unpause, Disable
+  //9, Pause, Disable
+
+  ///////////////////
+  var status_str= prompt("status_num:", dBX.status_num);
+  if (status_str == null) return;
+  var status_n= Number(status_str) || 0;
+  //////////////
+
+  dBX.changeStatus(status_n);
 });
 
 function dropboxLogo_glow(color_str ="#0062FF") { //dropbox blue
@@ -95,7 +106,12 @@ function dropboxLogo_glow(color_str ="#0062FF") { //dropbox blue
   setTimeout(() => {dropboxLogo_IMG.style.background= ""; }, 1500); //1.5 sec
 } //dropboxLogo_glow()
 
-
+function dropboxLogo_set() {
+  var state_str= "";
+  if (dBX.status_num > 1) state_str= badSave_flag ? "errorState" : "activeState"
+  dropboxLogo_IMG.classList= state_str;
+  // +class "activeState", "errorState" (if has both, "errorState" will override "activeState")
+} //dropboxLogo_set
 
 
 
@@ -138,9 +154,9 @@ const dBX= {
   clientSecret_str: "k1jhpcjaavnwg7m",
   redirectUri_str: "https://chaaad.github.io/TIMECKS/dropbox-test/auth.htm",
 
+  //status_num
   //API
   //accessToken_str, refreshToken_str
-
   //AUTH
 
   ls: function(key, v) { //localStorage: get, set, v="" to rem
@@ -172,26 +188,65 @@ const dBX= {
           dBX.API= new Dropbox.Dropbox({
             auth: dBX.AUTH
           });
-          dBX.loadFilesList();
+          dBX.loadFilesList("authRedirect");
         })
         .catch(function(err) {
           dBX.msg_err(err);
         })
 
     } else { //normal page
+      dBX.status_num= dBX.ls("dbx_status") || 0; //ls get
+      //0 n/a (or off), 1 disabled (paused), 9 on
+
       dBX.accessToken_str= dBX.ls("dbx_accessToken"); //ls get
       dBX.refreshToken_str= dBX.ls("dbx_refreshToken"); //ls get
 
-      if (dBX.accessToken_str || dBX.refreshToken_str) dBX.initApi();
-else showPageSection("pre-auth-section"); //display button that starts auth
+      if (dBX.status_num > 1) dBX.enable();
     }
   }, //init()
 
-  loadFilesList: function() {
+  enable: function() {
+    if (dBX.accessToken_str || dBX.refreshToken_str) {
+      dBX.initApi();
+    } else {
+showPageSection("pre-auth-section"); //display button that starts auth
+      dBX.doAuth();
+    }
+  }, //enable()
+
+  changeStatus: function(status_n) {
+    if (dBX.status_num == status_n) return; //-->
+//pause, 9.. 1
+//disable 1or9.. 0
+
+//enable, 0.. 9
+//unpause, 1.. 9
+    if (status_n == 9) dBX.enable();
+    else dBX.setStatus(status_n);
+  }, //changeStatus()
+
+  setStatus: function(status_n) {
+    dBX.status_num= status_n;
+    dBX.ls("dbx_status", status_n); //ls set
+    if (dBX.setStatus_hook) dBX.setStatus_hook();
+  }, //setStatus()
+
+  loadFilesList: function(authRedirect_flag) {
     dBX.API.filesListFolder({path: ""}) // C:\Users\chaaad\Dropbox\Apps\TIMECKS
       .then(response => {
         var files_arr= response.result.entries;
-        if (dBX.hook_loadFilesList) dBX.hook_loadFilesList(files_arr);
+
+        dBX.setStatus(9); /////////??????
+
+        if (files_arr.includes("alarms.json")) {
+console.log("found alarms.json")
+          //do download ///////////
+          //compare, if different, do prompt???? //////////////
+        }
+
+        ////////if (authRedirect_flag) { }  ////need? need authRedirect_flag at all???
+
+        if (dBX.hook_loadFilesList) dBX.hook_loadFilesList(files_arr, authRedirect_flag);
       })
     ;
   }, //loadFilesList()
@@ -202,7 +257,7 @@ else showPageSection("pre-auth-section"); //display button that starts auth
     });
   }, //initAuth()
 
-  doAuth: function() {
+  doAuth: function() { //redirect to dropbox site, then redirects back to this site with querystring "&code=.. "
     dBX.initAuth();
     dBX.AUTH.getAuthenticationUrl(dBX.redirectUri_str, undefined, "code", "offline", undefined, undefined, true)
       .then(auth_url => {
@@ -294,15 +349,24 @@ results_H2.textContent= "Error, see console for details";
 }; //dBX
 
 //hooks
-dBX.hook_loadFilesList= function(files_arr) {
+dBX.hook_loadFilesList= function(files_arr, authRedirect_flag) {
   showPageSection("authed-section");
+
   var filesContainer_EL= document.getElementById("files_UL");
   files_arr.forEach(function(file_item) {
     var li_EL= document.createElement("LI");
     li_EL.textContent= file_item.name;
     filesContainer_EL.appendChild(li_EL);
   });
+
 };
+
+dBX.setStatus_hook= function() {
+  dropboxLogo_set();
+};
+
+var badSave_flag;
+
 
 //dBX self-init
 dBX.init();
