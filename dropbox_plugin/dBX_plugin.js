@@ -130,21 +130,27 @@ const dBX= {
 
         if (files_arr.find(file_item => file_item.name == dBX.file_str)) {
           dBX.downloadData(dBX.fPath_str, fileContent_str => {
-console.log(fileContent_str);
+console.log("loadFilesList->dBX.downloadData, dBX.fPath_str, "loaded");
+//console.log(fileContent_str);
             dBX.BUT.logo_glow("pink");
 
             //compare
             var alarmsDBX_arr= xParseJSON(fileContent_str); //fn in main page
-            if (Array.isArray(alarmsDBX_arr)) alarmsDBX_arr.sort((a, b) => a.id -b.id);
-            else alarmsDBX_arr= [];
+            if (Array.isArray(alarmsDBX_arr)) {
+              alarmsDBX_arr.sort((a, b) => a.id -b.id);
 
-            var alarmsLS_arr= alarms_getDataArr(); //fn in main page
-            alarmsLS_arr.sort((a, b) => a.id -b.id);
+              var alarmsLS_arr= alarms_getDataArr(); //fn in main page
+              alarmsLS_arr.sort((a, b) => a.id -b.id);
 
-            if (JSON.stringify(alarmsLS_arr) != JSON.stringify(alarmsDBX_arr)) { //different
+              if (JSON.stringify(alarmsLS_arr) != JSON.stringify(alarmsDBX_arr)) { //different
 console.log("dif", alarmsLS_arr,alarmsDBX_arr);
 
-              //do prompt???? //////////////
+                //prompt???? //////////////
+                  //if alarmsDBX_arr chosen
+                    //clear,
+                    //rerender alarms,
+                    //save
+              }
             }
           });
 
