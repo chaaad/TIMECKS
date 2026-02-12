@@ -80,7 +80,6 @@ console.log("authCode_str (usp)",authCode_str)
 
   if (authCode_str) { //hasRedirectedFromAuth
     initAuth();
-    showPageSection("authed-section");
     dbxAuth.setCodeVerifier(sessionStorage.getItem("dbx_codeVerifier"));
     dbxAuth.getAccessTokenFromCode(REDIRECT_URI, authCode_str)
       .then((response) => {
@@ -131,6 +130,7 @@ console.log("authCode_str (usp)",authCode_str)
 
   // Render a list of items to #files
   function renderItems() {
+    showPageSection("authed-section");
     dbx.filesListFolder({path: ""}) // C:\Users\chaaad\Dropbox\Apps\TIMECKS
       .then(response => {
         var items_arr= response.result.entries;
