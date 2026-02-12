@@ -18,7 +18,7 @@ tmx_alarmsSave_hook= function(fileContent_str) { //hook to fn in main page
 
   dBX.uploadData(dBX.fPath_str, fileContent_str, cb, err_cb);
   function cb(response) {
-console.log("response, json",response)
+console.log("tmx_alarmsSave_hook->dBX.uploadData (json), response",response)
     dBX.BUT.logo_glow("limegreen");
     setFlag(response.status == 200);
   }
@@ -26,8 +26,8 @@ console.log("response, json",response)
     setFlag(false);
   }
   function setFlag(ok_flag) {
-    if (dBX.badSave_flag == ok_flag) return; //-->
-    dBX.badSave_flag= ok_flag;
+    if (dBX.badSave_flag == !ok_flag) return; //-->
+    dBX.badSave_flag= !ok_flag;
     dBX.BUT.logo_set();
   }
 }; //tmx_alarmsSave_hook()
@@ -40,7 +40,8 @@ const dBX= {
 
   file_str: "alarms.json",
 
-  //.status_num, .badSave_flag
+  badSave_flag: false,
+  //.status_num,
   //.API
   //.accessToken_str, .refreshToken_str
   //.AUTH
