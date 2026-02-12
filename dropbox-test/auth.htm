@@ -240,8 +240,12 @@ showPageSection("pre-auth-section"); //display button that starts auth
 
         if (files_arr.find(file_item => file_item.name == "alarms.json")) {
 console.log("found alarms.json")
-          //do download ///////////
-          //compare, if different, do prompt???? //////////////
+          dBX.downloadData("/alarms.json", fileContent_str => {
+console.log(fileContent_str);
+
+//compare, if different, do prompt???? //////////////
+          });
+
         }
 
         ////////if (authRedirect_flag) { }  ////need? need authRedirect_flag at all???
