@@ -77,8 +77,6 @@
       .catch(error => console.error(error));
   };
 
-
-
   if (authCode_str) { //hasRedirectedFromAuth
     history.replaceState("", document.title, window.location.pathname); //url remove hash
     initAuth();
@@ -99,14 +97,18 @@
         console.error(error.error || error);
       });
 
-  } else {
+  } else { //normal page
     accessToken_str= window.localStorage.getItem("dbx_accessToken");
     refreshToken_str= window.localStorage.getItem("dbx_refreshToken");
-    if (accessToken_str) initDbx({accessToken: accessToken_str});
-    else showPageSection("pre-auth-section");
+    if (accessToken_str || refreshToken_str) initDbx();
+    else showPageSection("pre-auth-section"); //display button that starts auth
   }
 
-  function initDbx(pO) {
+  function initDbx() {
+    var pO;
+    if (accessToken_str) pO= {accessToken: accessToken_str};
+    else pO= {clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, refreshToken: refreshToken_str};
+
     dbx= new Dropbox.Dropbox(pO);
     dbx.usersGetCurrentAccount()
       .then((response) => {
@@ -126,15 +128,11 @@
 
         if (pO.accessToken && refreshToken_str) {
             //accessToken failed (prob error.status 401), try refreshToken
-            initDbx({
-              clientId: CLIENT_ID,
-              clientSecret: CLIENT_SECRET,
-              refreshToken: refreshToken_str
-            });
+            initDbx(pO);
 
-        } else { //refreshToken failed, do auth from the top
+        } else {
+          //refreshToken failed, do auth from the top
           doAuth();
-          //showPageSection("pre-auth-section");
         }
       })
     ;
