@@ -122,6 +122,7 @@ console.log("authCode_str (usp)",authCode_str)
       .catch(error => {
         console.error(error.error || error);
       });
+
   } else {
     showPageSection("pre-auth-section");
     if (accessToken_str) initDbx();
@@ -129,7 +130,6 @@ console.log("authCode_str (usp)",authCode_str)
 
   function initDbx() {
     dbx= new Dropbox.Dropbox({accessToken: accessToken_str});
-/*
     dbx.usersGetCurrentAccount()
       .then((response) => {
         console.log('Authentication successful:', response);
@@ -142,7 +142,6 @@ console.log("authCode_str (usp)",authCode_str)
         }
       })
     ;
-*/
   } //initDbx()
 
 </script>
