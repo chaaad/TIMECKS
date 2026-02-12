@@ -258,7 +258,7 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
       const dropboxLogo_IMG= document.createElement("img");
       document.body.appendChild(dropboxLogo_IMG);
       dropboxLogo_IMG.id= "dropboxLogo";
-      dropboxLogo_IMG.src= "dropbox_logo-mask64.png";
+      dropboxLogo_IMG.src= "dropbox_plugin/dropbox_logo-mask64.png";
       dropboxLogo_IMG.addEventListener("click", evt => {
 
         //status_num, buttons
