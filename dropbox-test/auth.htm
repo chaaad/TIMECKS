@@ -45,6 +45,7 @@
 
 <script>
   var CLIENT_ID= "fizj6vrhaqvnlix";
+  var CLIENT_SECRET= "k1jhpcjaavnwg7m";
   var REDIRECT_URI= "https://chaaad.github.io/TIMECKS/dropbox-test/auth.htm";
 
   var dbxAuth;
@@ -121,8 +122,16 @@ console.log("authCode_str (usp)",authCode_str)
         }
 
         if (error.status == 401) {
-          if (pO.accessToken && refreshToken_str) initDbx({refreshToken: refreshToken_str});
-          else showPageSection("pre-auth-section"); ////or doAuth()?????????
+          if (pO.accessToken && refreshToken_str) {
+            initDbx(
+              clientId: CLIENT_ID,
+              clientSecret: CLIENT_SECRET,
+              refreshToken: refreshToken_str
+            });
+          } else {
+            ////or doAuth()?????????
+            showPageSection("pre-auth-section");
+          }
         }
       })
     ;
