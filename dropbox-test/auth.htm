@@ -83,7 +83,8 @@ const dBX= {
     if (authCode_str) { //hasRedirectedFromAuth
       history.replaceState("", document.title, window.location.pathname); //url remove hash
       dBX.initAuth();
-      dBX.auth.setCodeVerifier(sessionStorage.getItem("dbx_codeVerifier_key"));
+      dBX.auth.setCodeVerifier(window.sessionStorage.getItem("dbx_codeVerify_key"));
+      window.sessionStorage.removeItem("dbx_codeVerify_key");
       dBX.auth.getAccessTokenFromCode(dBX.REDIRECT_URI, authCode_str)
         .then((response) => {
           dBX.accessToken_str= response.result.access_token;
@@ -128,8 +129,7 @@ else showPageSection("pre-auth-section"); //display button that starts auth
     dBX.initAuth();
     dBX.auth.getAuthenticationUrl(dBX.REDIRECT_URI, undefined, "code", "offline", undefined, undefined, true)
       .then(auth_url => {
-        //window.sessionStorage.clear();
-        dBX.ls("dbx_codeVerify_key", dBX.auth.codeVerifier || ""); //set
+        window.sessionStorage.setItem("dbx_codeVerify_key", dBX.auth.codeVerifier);
         window.location.href= auth_url; //-->
       })
       .catch(function(err) {
