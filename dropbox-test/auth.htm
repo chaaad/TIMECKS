@@ -123,7 +123,7 @@ console.log("authCode_str (usp)",authCode_str)
 
         if (error.status == 401) {
           if (pO.accessToken && refreshToken_str) initDbx({refreshToken: refreshToken_str});
-          else showPageSection("pre-auth-section");
+          else showPageSection("pre-auth-section"); ////or doAuth()?????????
         }
       })
     ;
@@ -138,7 +138,7 @@ console.log("authCode_str (usp)",authCode_str)
         items_arr.forEach(function(item) {
           var li_EL= document.createElement("li");
           li_EL.textContent= item.name;
-          filesContainer_EL.appendChild(li);
+          filesContainer_EL.appendChild(li_EL);
         });
       })
     ;
