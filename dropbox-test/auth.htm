@@ -48,9 +48,11 @@
   var CLIENT_SECRET= "k1jhpcjaavnwg7m";
   var REDIRECT_URI= "https://chaaad.github.io/TIMECKS/dropbox-test/auth.htm";
 
+  var dbx;
+  var accessToken_str, refreshToken_str;
+
   var dbxAuth;
   var authCode_str= getCodeFromUrl();
-console.log("authCode_str (usp)",authCode_str)
 
   // Parses the url and gets the access token if it is in the urls hash
   function getCodeFromUrl() {
@@ -64,7 +66,7 @@ console.log("authCode_str (usp)",authCode_str)
     });
   }
 
-  function doAuth() { //from UI
+  function doAuth() {
     initAuth();
     dbxAuth.getAuthenticationUrl(REDIRECT_URI, undefined, "code", "offline", undefined, undefined, true)
       .then(auth_url => {
@@ -75,9 +77,7 @@ console.log("authCode_str (usp)",authCode_str)
       .catch(error => console.error(error));
   };
 
-  var dbx;
-  var accessToken_str= window.localStorage.getItem("dbx_accessToken");
-  var refreshToken_str= window.localStorage.getItem("dbx_refreshToken");
+
 
   if (authCode_str) { //hasRedirectedFromAuth
     history.replaceState("", document.title, window.location.pathname); //url remove hash
@@ -100,6 +100,8 @@ console.log("authCode_str (usp)",authCode_str)
       });
 
   } else {
+    accessToken_str= window.localStorage.getItem("dbx_accessToken");
+    refreshToken_str= window.localStorage.getItem("dbx_refreshToken");
     if (accessToken_str) initDbx({accessToken: accessToken_str});
     else showPageSection("pre-auth-section");
   }
@@ -122,16 +124,17 @@ console.log("authCode_str (usp)",authCode_str)
           window.localStorage.removeItem("dbx_refreshToken");
         }
 
-        if (error.status == 401) {
-          if (pO.accessToken && refreshToken_str) {
+        if (pO.accessToken && refreshToken_str) {
+            //accessToken failed (prob error.status 401), try refreshToken
             initDbx({
               clientId: CLIENT_ID,
               clientSecret: CLIENT_SECRET,
               refreshToken: refreshToken_str
             });
-          } else {
-            showPageSection("pre-auth-section");
-          }
+
+        } else { //refreshToken failed, do auth from the top
+          doAuth();
+          //showPageSection("pre-auth-section");
         }
       })
     ;
