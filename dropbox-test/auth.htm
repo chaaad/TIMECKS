@@ -86,7 +86,7 @@ console.log("authCode_str (usp)",authCode_str)
         accessToken_str= response.result.access_token;
         window.localStorage.setItem("dbx_accessToken", accessToken_str);
         refreshToken_str= response.result.refresh_token;
-        window.localStorage.setItem("refreshToken", refreshToken_str);
+        window.localStorage.setItem("dbx_refreshToken", refreshToken_str);
         dbxAuth.setAccessToken(accessToken_str);
         dbx= new Dropbox.Dropbox({
           auth: dbxAuth
