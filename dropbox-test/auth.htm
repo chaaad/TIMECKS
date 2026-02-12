@@ -37,7 +37,16 @@
         <div id="authed-section" style="display:none;">
             <p>You have successfully authenticated. Below are the contents of your root directory. They were fetched using the SDK and access token.</p>
             <ul id="files"></ul>
+
+            <button id="uploadData_BUT">upload data</button>
+            <button id="downloadData_BUT">download data</button>
+
+            <!-- A place to show the data -->
+            <h2 id="results"></h2>
         </div>
+
+        </div>
+
     </section>
 
 <script>
@@ -63,6 +72,32 @@ function showPageSection(elementId) {
   document.getElementById(elementId).style.display= "block";
 }
 
+
+document.getElementById("uploadData_BUT")
+  .addEventListener("click", evt => {
+    const results_H2= document.getElementById("results");
+    results_H2.textContent= "";
+
+    var fileContent_str= JSON.stringify( {Hello: "world!", ts: Date.now()} );
+    dBX.uploadData("/alarms.json", fileContent_str, cb);
+    function cb(response) {
+console.log("response",response)
+      results_H2.innerHTML= "UPLOAD:<br>" +fileContent_str;
+    }
+  })
+;
+
+document.getElementById("downloadData_BUT")
+  .addEventListener("click", evt => {
+    const results_H2= document.getElementById("results");
+    results_H2.textContent= "";
+
+    dBX.downloadData("/alarms.json", cb);
+    function cb(fileContent_str) {
+      results_H2.innerHTML= "DOWNLOAD:<br>" +fileContent_str;
+    }
+  })
+;
 
 
 const dBX= {
@@ -175,17 +210,15 @@ renderItems();
 
 
 //var fileContent_str= JSON.stringify( {Hello: "world!", ts: Date.now()} );
-//dBX.uploadData("/alarms.json", fileContent_str);
-  uploadData: function(filePath_str, fileContent_str) {
-    //results_H2.textContent= "";
-
+//dBX.uploadData("/alarms.json", fileContent_str, cb);
+  uploadData: function(filePath_str, fileContent_str, cb) {
     dBX.api.filesUpload({
       path: filePath_str,
       contents: fileContent_str,
       mode: {".tag": "overwrite"} // Optional: Overwrite if the file already exists
     })
       .then(function(response) {
-        //results_H2.innerHTML= "UPLOAD:<br>" +fileContent_str;
+        if (cb) cb(response);
       })
       .catch(function(err) {
         dBX.msg_err(err);
@@ -193,9 +226,10 @@ renderItems();
     ;
   }, //uploadData()
 
-//var fileContent_str= dBX.downloadData("/alarms.json");
-  downloadData: function(filePath_str) {
-    //results_H2.textContent= "";
+//var fileContent_str= dBX.downloadData("/alarms.json", cb);
+  downloadData: function(filePath_str, cb) {
+const results_H2= document.getElementById("results");
+results_H2.textContent= "";
 
     dBX.api.filesDownload({path: filePath_str}) // Use the full path, starting with a '/'
       .then(function(response) {
@@ -205,8 +239,8 @@ renderItems();
         //Use FileReader to read the Blob content in the browser
         const reader= new FileReader();
         reader.onloadend= function() {
-          //results_H2.innerHTML= "DOWNLOAD:<br>" +reader.result;
-          //console.log(reader.result); //This will print the file content
+//console.log(reader.result); //This will print the file content
+          if (cb) cb(reader.result);
         };
         reader.readAsText(file_blob); //Read the blob as plain text
       })
