@@ -309,7 +309,7 @@ const dBX= {
 
           cursor: pointer;
 
-          &.activeState {
+          &.onState {
             background: #0062FF; /*dropbox blue*/
           }
 
@@ -377,7 +377,7 @@ const dBX= {
     logo_set: function() {
       var state_str= "";
       if (dBX.status_num == 1) state_str= "pausedState";
-      else if (dBX.status_num > 1) state_str= dBX.badSave_flag ? "errorState" : "activeState";
+      else if (dBX.status_num > 1) state_str= dBX.badSave_flag ? "errorState" : "onState";
       dBX.BUT.IMG.classList= state_str;
       var title_str="Dropbox sync";
       if (state_str) title_str+= ": " +state_str.replace("State", "");
