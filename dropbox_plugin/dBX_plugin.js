@@ -313,7 +313,7 @@ const dBX= {
           }
 
           &.pausedState {
-            background: #80b0ff; /*lighter blue*/
+            background: #cce0ff; /*lighter blue*/
           }
 
           &.errorState {
