@@ -82,7 +82,7 @@ const dBX= {
           dBX.API= new Dropbox.Dropbox({
             auth: dBX.AUTH
           });
-          dBX.loadFilesList("authRedirect");
+          dBX.firstLoad("authRedirect");
         })
         .catch(function(err) {
           dBX.msg_err(err);
@@ -106,11 +106,12 @@ const dBX= {
 
   changeStatus: function(status_n) {
     if (dBX.status_num == status_n) return; //-->
-//pause, 9.. 1
-//disable 1or9.. 0
 
-//enable, 0.. 9
-//unpause, 1.. 9
+    //pause, 9.. 1
+    //disable 1or9.. 0
+    //enable, 0.. 9
+    //unpause, 1.. 9
+
     if (status_n == 9) dBX.enable();
     else dBX.setStatus(status_n);
   }, //changeStatus()
@@ -121,45 +122,77 @@ const dBX= {
     dBX.BUT.logo_set();
   }, //setStatus()
 
-  loadFilesList: function(authRedirect_flag) {
+  firstLoad: function(authRedirect_flag) {
+    //loadFilesList
     dBX.API.filesListFolder({path: ""}) // C:\Users\chaaad\Dropbox\Apps\TIMECKS
-      .then(response => {
+      .then(response => { //success
         var files_arr= response.result.entries;
 
-        dBX.setStatus(9); /////////??????
+        dBX.setStatus(9);
+/////////??????
 
+        var alarmsDBX_str, alarmsDBX_arr;
         if (files_arr.find(file_item => file_item.name == dBX.file_str)) {
-          dBX.downloadData(dBX.fPath_str, fileContent_str => {
-console.log("loadFilesList->dBX.downloadData", dBX.fPath_str, "loaded");
+          dBX.downloadData(dBX.fPath_str, fileContent_str => { //get "alarms.json" from dropbox
+console.log("firstLoad->dBX.downloadData", dBX.fPath_str, "loaded");
 //console.log(fileContent_str);
-            dBX.BUT.logo_glow("pink");
+            dBX.BUT.logo_glow("cyan");
 
-            //compare
-            var alarmsDBX_arr= xParseJSON(fileContent_str); //fn in main page
+            alarmsDBX_arr= xParseJSON(fileContent_str); //fn in main page
             if (Array.isArray(alarmsDBX_arr)) {
               alarmsDBX_arr.sort((a, b) => a.id -b.id);
-
-              var alarmsLS_arr= alarms_getDataArr(); //fn in main page
-              alarmsLS_arr.sort((a, b) => a.id -b.id);
-
-              if (JSON.stringify(alarmsLS_arr) != JSON.stringify(alarmsDBX_arr)) { //different
-console.log("dif", alarmsLS_arr,alarmsDBX_arr);
-
-                //prompt???? //////////////
-                  //if alarmsDBX_arr chosen
-                    //clear,
-                    //rerender alarms,
-                    //save
-              }
+              alarmsDBX_str= JSON.stringify(alarmsDBX_arr);
             }
+            compareThenChoose();
           });
 
+        } else {
+          compareThenChoose();
         }
 
-        ////////if (authRedirect_flag) { }  ////need? need authRedirect_flag at all???
-      })
-    ;
-  }, //loadFilesList()
+        function compareThenChoose() {
+          var alarmsLS_str;
+          var alarmsLS_arr= alarms_getDataArr();
+          alarmsLS_arr.sort((a, b) => a.id -b.id);
+          alarmsLS_str= JSON.stringify(alarmsLS_arr);
+
+          if (alarmsLS_str != alarmsDBX_str) { //different
+console.log("dif", alarmsLS_arr,alarmsDBX_arr);
+            if (!alarmsDBX_str) {
+              choose("LS");
+            } else {
+              var html_str= "xxxxxxxxx";
+
+              //fn in main page..
+              jm.boolean("<p>Local/Cloud are different</p>" +html_str, false, { //default value, false (cloud)
+                //jm custom cb object
+                custButText: {OkBut: "Local", NoBut: "Cloud"},
+                end_cb: resp => {
+                  if (resp == null) return; //cancel, do nothing //-->
+                  choose(resp ? "LS" : "DBX");
+                }
+              });
+            }
+
+            function choose(choice_key) {
+              if (choice_key == "DBX") {
+                alarms_start(alarmsDBX_arr); //clear, re-render alarms dom //fn in main page
+                dBX.ls("alarms", alarmsDBX_str); //direct save to //ls set
+
+              } else if (choice_key == "LS") {
+                tmx_alarmsSave_hook(alarmsLS_str); //direct save to dropbox
+              }
+            } //choose()
+
+          } //is diff
+        } //compareThenChoose()
+
+////////if (authRedirect_flag) { }  ////need? need authRedirect_flag at all???
+
+      }) //success
+    ; //filesListFolder
+
+  }, //firstLoad()
 
   doAuth: function() { //redirect to dropbox site, then redirects back to this site with querystring "&code=.. "
     dBX.AUTH= new Dropbox.DropboxAuth({clientId: dBX.clientId_str});
@@ -183,7 +216,7 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
     dBX.API.usersGetCurrentAccount()
       .then((response) => {
 //console.log(paramO, "Auto-Authentication successful:", response);
-        dBX.loadFilesList();
+        dBX.firstLoad();
       })
       .catch(err => {
         dBX.msg_err(err);
@@ -277,6 +310,7 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
       IMG.src= "dropbox_plugin/dropbox_logo-mask64.png";
       IMG.addEventListener("click", evt => {
 
+////////////////////
         //status_num, buttons
         //0, Enable
         //1, Unpause, Disable
