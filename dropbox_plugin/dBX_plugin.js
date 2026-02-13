@@ -1,38 +1,3 @@
-//alarms json
-//[{"id":4,"t":"11:00 AM","n":"Start DAILY","c":1},{"id":2,"t":"1:00 AM","n":"PC Latest Drops DAILY"},{"id":1,"t":"12:00 AM","n":"test disabled","d":1},{"id":6,"t":"?/13 7:00 PM","n":"Chase CC MONTHLY","c":1},{"id":3,"t":"SUN 11:00 PM","n":"Recycle day WEEKLY","c":1}]
-
-function createCssRule(css_str) { //lib fn
-  const styleSheet= document.createElement("style");
-  styleSheet.type= "text/css";
-  styleSheet.innerHTML= css_str;
-  document.head.appendChild(styleSheet);
-} //createCssRule()
-
-
-tmx_init_hook= function() { //hook fn from main page
-  dBX.init();
-};
-
-tmx_alarmsSave_hook= function(fileContent_str) { //hook fn from main page
-  if (dBX.status_num != 9) return; //-->
-
-  dBX.uploadData(dBX.fPath_str, fileContent_str, cb, err_cb);
-  function cb(response) {
-console.log("tmx_alarmsSave_hook->dBX.uploadData (json), response",response)
-    dBX.BUT.logo_glow("limegreen");
-    setFlag(response.status == 200);
-  }
-  function err_cb(err) {
-    setFlag(false);
-  }
-  function setFlag(ok_flag) {
-    if (dBX.badSave_flag == !ok_flag) return; //-->
-    dBX.badSave_flag= !ok_flag;
-    dBX.BUT.logo_set();
-  }
-}; //tmx_alarmsSave_hook()
-
-
 const dBX= {
   clientId_str: "fizj6vrhaqvnlix",
   clientSecret_str: "k1jhpcjaavnwg7m",
@@ -108,10 +73,10 @@ const dBX= {
   changeStatus: function(status_n) {
     if (dBX.status_num == status_n) return; //-->
 
-    //pause, 9.. 1
-    //disable 1or9.. 0
-    //enable, 0.. 9
-    //unpause, 1.. 9
+    //pause, 9 -> 1
+    //disable 1or9 -> 0
+    //enable, 0 -> 9
+    //unpause, 1 -> 9
 
     if (status_n==9 && !dBX.API) dBX.enable();
     else dBX.setStatus(status_n);
@@ -130,7 +95,6 @@ const dBX= {
         var files_arr= response.result.entries;
 
         dBX.setStatus(9);
-/////////??????
 
         var alarmsDBX_str, alarmsDBX_arr;
         if (files_arr.find(file_item => file_item.name == dBX.file_str)) {
@@ -139,7 +103,7 @@ const dBX= {
 //console.log(fileContent_str);
             dBX.BUT.logo_glow("cyan");
 
-            alarmsDBX_arr= xParseJSON(fileContent_str); //fn from main page
+            alarmsDBX_arr= TMXu.parseJSON(fileContent_str); //fn from main page
             if (Array.isArray(alarmsDBX_arr)) {
               alarmsDBX_arr.sort((a, b) => a.id -b.id);
               alarmsDBX_str= JSON.stringify(alarmsDBX_arr);
@@ -153,7 +117,7 @@ const dBX= {
 
         function compareThenChoose() {
           var alarmsLS_str;
-          var alarmsLS_arr= alarms_getDataArr(); //fn from main page
+          var alarmsLS_arr= TMX.alarms_getDataArr(); //fn from main page
           alarmsLS_arr.sort((a, b) => a.id -b.id);
           alarmsLS_str= JSON.stringify(alarmsLS_arr);
 
@@ -191,11 +155,11 @@ const dBX= {
 
             function choose(choice_key) {
               if (choice_key == "DBX") {
-                alarms_start(alarmsDBX_arr); //clear, re-render alarms dom //fn from main page
+                TMX.alarms_start(alarmsDBX_arr); //clear, re-render alarms dom //fn from main page
                 dBX.ls("alarms", alarmsDBX_str); //direct save to //ls set
 
               } else if (choice_key == "LS") {
-                tmx_alarmsSave_hook(alarmsLS_str); //direct save to dropbox
+                tmx.hookers["alarmsSave"](alarmsLS_str); //direct save to dropbox
               }
             } //choose()
 
@@ -297,7 +261,7 @@ const dBX= {
   BUT: {
     //.IMG
     logo_create: function() {
-      createCssRule(`
+      TMXu.createCssRule(`
         IMG#dropboxLogo {
           background: lightgray;
           transition: background-color 0.75s ease-out;
@@ -332,7 +296,7 @@ const dBX= {
 
       IMG.addEventListener("click", evt => {
         var sN= dBX.status_num;
-        if (sN>1 && dBX.badSave_flag) alarms_save(); //fn from main page
+        if (sN>1 && dBX.badSave_flag) TMX.alarms_save(); //fn from main page
 
         var but_str;
         if (sN == 0) but_str= "Enable";
@@ -386,3 +350,27 @@ const dBX= {
   } //BUT.
 
 }; //dBX
+
+
+tmx.hookers["init"]= function() { //hook fn from main page
+  dBX.init();
+}; //tmx.hookers["init"]()
+
+tmx.hookers["alarmsSave"]= function(fileContent_str) { //hook fn from main page
+  if (dBX.status_num != 9) return; //-->
+
+  dBX.uploadData(dBX.fPath_str, fileContent_str, cb, err_cb);
+  function cb(response) {
+//console.log("tmx.hookers["alarmsSave"]->dBX.uploadData (json), response",response)
+    dBX.BUT.logo_glow("limegreen");
+    setFlag(response.status == 200);
+  }
+  function err_cb(err) {
+    setFlag(false);
+  }
+  function setFlag(ok_flag) {
+    if (dBX.badSave_flag == !ok_flag) return; //-->
+    dBX.badSave_flag= !ok_flag;
+    dBX.BUT.logo_set();
+  }
+}; //tmx.hookers["alarmsSave"]()

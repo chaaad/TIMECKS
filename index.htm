@@ -844,10 +844,63 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 //<a href="https://www.freepik.com/icon/alarm-clock_15092469#fromView=keyword&page=1&position=21&uuid=6aee3d4d-c58a-453e-8681-22457f5c0a34">Icon by sonnycandra</a>
 //https://realfavicongenerator.net/
 
-var audioClips= {};
-init_audio();
 
-function init_audio() {
+const TMXu= {}; //global utils
+TMXu.showEl= function(el, display_str ="block") {
+  //TMXu.showEl(el) //on
+  //TMXu.showEl(el, falsy) //off
+  //TMXu.showEl(el, "inline") //on, other than "block"
+  if (el) el.style.display= display_str==false ? "none" : display_str;
+};
+TMXu.classEl= function(el, class_param, flag =true) { //class_param can be string or array
+  if (!el) return; //-->
+  if (Array.isArray(class_param)) el.classList[flag?"add":"remove"](...class_param);
+  else el.classList[flag?"add":"remove"](class_param);
+};
+
+TMXu.message_add= function(str, bgColor_str) {
+  TMXu.showEl(tmx.msgHeader_EL);
+  var msg_EL= tmx.template_msgInst_EL.cloneNode(true); //clone
+  tmx.msgCont_EL.appendChild(msg_EL); //add
+  msg_EL.querySelector("div.msgInfo").innerHTML= str;
+  if (bgColor_str) msg_EL.style.background= bgColor_str;
+  return msg_EL; //bonus get
+}; //TMXu.message_add()
+TMXu.message_remove= function(msg_EL) {
+  msg_EL.remove();
+  if (!tmx.msgCont_EL.querySelectorAll("div.msgInstance").length) TMXu.showEl(tmx.msgHeader_EL, false);
+  var exp_aI_EL; if (exp_aI_EL= msg_EL.$exp_aI_EL) TMX.alrm_unexpire(exp_aI_EL);
+}; //TMXu.message_remove()
+
+TMXu.createCssRule= function(css_str) {
+  const styleSheet= document.createElement("style");
+  styleSheet.type= "text/css";
+  styleSheet.innerHTML= css_str;
+  document.head.appendChild(styleSheet);
+}; //TMXu.createCssRule()
+
+TMXu.parseJSON= function(str) {
+  var json_dat;
+  try {json_dat= JSON.parse(str); } catch (err) {console.error(err); }
+  return json_dat;
+};
+
+
+const TMX= {}; //global fns
+const tmx= {}; //global vars
+
+tmx.hookers= {};
+
+TMX.HOOK= function(hook_key, v) {
+  var hook_fn;
+  if (hook_fn= tmx.hookers[hook_key]) hook_fn(v); //sends only 1 arg, v
+}; //TMX.HOOK()
+
+
+tmx.audioClips= {};
+
+(() => { //IIFE
+  //init_audio
   var nvO= {
     beep: "426892_7913959",
     bell: "173000_2193194",
@@ -862,29 +915,31 @@ function init_audio() {
   var val_str;
   Object.keys(nvO).forEach(key => {
     val_str= nvO[key];
-    audioClips[key]= new Audio("https://cdn.freesound.org/previews/" +val_str.substring(0, 3) +"/" +val_str +"-lq.mp3");
+    tmx.audioClips[key]= new Audio("https://cdn.freesound.org/previews/" +val_str.substring(0, 3) +"/" +val_str +"-lq.mp3");
     //beep= new Audio("https://cdn.freesound.org/previews/426/426892_7913959-lq.mp3")
   });
-} //init_audio()
+})(); //IIFE
 
-var clockFace_EL= document.querySelector("DIV#clockFace");
+tmx.clockFace_EL= document.querySelector("DIV#clockFace");
 
-var cf_handH_EL= clockFace_EL.querySelector("div#hourHand");
-var cf_handM_EL= clockFace_EL.querySelector("div#minuteHand");
+tmx.cf_handH_EL= tmx.clockFace_EL.querySelector("div#hourHand");
+tmx.cf_handM_EL= tmx.clockFace_EL.querySelector("div#minuteHand");
 
-var cf_dow_EL= clockFace_EL.querySelector("h3");
-var cf_monthDay_EL= clockFace_EL.querySelector("div#dtDisplay");
+tmx.cf_dow_EL= tmx.clockFace_EL.querySelector("h3");
+tmx.cf_monthDay_EL= tmx.clockFace_EL.querySelector("div#dtDisplay");
 
-var cf_marker_EL= clockFace_EL.querySelector("div.marker");
-showEl(cf_marker_EL, false);
+tmx.cf_marker_EL= tmx.clockFace_EL.querySelector("div.marker");
 
-function clock_draw() {
+TMXu.showEl(tmx.cf_marker_EL, false);
+
+TMX.clock_draw= function() {
   var rotate_n= 0;
+  var span_EL;
   for (var i=0; i<30; i++) {
-    let span_EL= document.createElement("span");
+    span_EL= document.createElement("span");
     if (!(i%5)) span_EL.className= "fives";
     span_EL.style.transform= "translate(-50%,-50%) rotate(" +rotate_n +"deg)";
-    clockFace_EL.appendChild(span_EL);
+    tmx.clockFace_EL.appendChild(span_EL);
     rotate_n+= 6;
   }
 
@@ -892,12 +947,13 @@ function clock_draw() {
   rotate_n= 0;
   var hr_n= 12;
   var ul_EL= document.querySelector("UL#hourNumbers");
+  var li_EL, i_EL;
   for (i=0; i<12; i++) {
-    let li_EL= document.createElement("li");
+    li_EL= document.createElement("li");
     if (rotate_n) li_EL.style.transform= "rotate(" +rotate_n +"deg)";
     ul_EL.appendChild(li_EL);
 
-    let i_EL= document.createElement("i");
+    i_EL= document.createElement("i");
     i_EL.textContent= hr_n;
     if (rotate_n) i_EL.style.transform= "translateX(-50%) rotate(-" +rotate_n +"deg)";
     li_EL.appendChild(i_EL);
@@ -906,204 +962,192 @@ function clock_draw() {
     hr_n++;
     if (hr_n > 12) hr_n= 1;
   }
-} //clock_draw()
+}; //TMX.clock_draw()
 
 
-var cf_degO;
-var cf_h_inc= 360 /720; //0.5deg
-var cf_m_inc= 360 /60; //6deg
+tmx.cf_degO;
+tmx.cf_h_inc= 360 /720; //0.5deg
+tmx.cf_m_inc= 360 /60; //6deg
 
-var start_dtO;
-var clock_hr24;
-var clock_elapse_ms; //what we want the time to be, when compared to Date.now() we get sync_diff_ms
-var clock_ctdn_m;
-var inc_ms= 60000; //default 1 minute (flex)
+tmx.start_dtO;
+tmx.clock_hr24;
+tmx.clock_elapse_ms; //what we want the time to be, when compared to Date.now() we get tmx.sync_diff_ms
+tmx.clock_ctdn_m;
+tmx.inc_ms= 60000; //default 1 minute (flex)
 
-var clockMarker_n;
+tmx.clockMarker_n;
 
-function clock_drawHands(o =cf_degO) {
-  cf_handH_EL.style.transform= "rotate(" +o.hr +"deg)";
-  cf_handM_EL.style.transform= "rotate(" +o.mn +"deg)";
-} //clock_drawHands()
+TMX.clock_drawHands= function(o =tmx.cf_degO) {
+  tmx.cf_handH_EL.style.transform= "rotate(" +o.hr +"deg)";
+  tmx.cf_handM_EL.style.transform= "rotate(" +o.mn +"deg)";
+}; //TMX.clock_drawHands()
 
-function clock_drawSyncHands() { //temp hands positions based on sync_diff_ms, cf_degO uneffected
-  var diff_m= sync_diff_ms /60000;
-  clock_drawHands({ //draw mn hand at precise mn position (not usual whole mn)
-    hr: cf_degO.hr -cf_h_inc *diff_m,
-    mn: cf_degO.mn -cf_m_inc *diff_m
+TMX.clock_drawSyncHands= function() { //temp hands positions based on tmx.sync_diff_ms, tmx.cf_degO uneffected
+  var diff_m= tmx.sync_diff_ms /60000;
+  TMX.clock_drawHands({ //draw mn hand at precise mn position (not usual whole mn)
+    hr: tmx.cf_degO.hr -tmx.cf_h_inc *diff_m,
+    mn: tmx.cf_degO.mn -tmx.cf_m_inc *diff_m
   }); //sleep/throttle actually makes mn hand more accurate lol
-  if (sync_diff_ms < 0) return; //clock was behind //-->
+  if (tmx.sync_diff_ms < 0) return; //clock was behind //-->
 
   //clock was ahead
   setTimeout(() => {
-    clock_drawHands(); //now, can draw mn hand at the 'original' whole mn
-    classEl(cf_handM_EL, "throt", false);
-  }, sync_diff_ms);
-} //clock_drawSyncHands()
+    TMX.clock_drawHands(); //now, can draw mn hand at the 'original' whole mn
+    TMXu.classEl(tmx.cf_handM_EL, "throt", false);
+  }, tmx.sync_diff_ms);
+}; //TMX.clock_drawSyncHands()
 
-/*///////////////
-var dbg_m, dbg_h;
-function dbgdate() {
-  var dtO= new Date();
-  if (dbg_m) dtO.setMinutes(dtO.getMinutes() +dbg_m);
-  if (dbg_h) dtO.setHours(dtO.getHours() +dbg_h);
-  return dtO;
-}
-*////////////////
+TMX.clock_start= function() {
+  tmx.start_dtO= new Date();
 
-function clock_start() {
-  start_dtO= new Date();
-  //start_dtO= dbgdate();
+console.log("TMX.clock_start", tmx.start_dtO.toLocaleTimeString());
+  TMX.sound_play("oops");
 
-console.log("clock_start", start_dtO.toLocaleTimeString());
-  sound_play("oops");
+  tmx.clock_elapse_ms= tmx.start_dtO.getTime();
 
-  clock_elapse_ms= start_dtO.getTime();
+  tmx.clock_hr24= tmx.start_dtO.getHours();
+  var minutes= tmx.start_dtO.getMinutes(); //0-59
+  tmx.clock_ctdn_m= 60 -minutes; //60-1
 
-  clock_hr24= start_dtO.getHours();
-  var minutes= start_dtO.getMinutes(); //0-59
-  clock_ctdn_m= 60 -minutes; //60-1
-
-  cf_degO= {
-    hr: 30 *clock_hr24  +cf_h_inc *minutes,
-    mn: cf_m_inc *minutes
+  tmx.cf_degO= {
+    hr: 30 *tmx.clock_hr24  +tmx.cf_h_inc *minutes,
+    mn: tmx.cf_m_inc *minutes
   };
-  clock_drawHands();
+  TMX.clock_drawHands();
 
-  tzoc_start();
+  TMX.tzoc_start();
 
-  var minute_ms= start_dtO.getSeconds()*1000 +start_dtO.getMilliseconds();
+  var minute_ms= tmx.start_dtO.getSeconds()*1000 +tmx.start_dtO.getMilliseconds();
   var topOfMinute_ms= 60000 -minute_ms;
   setTimeout(() => {
-    clock_elapse_ms+= topOfMinute_ms; //inc (1st min)
-    clock_advance(); //1st
+    tmx.clock_elapse_ms+= topOfMinute_ms; //inc (1st min)
+    TMX.clock_advance(); //1st
 
     mainloop(); //kickoff
 
     function mainloop() { //self-recursing
       setTimeout(() => {
-        clock_elapse_ms+= 60000; //inc (fixed)
-        if (clock_advance()) return; //abort mainloop //-->
+        tmx.clock_elapse_ms+= 60000; //inc (fixed)
+        if (TMX.clock_advance()) return; //abort mainloop //-->
 
-        data_load("importedAlarm", dataO => {
+        TMX.data_load("importedAlarm", dataO => {
           var imported_str= dataO.importedAlarm;
-          if (imported_str) alarms_import(imported_str);
+          if (imported_str) TMX.alarms_import(imported_str);
         });
         //.. like a poll, for "importedAlarm" in localStorage
 
         mainloop(); //recurse-->
 
-      }, inc_ms);
+      }, tmx.inc_ms);
     } //mainloop()
 
   }, topOfMinute_ms);
 
-  clock_drawDay(start_dtO);
+  TMX.clock_drawDay(tmx.start_dtO);
 
-} //clock_start()
+}; //TMX.clock_start()
 
-var monthDay_str;
-function clock_drawDay(dtO) { //draw am/pm and monthday
-  cf_dow_EL.textContent= dtO.toLocaleDateString("en-US", {weekday:"short"}).toUpperCase();
+tmx.monthDay_str;
+TMX.clock_drawDay= function(dtO) { //draw am/pm and monthday
+  tmx.cf_dow_EL.textContent= dtO.toLocaleDateString("en-US", {weekday:"short"}).toUpperCase();
   //eg. "Tue" .. "TUE"
   var month_n= dtO.getMonth();
-  monthDay_str= (month_n +1) +"/" +dtO.getDate(); //0-11 (+1), 1-31
-  cf_monthDay_EL.textContent= monthDay_str; //monthday
-  classEl(cf_monthDay_EL, "pm", clock_hr24>=12); //am/pm
-} //clock_drawDay()
+  tmx.monthDay_str= (month_n +1) +"/" +dtO.getDate(); //0-11 (+1), 1-31
+  tmx.cf_monthDay_EL.textContent= tmx.monthDay_str; //monthday
+  TMXu.classEl(tmx.cf_monthDay_EL, "pm", tmx.clock_hr24>=12); //am/pm
+}; //TMX.clock_drawDay()
 
 
-var sync_dtO;
-var sync_ms;
-var sync_diff_ms; //can debug in console
+tmx.sync_dtO;
+tmx.sync_ms;
+tmx.sync_diff_ms; //can debug in console
 
-var clock_throt_flag;
-var clock_jump_ct= 0;
+tmx.clock_throt_flag;
+tmx.clock_jump_ct= 0;
 
-function clock_advance() { //+1 clock minute
-  sync_dtO= new Date(); //topOfMinute
-  //sync_dtO= dbgdate();
-  sync_ms= sync_dtO.getTime();
-  sync_diff_ms= clock_elapse_ms -sync_ms;
+TMX.clock_advance= function() { //+1 clock minute
+  tmx.sync_dtO= new Date(); //topOfMinute
+  tmx.sync_ms= tmx.sync_dtO.getTime();
+  tmx.sync_diff_ms= tmx.clock_elapse_ms -tmx.sync_ms;
 
-  cf_degO.hr+= cf_h_inc;
-  cf_degO.mn+= cf_m_inc;
+  tmx.cf_degO.hr+= tmx.cf_h_inc;
+  tmx.cf_degO.mn+= tmx.cf_m_inc;
 
-  clock_ctdn_m--; //inc-
-  if (clock_ctdn_m < 1) { //top of hr
-    clock_ctdn_m= 60; //wrap (reset)
-    clock_hr24= (clock_hr24+1) %24; //inc wrap
-    cf_degO.mn= 0;
+  tmx.clock_ctdn_m--; //inc-
+  if (tmx.clock_ctdn_m < 1) { //top of hr
+    tmx.clock_ctdn_m= 60; //wrap (reset)
+    tmx.clock_hr24= (tmx.clock_hr24+1) %24; //inc wrap
+    tmx.cf_degO.mn= 0;
 
-    if (clock_hr24 %12 == 0) { //noon or midnite
-      cf_degO.hr= 0;
+    if (tmx.clock_hr24 %12 == 0) { //noon or midnite
+      tmx.cf_degO.hr= 0;
 
-      var toh_dtO= clock_hr24==0 && sync_diff_ms>0 ? new Date(sync_ms +3600000) : undefined;
+      var toh_dtO= tmx.clock_hr24==0 && tmx.sync_diff_ms>0 ? new Date(tmx.sync_ms +3600000) : undefined;
       //if midnite, and real time is behind, add 1 hr to toh_dtO (advance day), toh_dtO is just for month/day
 
-      clock_drawDay(toh_dtO || sync_dtO);
-      tzoc_check(sync_dtO);
+      TMX.clock_drawDay(toh_dtO || tmx.sync_dtO);
+      TMX.tzoc_check(tmx.sync_dtO);
     }
-//console.log("TOP OF HR", g_fmatDtO(sync_dtO))
+//console.log("TOP OF HR", dbg.g_fmatDtO(tmx.sync_dtO))
   } //top of hr
 
-  clock_drawHands();
+  TMX.clock_drawHands();
 
-  if (sync_diff_ms) { //not 0
+  if (tmx.sync_diff_ms) { //not 0
 
     //post-sleep (possibly throttle?)
-    if (sync_diff_ms <= -60000 ) { //very slow, 1 or more minute behind
+    if (tmx.sync_diff_ms <= -60000 ) { //very slow, 1 or more minute behind
 
-      if (sync_diff_ms <= -3600000 ) { //extremely slow, 1 or more hour behind
-        restart(); //clean
+      if (tmx.sync_diff_ms <= -3600000 ) { //extremely slow, 1 or more hour behind
+        TMX.restart(); //clean
         return "abort_mainloop"; ////-->
         ///////////////////////
       }
 
       //jump 1 minute
-      clock_jump_ct++;  //post-sleep stage 1/3
-      clock_elapse_ms+= 60000; //add 1 clock min
-      clock_advance(); //.. can be called as many times as necessary to catch up (up to an hour)
+      tmx.clock_jump_ct++;  //post-sleep stage 1/3
+      tmx.clock_elapse_ms+= 60000; //add 1 clock min
+      TMX.clock_advance(); //.. can be called as many times as necessary to catch up (up to an hour)
 
-    } else if (clock_jump_ct) { //not 0
-      if (clock_jump_ct > 0) { //post-sleep stage 2/3
-//console.log("clock jumped ahead", clock_jump_ct, "min", g_fmatDtO(sync_dtO), g_fmatSDM()) //debug
-        clock_jump_ct= -1; //stage 3
-        inc_ms= 60000 +sync_diff_ms; //get back in sync
-        classEl(cf_handM_EL, "slept");
-        clock_drawSyncHands();
-        sound_play("clik", (clock_jump_ct>3 ? 3 : clock_jump_ct), 500);
+    } else if (tmx.clock_jump_ct) { //not 0
+      if (tmx.clock_jump_ct > 0) { //post-sleep stage 2/3
+//console.log("clock jumped ahead", tmx.clock_jump_ct, "min", dbg.g_fmatDtO(tmx.sync_dtO), dbg.g_fmatSDM()) //debug
+        tmx.clock_jump_ct= -1; //stage 3
+        tmx.inc_ms= 60000 +tmx.sync_diff_ms; //get back in sync
+        TMXu.classEl(tmx.cf_handM_EL, "slept");
+        TMX.clock_drawSyncHands();
+        TMX.sound_play("clik", (tmx.clock_jump_ct>3 ? 3 : tmx.clock_jump_ct), 500);
 
-      } else { //clock_jump_ct == -1 //post-sleep stage 3/3
-        inc_ms= 60000; //reest
-        clock_jump_ct= 0;
-        classEl(cf_handM_EL, "slept", false);
+      } else { //tmx.clock_jump_ct == -1 //post-sleep stage 3/3
+        tmx.inc_ms= 60000; //reest
+        tmx.clock_jump_ct= 0;
+        TMXu.classEl(tmx.cf_handM_EL, "slept", false);
       }
 
 
     //post-throttle
-    //what happens is that during throttle, the mainloop runs lil slow, so inc_ms goes lower to try to run mainloop quicker
-    //when throttle ends, this low inc_ms makes the next sync actually ahead!
-    } else if (sync_diff_ms>100 || clock_throt_flag) { //fast (or throt stage 2)
-      if (!clock_throt_flag) { //post-throt stage 1/2
-//console.log("clock throt", g_fmatDtO(sync_dtO), g_fmatSDM()) //debug
-        clock_throt_flag= true; //stage 2
-        inc_ms= 60000 +sync_diff_ms; //get back in sync
-        classEl(cf_handM_EL, "throt");
-        clock_drawSyncHands();
-        sound_play("clik", 2, 500);
+    //what happens is that during throttle, the mainloop runs lil slow, so tmx.inc_ms goes lower to try to run mainloop quicker
+    //when throttle ends, this low tmx.inc_ms makes the next sync actually ahead!
+    } else if (tmx.sync_diff_ms>100 || tmx.clock_throt_flag) { //fast (or throt stage 2)
+      if (!tmx.clock_throt_flag) { //post-throt stage 1/2
+//console.log("clock throt", dbg.g_fmatDtO(tmx.sync_dtO), dbg.g_fmatSDM()) //debug
+        tmx.clock_throt_flag= true; //stage 2
+        tmx.inc_ms= 60000 +tmx.sync_diff_ms; //get back in sync
+        TMXu.classEl(tmx.cf_handM_EL, "throt");
+        TMX.clock_drawSyncHands();
+        TMX.sound_play("clik", 2, 500);
 
       } else { //post-throt stage 2/2
-        clock_throt_flag= false;
-        //classEl(cf_handM_EL, "throt", false);
-        inc_ms= 60000; //reset
+        tmx.clock_throt_flag= false;
+        //TMXu.classEl(tmx.cf_handM_EL, "throt", false);
+        tmx.inc_ms= 60000; //reset
       }
 
 
     //normal
-    } else { //tweak inc_ms
-      inc_ms+= sync_diff_ms; //tiny swerves, always trying to achieve sync_diff_ms of 0
-      if (inc_ms < 1000) inc_ms= 1000; //not too small, nrn
+    } else { //tweak tmx.inc_ms
+      tmx.inc_ms+= tmx.sync_diff_ms; //tiny swerves, always trying to achieve tmx.sync_diff_ms of 0
+      if (tmx.inc_ms < 1000) tmx.inc_ms= 1000; //not too small, nrn
     }
 
     //when browser throttled, mainloop 'minute' can be slow (over 7 secs seen), also screen rendering paused
@@ -1111,196 +1155,197 @@ function clock_advance() { //+1 clock minute
 
     //when system sleeps, everything stops
 
-//console.log("advanced Clock",  g_fmatDtO(sync_dtO), g_fmatSDM(), inc_ms )
-  } //sync_diff_ms
+//console.log("advanced Clock",  dbg.g_fmatDtO(tmx.sync_dtO), dbg.g_fmatSDM(), tmx.inc_ms )
+  } //tmx.sync_diff_ms
 
-  alarms_minuteUpdate();
+  TMX.alarms_minuteUpdate();
 
-} //clock_advance()
+}; //TMX.clock_advance()
 
-function clock_checkMarker() {
-  var marker_n= Math.floor(active_ctdn_m /720); //0 1 2+
+TMX.clock_checkMarker= function() {
+  var marker_n= Math.floor(tmx.active_ctdn_m /720); //0 1 2+
   if (marker_n > 2) marker_n= 2;
-  if (marker_n == clockMarker_n) return; //-->
+  if (marker_n == tmx.clockMarker_n) return; //-->
 
-  if (cf_marker_EL.mkr_val == undefined) { //init
-    cf_marker_EL.style.transform= "translate(-50%, -50%) rotate(" +(30*active_hTimO.h +0.5*active_hTimO.m) +"deg)";
+  if (tmx.cf_marker_EL.mkr_val == undefined) { //init
+    tmx.cf_marker_EL.style.transform= "translate(-50%, -50%) rotate(" +(30*tmx.active_hTimO.h +0.5*tmx.active_hTimO.m) +"deg)";
   }
-  showEl(cf_marker_EL, active_ctdn_m<1440 ? "block" : false); //within 24hrs
-  classEl(cf_marker_EL, "on", active_ctdn_m<720); //within 12hrs
-  clockMarker_n= marker_n;
-} //clock_checkMarker()
+  TMXu.showEl(tmx.cf_marker_EL, tmx.active_ctdn_m<1440 ? "block" : false); //within 24hrs
+  TMXu.classEl(tmx.cf_marker_EL, "on", tmx.active_ctdn_m<720); //within 12hrs
+  tmx.clockMarker_n= marker_n;
+}; //TMX.clock_checkMarker()
 
 
-function restart() { //post long sleep
-  var elapsed_minutes= Math.floor(sync_diff_ms /60000); //negative
-  [...aI_NL].forEach(aI_EL  => {
-    if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
+TMX.restart= function() { //post long sleep
+  var elapsed_minutes= Math.floor(tmx.sync_diff_ms /60000); //negative
+  [...tmx.aI_NL].forEach(aI_EL  => {
+    if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in tmx.disabler_mode all are visible)
       aI_EL.$D.ctdn_m+= elapsed_minutes; //negative
-      if (aI_EL.$D.ctdn_m < 1) alrm_silentExpire(aI_EL);
+      if (aI_EL.$D.ctdn_m < 1) TMX.alrm_silentExpire(aI_EL);
     } //skip not visible
   });
 
-  clock_start();
+  TMX.clock_start();
 
-  ringer_stop("off"); //if needed
-  active_aI_EL= undefined; //allows aa
-  alarms_start();
-} //restart()
+  TMX.ringer_stop("off"); //if needed
+  tmx.active_aI_EL= undefined; //allows aa
+  TMX.alarms_start();
+}; //TMX.restart()
 
 
 //debug utils (console.log)
-function g_fmatDtO(dtO =new Date()) { //formatted time string, eg. "@11:48:22.005" //shows ms
-  return "@" +(dtO.getHours()%12||12) +":" +dtO.toISOString().substring(14, 23);
-  //.. toISOString(), eg. "2011-10-05T14:48:22.005Z"
-} //g_fmatDtO()
-function g_fmatSDM() { //formatted sync_diff_ms string, eg. "dif+12"
-  var str= "dif";
-  if (sync_diff_ms > 0) str+= "+";
-  return str +sync_diff_ms;
-} //g_fmatSDM()
-function aId(aI_EL) { //not really an id, but good for debugging
-  if (aI_EL) return aI_EL.$E.Name.textContent +", " +aI_EL.$E.Ctdn.textContent;
-} //aId()
-function log_aIs(str ="") {
-  var arr= [];
-  [...aI_NL].forEach(aI_EL  => arr.push(aId(aI_EL)));
-  console.log(str, arr)
-} //log_aIs()
+const dbg= {
+  g_fmatDtO: function(dtO =new Date()) { //formatted time string, eg. "@11:48:22.005" //shows ms
+    return "@" +(dtO.getHours()%12||12) +":" +dtO.toISOString().substring(14, 23);
+    //.. toISOString(), eg. "2011-10-05T14:48:22.005Z"
+  }, //dbg.g_fmatDtO()
+  g_fmatSDM: function() { //formatted tmx.sync_diff_ms string, eg. "dif+12"
+    var str= "dif";
+    if (tmx.sync_diff_ms > 0) str+= "+";
+    return str +tmx.sync_diff_ms;
+  }, //dbg.g_fmatSDM()
+  aId: function(aI_EL) { //not really an id, but good for debugging
+    if (aI_EL) return aI_EL.$E.Name.textContent +", " +aI_EL.$E.Ctdn.textContent;
+  }, //dbg.aId()
+  log_aIs: function(str ="") {
+    var arr= [];
+    [...tmx.aI_NL].forEach(aI_EL  => arr.push(dbg.aId(aI_EL)));
+    console.log(str, arr)
+  } //log_aIs()
+};
 
-var body_EL= document.querySelector("body");
+tmx.body_EL= document.querySelector("body");
 
-var topButs_EL= document.querySelector("div#topButtons");
-//var editStgs_EL= topButs_EL.querySelector("div#editStgsBut");
-var stgCont_EL= document.querySelector("div#stgContainer");
+tmx.topButs_EL= document.querySelector("div#topButtons");
+tmx.stgCont_EL= document.querySelector("div#stgContainer");
 
-var disabler_EL= topButs_EL.querySelector("div#diasablerModeBut");
-//var add_EL= topButs_EL.querySelector("div#addAlarmBut");
-var trash_EL= topButs_EL.querySelector("div#trashCan");
+tmx.disabler_EL= tmx.topButs_EL.querySelector("div#diasablerModeBut");
+//add_EL= tmx.topButs_EL.querySelector("div#addAlarmBut");
+tmx.trash_EL= tmx.topButs_EL.querySelector("div#trashCan");
 
-var wakeLock_EL= document.querySelector("div#wakeLockIndicator");
+tmx.wakeLock_EL= document.querySelector("div#wakeLockIndicator");
 
-var msgCont_EL= document.querySelector("div#msgContainer");
+tmx.msgCont_EL= document.querySelector("div#msgContainer");
 
-var templates_EL= document.querySelector("div#templates");
-var template_msgInst_EL= templates_EL.querySelector("div.msgInstance");
-var template_alarmInst_EL= templates_EL.querySelector("div.alarmInstance");
+tmx.templates_EL= document.querySelector("div#templates");
+tmx.template_msgInst_EL= tmx.templates_EL.querySelector("div.msgInstance");
+tmx.template_alarmInst_EL= tmx.templates_EL.querySelector("div.alarmInstance");
 
 //alarms
-var alarmsCont_EL= document.querySelector("div#alarmsContainer");
-var alarmInst_EL;
-var active_aI_EL;
+tmx.alarmsCont_EL= document.querySelector("div#alarmsContainer");
+tmx.alarmInst_EL;
+tmx.active_aI_EL;
 
-var activeDiv_EL= alarmsCont_EL.querySelector("div#activeDiv");
-var activeCountdown_EL= activeDiv_EL.querySelector("div#activeCountdown");
+tmx.activeDiv_EL= tmx.alarmsCont_EL.querySelector("div#activeDiv");
+tmx.activeCountdown_EL= tmx.activeDiv_EL.querySelector("div#activeCountdown");
 
 
-var snooze_def_num;
-var timeview_def_flag;
+tmx.snooze_def_num;
+tmx.timeview_def_flag;
 
 document.addEventListener("keyup", evt => { //capture any keyup
   if (!document.body.classList.contains("jw-modal-active")) { //modal inactive
-    if (ring_intimerId) { //keys to silence ringer
-      if (evt.key == " ") ringer_stop("snooze");
-      else if (evt.key.search(/Enter|Escape/) > -1) ringer_stop("off");
+    if (tmx.ring_intimerId) { //keys to silence ringer
+      if (evt.key == " ") TMX.ringer_stop("snooze");
+      else if (evt.key.search(/Enter|Escape/) > -1) TMX.ringer_stop("off");
     }
   }
 });
 
-topButs_EL.addEventListener("click", evt => {
+tmx.topButs_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
   if (targ_EL.id == "editStgsBut") {
-    stgs_tog(targ_EL);
-  } else if (targ_EL == disabler_EL) {
-    disablerMode_toggle();
+    TMX.stgs_tog(targ_EL);
+  } else if (targ_EL == tmx.disabler_EL) {
+    TMX.disablerMode_toggle();
   } else if (targ_EL.id == "trashCan") {
-    trash_clicked();
+    TMX.trash_clicked();
   } else if (targ_EL.id == "addAlarmBut") {
-    alrm_add();
+    TMX.alrm_add();
   }
 });
 
-stgCont_EL.addEventListener("click", evt => {
+tmx.stgCont_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
   if (targ_EL.id == "stgdSnzBut") {
-    stgs_dSnz();
+    TMX.stgs_dSnz();
   } else if (targ_EL.id == "stgdATVBut") {
-    stgs_dATV();
+    TMX.stgs_dATV();
   } else if (targ_EL.id == "stgRDatBut") {
-    stgs_rDat();
+    TMX.stgs_rDat();
   } else if (targ_EL.id == "stgRdMeBut") {
-    stgs_rdMe();
+    TMX.stgs_rdMe();
   }
 });
 
 
 
 //create Message Header
-var msgHeader_EL= message_add("Messages");
-msgHeader_EL.classList.remove("msgInstance"); //no longer a commoner
-//msgHeader_EL.style.cssText= "background:slategrey; color:white; ";
-showEl(msgHeader_EL, false);
+tmx.msgHeader_EL= TMXu.message_add("Messages");
+tmx.msgHeader_EL.classList.remove("msgInstance"); //no longer a commoner
+//tmx.msgHeader_EL.style.cssText= "background:slategrey; color:white; ";
+TMXu.showEl(tmx.msgHeader_EL, false);
 
-var msgDelAllBut_EL= msgHeader_EL.querySelector("span.msgDeleteBut");
-msgDelAllBut_EL.title= "Delete all messages";
+tmx.msgDelAllBut_EL= tmx.msgHeader_EL.querySelector("span.msgDeleteBut");
+tmx.msgDelAllBut_EL.title= "Delete all messages";
 
 //message
-msgCont_EL.addEventListener("click", evt => {
-  alrmExpChange_flag= false;
+tmx.msgCont_EL.addEventListener("click", evt => {
+  tmx.alrmExpChange_flag= false;
   var targ_EL= evt.target;
-  if (targ_EL == msgDelAllBut_EL) {
-    msgCont_EL.querySelectorAll("div.msgInstance").forEach(m_el => message_remove(m_el));
+  if (targ_EL == tmx.msgDelAllBut_EL) {
+    tmx.msgCont_EL.querySelectorAll("div.msgInstance").forEach(m_el => TMXu.message_remove(m_el));
   } else if (targ_EL.classList.contains("msgDeleteBut")) {
-    message_remove(targ_EL.closest("div.msgInstance"));
+    TMXu.message_remove(targ_EL.closest("div.msgInstance"));
   }
-  if (alrmExpChange_flag) alarms_sort();
+  if (tmx.alrmExpChange_flag) TMX.alarms_sort();
 });
 
 
 //long press
-var longPress_flag;
-var longPress_timerId;
+tmx.longPress_flag;
+tmx.longPress_timerId;
 
-function longPress_timerStop() {
-  if (!longPress_timerId) return; //-->
+TMX.longPress_timerStop= function() {
+  if (!tmx.longPress_timerId) return; //-->
 
-  clearTimeout(longPress_timerId);
-  longPress_timerId= undefined;
-}
+  clearTimeout(tmx.longPress_timerId);
+  tmx.longPress_timerId= undefined;
+};
 
 //longpress
-alarmsCont_EL.addEventListener("mousedown", evt => {
+tmx.alarmsCont_EL.addEventListener("mousedown", evt => {
   var targ_EL= evt.target;
   if (targ_EL.classList.contains("alarmT")) {
-    longPress_timerStop();
-    longPress_flag= false;
-    longPress_timerId= setTimeout(function() { //startPressTimer
+    TMX.longPress_timerStop();
+    tmx.longPress_flag= false;
+    tmx.longPress_timerId= setTimeout(function() { //startPressTimer
       var c_alarmInst_EL= targ_EL.closest("div.alarmInstance");
-      longPress_flag= true; //this will prevent regular click handler
-      alarmInst_EL= c_alarmInst_EL;
-      alrm_setTorC(alarmInst_EL, !alarmInst_EL.$D.vu_cd, "persist"); //toggle
-      sound_play("clik");
-      alarms_save();
+      tmx.longPress_flag= true; //this will prevent regular click handler
+      tmx.alarmInst_EL= c_alarmInst_EL;
+      TMX.alrm_setTorC(tmx.alarmInst_EL, !tmx.alarmInst_EL.$D.vu_cd, "persist"); //toggle
+      TMX.sound_play("clik");
+      TMX.alarms_save();
     }, 1000);
   }
 });
 
 
 //timehover
-alarmsCont_EL.addEventListener("mouseover", evt => {
+tmx.alarmsCont_EL.addEventListener("mouseover", evt => {
   var targ_EL= evt.target;
   if (targ_EL.classList.contains("alarmT")) {
     var aI_EL= targ_EL.closest("div.alarmInstance");
-    if (aI_EL==active_aI_EL || aI_EL.$D.t_hov) return; //active or already hovered, skip //-->
+    if (aI_EL==tmx.active_aI_EL || aI_EL.$D.t_hov) return; //active or already hovered, skip //-->
 
-    alrm_setTorC(aI_EL, !aI_EL.$D.vu_cd); //toggle, but only temporary
+    TMX.alrm_setTorC(aI_EL, !aI_EL.$D.vu_cd); //toggle, but only temporary
     aI_EL.$D.t_hov= true; //hover on
   }
 });
 
-alarmsCont_EL.addEventListener("mouseout", evt => {
+tmx.alarmsCont_EL.addEventListener("mouseout", evt => {
   //longpress
-  longPress_timerStop();
+  TMX.longPress_timerStop();
 
   //timehover
   var targ_EL= evt.target;
@@ -1308,160 +1353,154 @@ alarmsCont_EL.addEventListener("mouseout", evt => {
     var aI_EL= targ_EL.closest("div.alarmInstance");
     if (!aI_EL.$D.t_hov) return; //already unhovered, skip //-->
 
-    alrm_setTorC(aI_EL, aI_EL.$D.vu_cd); //untoggle, was temporary anyway
+    TMX.alrm_setTorC(aI_EL, aI_EL.$D.vu_cd); //untoggle, was temporary anyway
     aI_EL.$D.t_hov= false; //hover off
   }
 });
 
 //alarm //longpress
-alarmsCont_EL.addEventListener("dragstart", () => {
-  longPress_timerStop();
+tmx.alarmsCont_EL.addEventListener("dragstart", () => {
+  TMX.longPress_timerStop();
 });
 
 //alarm (for alarmT, longpress)
-alarmsCont_EL.addEventListener("click", evt => {
+tmx.alarmsCont_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
 
   if (targ_EL.closest("div#wakeySnoozeBut")) {
     var n;
     if (targ_EL.tagName == "SPAN") n= targ_EL.textContent *1;
-    ringer_stop("snooze", n);
+    TMX.ringer_stop("snooze", n);
 
   } else if (targ_EL.closest("div#wakeyOffBut")) {
-    ringer_stop("off");
+    TMX.ringer_stop("off");
 
   } else {
     var _alarmInst_EL;
     if (_alarmInst_EL= targ_EL.closest("div.alarmInstance")) {
-      alarmInst_EL= _alarmInst_EL;
+      tmx.alarmInst_EL= _alarmInst_EL;
 
-      if (alarmInst_EL.classList.contains("expired")) {
-        var msg_EL= alarmInst_EL.$exp_msg_EL; //alrm_unexpire() will clear .$exp_msg_EL
-        alrm_unexpire(alarmInst_EL);
-        alarms_sort();
-        if (msg_EL) message_remove(msg_EL);
+      if (tmx.alarmInst_EL.classList.contains("expired")) {
+        var msg_EL= tmx.alarmInst_EL.$exp_msg_EL; //TMX.alrm_unexpire() will clear .$exp_msg_EL
+        TMX.alrm_unexpire(tmx.alarmInst_EL);
+        TMX.alarms_sort();
+        if (msg_EL) TMXu.message_remove(msg_EL);
         //expired alarm, so only unexpire it, ignore other commands
 
       } else if (targ_EL.classList.contains("alarmActivate")) {
-        var toggleOff_flag= alarmInst_EL==active_aI_EL;
-        if (wakey_aI_EL) {
-          ringer_stop("off");
-          if (!toggleOff_flag) alrm_activate(alarmInst_EL);
+        var toggleOff_flag= tmx.alarmInst_EL==tmx.active_aI_EL;
+        if (tmx.wakey_aI_EL) {
+          TMX.ringer_stop("off");
+          if (!toggleOff_flag) TMX.alrm_activate(tmx.alarmInst_EL);
         } else {
-          alrm_activate(toggleOff_flag ? false : alarmInst_EL);
+          TMX.alrm_activate(toggleOff_flag ? false : tmx.alarmInst_EL);
         }
 
       } else if (targ_EL.closest("div.alarmName")) {
-        if (targ_EL.classList.contains("PC_tid")) PClink(targ_EL);
-        else alrm_editName();
+        if (targ_EL.classList.contains("PC_tid")) TMX.PClink(targ_EL);
+        else TMX.alrm_editName();
 
       } else if (targ_EL.classList.contains("alarmT")) {
-        longPress_timerStop();
-        if (longPress_flag) return; //-->
+        TMX.longPress_timerStop();
+        if (tmx.longPress_flag) return; //-->
 
-        alrm_editTime();
+        TMX.alrm_editTime();
 
       } else if (targ_EL.classList.contains("alarmDeleteBut")) {
-        alrm_delete();
+        TMX.alrm_delete();
 
       } else if (targ_EL.tagName == "INPUT") { //disabler checkbox (there can only 1 input el in alarmInstance)
-        classEl(alarmInst_EL, "disabledInstance", !targ_EL.checked);
-        alarms_save();
+        TMXu.classEl(tmx.alarmInst_EL, "disabledInstance", !targ_EL.checked);
+        TMX.alarms_save();
       }
     }
   }
 });
 
 
-wakeLock_EL.addEventListener("click", wakeLock_set); //toggle //no more toggle, just a msg
+tmx.wakeLock_EL.addEventListener("click", TMX.wakeLock_set); //toggle //no more toggle, just a msg
 
 //https://developer.chrome.com/blog/new-in-chrome-79/#wake-lock
-var wakeLock_OBJ;
-async function _wakeLock_on() {
+tmx.wakeLock_OBJ;
+TMX._wakeLock_on= async function() {
   if (document.hidden) return; //-->
 	try {
-		wakeLock_OBJ= await navigator.wakeLock.request();
-    classEl(wakeLock_EL, "on");
+		tmx.wakeLock_OBJ= await navigator.wakeLock.request();
+    TMXu.classEl(tmx.wakeLock_EL, "on");
 
-  	wakeLock_OBJ.addEventListener("release", () => {
-      sound_play("knoc");
-  		wakeLock_OBJ= undefined; //clear global
-      classEl(wakeLock_EL, "on", false);
+  	tmx.wakeLock_OBJ.addEventListener("release", () => {
+      TMX.sound_play("knoc");
+  		tmx.wakeLock_OBJ= undefined; //clear global
+      TMXu.classEl(tmx.wakeLock_EL, "on", false);
   	});
 	} catch (err) {console.log(err.message); }
-} //_wakeLock_on()
+}; //TMX._wakeLock_on()
 
-async function _wakeLock_off() { //note: minimizing of browser, or unfocus of browser tab, will automatically release wakeLock
-	if (!wakeLock_OBJ) return; //-->
-  try {await wakeLock_OBJ.release(); }
+TMX._wakeLock_off= async function() { //note: minimizing of browser, or unfocus of browser tab, will automatically release wakeLock
+	if (!tmx.wakeLock_OBJ) return; //-->
+  try {await tmx.wakeLock_OBJ.release(); }
 	catch (err) {console.log(err.message); }
-} //_wakeLock_off()
+}; //TMX._wakeLock_off()
 
-function wakeLock_set(flag) { //on, off, click-evt (toggle)
+TMX.wakeLock_set= function(flag) { //on, off, click-evt (toggle)
 	if (flag == "on") {
-    if (!wakeLock_OBJ) _wakeLock_on();
+    if (!tmx.wakeLock_OBJ) TMX._wakeLock_on();
   } else if (flag == "off") {
-    if (wakeLock_OBJ) _wakeLock_off();
+    if (tmx.wakeLock_OBJ) TMX._wakeLock_off();
   } else { //wakeLock button click
-    //wakeLock_set(wakeLock_OBJ ? "off" : "on"); //toggle
+    //TMX.wakeLock_set(tmx.wakeLock_OBJ ? "off" : "on"); //toggle
     //no more toggle, wakeLock became auto, just show msg
     jm.alert("<b>Wake Lock</b> prevents computer from going into sleep mode.<br>However, Wake Lock won't work if this page is hidden.");
   }
-} //wakeLock_set()
+}; //TMX.wakeLock_set()
 
 document.addEventListener("visibilitychange", function() {
   //wakeLock auto
-  if (!document.hidden) wakeLock_set("on"); //on "wake" or "show"
+  if (!document.hidden) TMX.wakeLock_set("on"); //on "wake" or "show"
   //else (on sleep, browser minimized or tab switch, another window covers this window), do nothing
 });
 
-var stg_mode;
-function stgs_tog(but_EL) {
-  stg_mode= !stg_mode;
-  showEl(stgCont_EL, stg_mode ? undefined : false);
-  classEl(but_EL, "down", stg_mode);
-} //stgs_tog()
+tmx.stg_mode;
+TMX.stgs_tog= function(but_EL) {
+  tmx.stg_mode= !tmx.stg_mode;
+  TMXu.showEl(tmx.stgCont_EL, tmx.stg_mode ? undefined : false);
+  TMXu.classEl(but_EL, "down", tmx.stg_mode);
+}; //TMX.stgs_tog()
 
-function stgs_dSnz(key) {
-  jm.prompt("<p>Default Snooze duration</p>(minutes, 1-30)", snooze_def_num, resp => {
+TMX.stgs_dSnz= function(key) {
+  jm.prompt("<p>Default Snooze duration</p>(minutes, 1-30)", tmx.snooze_def_num, resp => {
     if (resp == null) return; //-->
 
     var v_num= resp *1;
-    if (v_num == snooze_def_num) return; //same, do nothing //-->
+    if (v_num == tmx.snooze_def_num) return; //same, do nothing //-->
 
     if (isNaN(v_num) || v_num<1 || v_num>30) {
       jm.error('<p class="bad">Snooze must be 1-30 minutes</p>Your input:<i class="E">' +resp +'</i>', () => {
         timecksStgs_edit(); //try again
       });
     } else {
-      snooze_def_num= v_num;
-      data_save("snooze_num", snooze_def_num);
+      tmx.snooze_def_num= v_num;
+      TMX.data_save("snooze_num", tmx.snooze_def_num);
     }
   }, "highlight");
-} //stgs_dSnz()
+}; //TMX.stgs_dSnz()
 
-function stgs_dATV(key) {
-  jm.boolean("<p>Default AlarmTime View</p>", timeview_def_flag, {
+TMX.stgs_dATV= function(key) {
+  jm.boolean("<p>Default AlarmTime View</p>", tmx.timeview_def_flag, {
     //jm custom cb object
     custButText: {OkBut: "Countdown", NoBut: "Time"},
     end_cb: resp => {
-      if (resp==null || resp==timeview_def_flag) return; //cancel or same, do nothing //-->
-      timeview_def_flag= resp;
-      data_save("timeview_flag", timeview_def_flag);
+      if (resp==null || resp==tmx.timeview_def_flag) return; //cancel or same, do nothing //-->
+      tmx.timeview_def_flag= resp;
+      TMX.data_save("timeview_flag", tmx.timeview_def_flag);
     }
   });
-} //stgs_dATV()
+}; //TMX.stgs_dATV()
 
-function xParseJSON(str) {
-  var json_dat;
-  try {json_dat= JSON.parse(str); } catch (err) {console.error(err); }
-  return json_dat;
-}
-
-function stgs_rDat() {
-  data_load("alarms", dataO => {
+TMX.stgs_rDat= function() {
+  TMX.data_load("alarms", dataO => {
     var json_str= dataO.alarms;
-    var json_dat= xParseJSON(json_str);
+    var json_dat= TMXu.parseJSON(json_str);
 //console.log("json_dat:", json_dat);
     if (!json_dat) json_str= "";
 
@@ -1469,37 +1508,37 @@ function stgs_rDat() {
       if (resp == null) return; //-->
 
       json_str= resp;
-      json_dat= xParseJSON(json_str);
+      json_dat= TMXu.parseJSON(json_str);
       if (json_dat) {
-        data_save("alarms", json_str);
-        alarms_start();
-        message_add("Alarms raw data (JSON) saved", "lightblue");
+        TMX.data_save("alarms", json_str);
+        TMX.alarms_start();
+        TMXu.message_add("Alarms raw data (JSON) saved", "lightblue");
       } else {
-        message_add("Saving Alarms raw data (JSON) failed");
+        TMXu.message_add("Saving Alarms raw data (JSON) failed");
       }
     }); //jm.prompt_textarea()
 
-  }); //data_load()
-} //stgs_rDat()
+  }); //TMX.data_load()
+}; //TMX.stgs_rDat()
 
-function stgs_rdMe() {
+TMX.stgs_rdMe= function() {
   var url_str= "readme.txt";
-  txtFile_fetch(url_str, str => {
+  TMX.txtFile_fetch(url_str, str => {
     if (str) {
       var modal_EL= document.getElementById("jwmModal");
       jm.alert("<p>Read Me</p><pre>" +str +"<pre>", {
         //jm custom cb object
-        begin_cb: () => {classEl(modal_EL, "wide"); },
-        end_cb: () => {classEl(modal_EL, "wide", false); }
+        begin_cb: () => {TMXu.classEl(modal_EL, "wide"); },
+        end_cb: () => {TMXu.classEl(modal_EL, "wide", false); }
       });
 
     } else {
-      message_add("Reading " +url_str +" failed");
+      TMXu.message_add("Reading " +url_str +" failed");
     }
   });
-} //stgs_rdMe()
+}; //TMX.stgs_rdMe()
 
-async function txtFile_fetch(url_str, cb) {
+TMX.txtFile_fetch= async function(url_str, cb) {
   var resp;
   try {
     resp= await fetch(url_str); //no local testing with file:///...
@@ -1513,27 +1552,27 @@ async function txtFile_fetch(url_str, cb) {
   } catch (err) {
     console.error("Fetch error1:", err); cb();
   }
-} //txtFile_fetch()
+}; //TMX.txtFile_fetch()
 
-function trash_clicked() {
+TMX.trash_clicked= function() {
   jm.alert("You can delete an alarm by Dragging and Dropping it onto the <b>Trash</b> button");
-} //trash_clicked()
+}; //TMX.trash_clicked()
 
-var activeCountdown_flag;
-var active_ctdn_m;
-var active_hTimO;
+tmx.activeCountdown_flag;
+tmx.active_ctdn_m;
+tmx.active_hTimO;
 
-var aI_NL; //from .getElementsByClassName(), dynamic nodeList
-var vis_ct;
+tmx.aI_NL; //from .getElementsByClassName(), dynamic nodeList
+tmx.vis_ct;
 
-function alarms_start(al_arr) {
+TMX.alarms_start= function(al_arr) {
   if (al_arr) {
     render(al_arr);
 
   } else {
-    data_load("alarms", dataO => {
+    TMX.data_load("alarms", dataO => {
       var json_str= dataO.alarms;
-      var storedAl_arr= xParseJSON(json_str);
+      var storedAl_arr= TMXu.parseJSON(json_str);
       if (!storedAl_arr) storedAl_arr= [{t:"12:00 AM"}]; //default if empty
       render(storedAl_arr);
     });
@@ -1543,55 +1582,56 @@ function alarms_start(al_arr) {
     //al_arr is closest thing to a data model in this app
     //temporary, rest of the time, data is solely in the DOM
 
-    disblr_ct= 0;
-    vis_ct= 0;
-    alarmsCont_EL.innerHTML= ""; //clear container el
-    alarmInst_EL= undefined;
+    tmx.disblr_ct= 0;
+    tmx.vis_ct= 0;
+    tmx.alarmsCont_EL.innerHTML= ""; //clear container el
+    tmx.alarmInst_EL= undefined;
 
+    var aInst_EL;
     al_arr.forEach(a_obj => {
-      aInst_EL= template_alarmInst_EL.cloneNode(true); //clone
-      alarmsCont_EL.appendChild(aInst_EL); //add
-      alrm_addHelpers(aInst_EL, a_obj.id);
+      aInst_EL= tmx.template_alarmInst_EL.cloneNode(true); //clone
+      tmx.alarmsCont_EL.appendChild(aInst_EL); //add
+      TMX.alrm_addHelpers(aInst_EL, a_obj.id);
       aInst_EL.$E.Name.innerHTML= a_obj.n || ""; //alarm name
       aInst_EL.$E.Time.textContent= a_obj.t; //alarm time
-      alrm_initCountdown(aInst_EL);
-      if (a_obj.c) alrm_setTorC(aInst_EL, true, "persist"); //init alarm countdown view
+      TMX.alrm_initCountdown(aInst_EL);
+      if (a_obj.c) TMX.alrm_setTorC(aInst_EL, true, "persist"); //init alarm countdown view
 
-      if (disabler_mode) {
-        vis_ct++;
-        alrm_drawDisablerMode(aInst_EL, a_obj.d); //disabler mode
+      if (tmx.disabler_mode) {
+        tmx.vis_ct++;
+        TMX.alrm_drawDisablerMode(aInst_EL, a_obj.d); //disabler mode
       } else if (a_obj.d) {
-        showEl(aInst_EL, false); //alarm disabled
+        TMXu.showEl(aInst_EL, false); //alarm disabled
       } else {
-        vis_ct++;
+        tmx.vis_ct++;
       }
     });
 
-    aI_NL= alarmsCont_EL.getElementsByClassName("alarmInstance");
+    tmx.aI_NL= tmx.alarmsCont_EL.getElementsByClassName("alarmInstance");
 
-    alarms_sort();
-    wakeLock_set("on");
+    TMX.alarms_sort();
+    TMX.wakeLock_set("on");
   } //render()
 
-} //alarms_start()
+}; //TMX.alarms_start()
 
 
-var disabler_mode;
-var disblr_ct; //for css checkbox label to work
+tmx.disabler_mode;
+tmx.disblr_ct; //for css checkbox label to work
 
-function disablerMode_toggle() {
-  disabler_mode= !disabler_mode; //toggle
-  if (!disabler_mode) { //turn disabler mode off
-    active_aI_EL= undefined; //so will auto-activate top alarm (alarms_sort)
+TMX.disablerMode_toggle= function() {
+  tmx.disabler_mode= !tmx.disabler_mode; //toggle
+  if (!tmx.disabler_mode) { //turn disabler mode off
+    tmx.active_aI_EL= undefined; //so will auto-activate top alarm (TMX.alarms_sort)
   }
 
-  classEl(disabler_EL, "down", disabler_mode);
-  classEl(alarmsCont_EL, "disablableContainer", disabler_mode);
-  alarms_start();
-} //disablerMode_toggle()
+  TMXu.classEl(tmx.disabler_EL, "down", tmx.disabler_mode);
+  TMXu.classEl(tmx.alarmsCont_EL, "disablableContainer", tmx.disabler_mode);
+  TMX.alarms_start();
+}; //TMX.disablerMode_toggle()
 
 
-function alarmsDrag_init() {
+TMX.alarmsDrag_init= function() {
   //dragndrop
   //adapted from: https://www.w3resource.com/javascript-exercises/event/javascript-event-handling-exercise-6.php
 
@@ -1599,7 +1639,7 @@ function alarmsDrag_init() {
   var prev_dragOver_EL;
 
   // Add event listeners for drag and drop events
-  alarmsCont_EL.addEventListener("dragstart", dragStart);
+  tmx.alarmsCont_EL.addEventListener("dragstart", dragStart);
   document.addEventListener("dragover", dragOver);
   document.addEventListener("drop", drop); //user can drop anywhere, listening only on dragList doesnt cut it
 
@@ -1612,12 +1652,12 @@ function alarmsDrag_init() {
     if (dragAl_EL) clear("fully"); //recover after a failed drop
 
     dragAl_EL= evt.target;
-    classEl(dragAl_EL, "dragging");
+    TMXu.classEl(dragAl_EL, "dragging");
     //evt.dataTransfer.effectAllowed= "move"; //what does this even do? unnecessary for this reorder functionality
 
     /* //got rid of alarms manual ordering, so no alarms drag reordering
     var ct= 0;
-    [...aI_NL].forEach(aI_EL => {if (aI_EL.checkVisibility()) aI_EL.$D.drag_i= ct++; }); //drag index
+    [...tmx.aI_NL].forEach(aI_EL => {if (aI_EL.checkVisibility()) aI_EL.$D.drag_i= ct++; }); //drag index
     //.. current order, set .drag_i for each alarm
     // .drag_i is only accurate up until the drop, it must be popped upon every dragStart
     */
@@ -1630,16 +1670,16 @@ function alarmsDrag_init() {
     var dragOver_EL= evt.target;
     var dragOvAl_EL;
 
-    if (dragOver_EL == trash_EL) { //trash can
+    if (dragOver_EL == tmx.trash_EL) { //trash can
       if (dragOver_EL == prev_dragOver_EL) return; //-->
 
       if (prev_dragOver_EL) clear();
-      classEl(dragOver_EL, "dropTrash");
+      TMXu.classEl(dragOver_EL, "dropTrash");
 
       prev_dragOver_EL= dragOver_EL;
 
     } else { //not trashcan
-      if (prev_dragOver_EL && prev_dragOver_EL == trash_EL) { //trash can
+      if (prev_dragOver_EL && prev_dragOver_EL == tmx.trash_EL) { //trash can
         clear();
         prev_dragOver_EL= undefined;
       }
@@ -1654,9 +1694,9 @@ function alarmsDrag_init() {
         const boundingRect= dragOvAl_EL.getBoundingClientRect();
         const offset_y= boundingRect.y +(boundingRect.height /2);
         if (evt.clientY-offset_y < 0) {
-          if (dragOvAl_EL.$D.drag_i-1 != dragAl_EL.$D.drag_i) classEl(dragOvAl_EL, "dropAbove");
+          if (dragOvAl_EL.$D.drag_i-1 != dragAl_EL.$D.drag_i) TMXu.classEl(dragOvAl_EL, "dropAbove");
         } else {
-          if (dragOvAl_EL.$D.drag_i+1 != dragAl_EL.$D.drag_i) classEl(dragOvAl_EL, "dropBelow");
+          if (dragOvAl_EL.$D.drag_i+1 != dragAl_EL.$D.drag_i) TMXu.classEl(dragOvAl_EL, "dropBelow");
         }
 
         prev_dragOver_EL= dragOvAl_EL;
@@ -1672,9 +1712,9 @@ function alarmsDrag_init() {
     var dropOn_EL= prev_dragOver_EL; //not actual the dropOn_EL, but this allows user to make drop even with imprecise drop
     //.. if user drops outside of window, no drop event at all, accept this fact
     if (dropOn_EL) {
-      if (dropOn_EL == trash_EL) {
-        alarmInst_EL= dragAl_EL;
-        alrm_execDelete();
+      if (dropOn_EL == tmx.trash_EL) {
+        tmx.alarmInst_EL= dragAl_EL;
+        TMX.alrm_execDelete();
 
       /* //got rid of alarms manual ordering, so no alarms drag reordering
       } else if (dropOn_EL.classList.contains("dropAbove") || dropOn_EL.classList.contains("dropBelow")) {
@@ -1683,9 +1723,9 @@ function alarmsDrag_init() {
         if (dropOn_EL.classList.contains("dropAbove")) dropOn_EL.before(dragAl_EL);
         else dropOn_EL.after(dragAl_EL);
 
-        if (active_aI_EL) active_aI_EL.after(activeDiv_EL);
+        if (tmx.active_aI_EL) tmx.active_aI_EL.after(tmx.activeDiv_EL);
 
-        alarms_save();
+        TMX.alarms_save();
         */
       }
     }
@@ -1696,17 +1736,17 @@ function alarmsDrag_init() {
   function clear(fully_flag) { //if not fully, just clear dragOver's class
     if (prev_dragOver_EL) prev_dragOver_EL.classList.remove("dropAbove", "dropBelow", "dropTrash");
     if (fully_flag) {
-      if (dragAl_EL) classEl(dragAl_EL, "dragging", false);
+      if (dragAl_EL) TMXu.classEl(dragAl_EL, "dragging", false);
       dragAl_EL= undefined;
       prev_dragOver_EL= undefined;
     }
   } //clear()
 
   //dragndrop
-} //alarmsDrag_init()
+}; //TMX.alarmsDrag_init()
 
 
-function alrm_addHelpers(aI_EL, id) { //.dataset only stores strings
+TMX.alrm_addHelpers= function(aI_EL, id) { //.dataset only stores strings
   //breaks html/js laws, but as far as js only goes, an element is just an object
   aI_EL.id= id;
 
@@ -1719,41 +1759,41 @@ function alrm_addHelpers(aI_EL, id) { //.dataset only stores strings
     Ctdn: aI_EL.querySelector("span.alarmCountdown"),
     EoM: aI_EL.querySelector("span.alarmEoM")
   };
-} //alrm_addHelpers()
+}; //TMX.alrm_addHelpers()
 
-function alrm_drawDisablerMode(aI_EL, dsbl_flag) {
+TMX.alrm_drawDisablerMode= function(aI_EL, dsbl_flag) {
   var checked_str= dsbl_flag ? "" : " checked";
-  classEl(aI_EL, "disabledInstance", !!dsbl_flag); //in classEl(), flag of undefined will default to true
+  TMXu.classEl(aI_EL, "disabledInstance", !!dsbl_flag); //in TMXu.classEl(), flag of undefined will default to true
 
   aI_EL.$E.Activ.insertAdjacentHTML(
   "afterend",
-  `<div class="checkbox-wrapper-18" title="Enable/Disable"><input type="checkbox" id="chkbx_${disblr_ct}"${checked_str}/><label for="chkbx_${disblr_ct}"></label></div>`
+  `<div class="checkbox-wrapper-18" title="Enable/Disable"><input type="checkbox" id="chkbx_${tmx.disblr_ct}"${checked_str}/><label for="chkbx_${tmx.disblr_ct}"></label></div>`
   );
-  showEl(aI_EL.$E.Activ, false);
-  disblr_ct++;
-} //alrm_drawDisablerMode()
+  TMXu.showEl(aI_EL.$E.Activ, false);
+  tmx.disblr_ct++;
+}; //TMX.alrm_drawDisablerMode()
 
-function alrm_glow(s =1, aI_EL =alarmInst_EL, color_str ="aquamarine") {
-  aI_EL.scrollIntoView(scrollParam);
+TMX.alrm_glow= function(s =1, aI_EL =tmx.alarmInst_EL, color_str ="aquamarine") {
+  aI_EL.scrollIntoView(tmx.scrollParam);
 
   aI_EL.style.background= color_str;
   setTimeout(() => {aI_EL.style.background= ""; }, s *1000);
-} //alrm_glow()
+}; //TMX.alrm_glow()
 
-var scrollParam= {behavior:"smooth", block:"center"};
+tmx.scrollParam= {behavior:"smooth", block:"center"};
 
-function alrm_scrollTo(noExp_flag) {
+TMX.alrm_scrollTo= function(noExp_flag) {
   var chosen_EL;
-  if (!noExp_flag) chosen_EL= alarmsCont_EL.querySelector("div.expired");
-  if (!chosen_EL) chosen_EL= active_aI_EL;
-  if (chosen_EL) chosen_EL.scrollIntoView(scrollParam);
-} //alrm_scrollTo()
+  if (!noExp_flag) chosen_EL= tmx.alarmsCont_EL.querySelector("div.expired");
+  if (!chosen_EL) chosen_EL= tmx.active_aI_EL;
+  if (chosen_EL) chosen_EL.scrollIntoView(tmx.scrollParam);
+}; //TMX.alrm_scrollTo()
 
 
-function alrm_editName(NEW_flag) { //if new, NEW_flag is "NEW"
-  var name_str= NEW_flag || alarmInst_EL.$E.Name.innerHTML.replaceAll("<br>", "\n"); //autoreplace "<br>"s
+TMX.alrm_editName= function(NEW_flag) { //if new, NEW_flag is "NEW"
+  var name_str= NEW_flag || tmx.alarmInst_EL.$E.Name.innerHTML.replaceAll("<br>", "\n"); //autoreplace "<br>"s
   var orig_name_str= name_str;
-  var prom_str= "<b>Name</b> for " +(NEW_flag?"new ":"") +'alarm:' +g_promStr(name_str, NEW_flag?"?":"") +'<br>80 chars max, shift-enter for linebreak<br>(html allowed)'
+  var prom_str= "<b>Name</b> for " +(NEW_flag?"new ":"") +'alarm:' +TMX.g_promStr(name_str, NEW_flag?"?":"") +'<br>80 chars max, shift-enter for linebreak<br>(html allowed)'
   namePrompt_fn(); //so can be reused as err cb
 
   function namePrompt_fn() {
@@ -1768,22 +1808,22 @@ function alrm_editName(NEW_flag) { //if new, NEW_flag is "NEW"
       } else {
         name_str= name_str.replaceAll("\n", "<br>"); //autoreplace "\n"s
         if (NEW_flag) {
-          alrm_editTime(name_str || "*"); //so NEW_str not empty
+          TMX.alrm_editTime(name_str || "*"); //so NEW_str not empty
         } else {
-          alarmInst_EL.$E.Name.innerHTML= name_str;
-          alrm_glow();
-          alarms_save();
+          tmx.alarmInst_EL.$E.Name.innerHTML= name_str;
+          TMX.alrm_glow();
+          TMX.alarms_save();
         }
       }
     }, NEW_flag); //NEW_flag as highlight
   } //namePrompt_fn()
 
-} //alrm_editName()
+}; //TMX.alrm_editName()
 
-function alrm_editTime(NEW_str) { //if new, NEW_str is alarm name
-  var orig_time_str= NEW_str ? "12:00" : alarmInst_EL.$E.Time.textContent;
+TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
+  var orig_time_str= NEW_str ? "12:00" : tmx.alarmInst_EL.$E.Time.textContent;
   var time_str= orig_time_str;
-  var prom_str= "<b>Time</b> for " +(NEW_str?"new ":"") +"alarm:" +g_promStr(NEW_str, time_str);
+  var prom_str= "<b>Time</b> for " +(NEW_str?"new ":"") +"alarm:" +TMX.g_promStr(NEW_str, time_str);
   timePrompt_fn(); //so can be reused as err fn
 
   function timePrompt_fn() {
@@ -1807,22 +1847,22 @@ function alrm_editTime(NEW_str) { //if new, NEW_str is alarm name
 
         //proc input str
         var alarmNow_obj;
-        if (alarmNow_obj= alrm_procTimeText(mod_time_str, timePrompt_fn)) {
+        if (alarmNow_obj= TMX.alrm_procTimeText(mod_time_str, timePrompt_fn)) {
           //time_prompt() as err cb (try again)
 
           if (NEW_str) {
-            alrm_execAdd();
-            sound_play("bell");
-            alarmInst_EL.$E.Name.innerHTML= NEW_str;
+            TMX.alrm_execAdd();
+            TMX.sound_play("bell");
+            tmx.alarmInst_EL.$E.Name.innerHTML= NEW_str;
           }
 
-          alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
-          alrm_initCountdown();
-          if (active_aI_EL == alarmInst_EL) activeCountdown_EL.textContent= alarmInst_EL.$E.Ctdn.textContent;
-          alarms_sort([alarmInst_EL]);
+          tmx.alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
+          TMX.alrm_initCountdown();
+          if (tmx.active_aI_EL == tmx.alarmInst_EL) tmx.activeCountdown_EL.textContent= tmx.alarmInst_EL.$E.Ctdn.textContent;
+          TMX.alarms_sort([tmx.alarmInst_EL]);
 
-          alarms_save();
-          alrm_glow(NEW_str ? 4 : 1);
+          TMX.alarms_save();
+          TMX.alrm_glow(NEW_str ? 4 : 1);
         }
       }
     }, NEW_str); //NEW_str as highlight
@@ -1831,16 +1871,16 @@ function alrm_editTime(NEW_str) { //if new, NEW_str is alarm name
   var livePreview_EL;
   function pop_prompt() {
     time_str= jm._ELs.Input.value;
-    var alarmNow_obj= alrm_procTimeText(time_str, "previewLive");
+    var alarmNow_obj= TMX.alrm_procTimeText(time_str, "previewLive");
     livePreview_EL.innerHTML= alarmNow_obj ? (alarmNow_obj.time +"<br>" +alarmNow_obj.lpUntil) : "";
   }
 
-} //alrm_editTime()
+}; //TMX.alrm_editTime()
 
 
-var DoW_arr= "SUN,MON,TUE,WED,THU,FRI,SAT".split(",");
+tmx.DoW_arr= "SUN,MON,TUE,WED,THU,FRI,SAT".split(",");
 
-function alrm_procTimeText(input_str, param) { //returns alarmNow_obj if raw_str is good
+TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if raw_str is good
   var preview_flag;
   var err_cb;
   if (typeof(param) == "string") preview_flag= param; //'preview' will not alert errors
@@ -1923,7 +1963,7 @@ function alrm_procTimeText(input_str, param) { //returns alarmNow_obj if raw_str
     if (preview_flag == "previewLive") {
       lpUntil_str= "(" +get_fmatHTime_str(raw_hTimO);
       lpUntil_str+= " OFFSET";
-      lpUntil_str+= offsetMod_str +g_untilStr(ofsO.m, ofsO.h) +")";
+      lpUntil_str+= offsetMod_str +TMX.g_untilStr(ofsO.m, ofsO.h) +")";
     }
 
     time_dtO= new Date(time_ms);
@@ -1998,7 +2038,7 @@ function alrm_procTimeText(input_str, param) { //returns alarmNow_obj if raw_str
 
   if (preview_flag=="previewLive" && !lpUntil_str) {
     let diff_ms= time_dtO -new Date(); //ms
-    lpUntil_str= `(in: ${g_untilStr(Math.ceil(diff_ms /60000))})`; //ms to minutes
+    lpUntil_str= `(in: ${TMX.g_untilStr(Math.ceil(diff_ms /60000))})`; //ms to minutes
   }
 
   if (lpUntil_str) {
@@ -2089,7 +2129,7 @@ function alrm_procTimeText(input_str, param) { //returns alarmNow_obj if raw_str
 
     } else if (mD_str.search(/^[SMTWF]/) == 0) { // DoW (Day of Week)
       var match_arr= [];
-      DoW_arr.forEach((str, i) => {if (str.indexOf(mD_str)==0) match_arr.push(i); });
+      tmx.DoW_arr.forEach((str, i) => {if (str.indexOf(mD_str)==0) match_arr.push(i); });
       if (match_arr.length != 1) return; //-->
 
       var DoW_n= match_arr[0];
@@ -2102,7 +2142,7 @@ function alrm_procTimeText(input_str, param) { //returns alarmNow_obj if raw_str
       var copy_year= copy_dtO.getFullYear();
       if (copy_year != time_dtO.getFullYear()) year= copy_year; //near New Year day
 
-      DoW_str= DoW_arr[DoW_n];
+      DoW_str= tmx.DoW_arr[DoW_n];
 
     } else {
       return; //fail //-->
@@ -2120,54 +2160,54 @@ function alrm_procTimeText(input_str, param) { //returns alarmNow_obj if raw_str
     return o;
   } //proc_moDa()
 
-} //alrm_procTimeText()
+}; //TMX.alrm_procTimeText()
 
 
-function alrm_setTorC(aI_EL, flag, persist_flag) {
-  if (aI_EL == active_aI_EL) jm.alert('Default view stored, will be displayed when this is not the active alarm');
-  else alrm_setCtdnView(aI_EL, flag);
+TMX.alrm_setTorC= function(aI_EL, flag, persist_flag) {
+  if (aI_EL == tmx.active_aI_EL) jm.alert('Default view stored, will be displayed when this is not the active alarm');
+  else TMX.alrm_setCtdnView(aI_EL, flag);
 
   if (persist_flag) aI_EL.$D.vu_cd= flag;
-} //alrm_setTorC()
+}; //TMX.alrm_setTorC()
 
-function alrm_setCtdnView(aI_EL, flag) {
-  showEl(aI_EL.$E.Ctdn, flag ? "inline-block" : false);
-  showEl(aI_EL.$E.Time, !flag ? "inline-block" : false);
-} //alrm_setCtdnView()
+TMX.alrm_setCtdnView= function(aI_EL, flag) {
+  TMXu.showEl(aI_EL.$E.Ctdn, flag ? "inline-block" : false);
+  TMXu.showEl(aI_EL.$E.Time, !flag ? "inline-block" : false);
+}; //TMX.alrm_setCtdnView()
 
-function alrm_initCountdown(aI_EL =alarmInst_EL) {
-  var alarmNow_obj= alrm_procTimeText(aI_EL.$E.Time.textContent, "preview");
+TMX.alrm_initCountdown= function(aI_EL =tmx.alarmInst_EL) {
+  var alarmNow_obj= TMX.alrm_procTimeText(aI_EL.$E.Time.textContent, "preview");
   if (alarmNow_obj) {
     var ms= alarmNow_obj.ms -new Date();
     if (ms < 60000) ms= 60000; //minimum of 1 minute
     aI_EL.$D.ctdn_m= Math.ceil(ms /60000);
-    aI_EL.$E.Ctdn.textContent= g_untilStr(aI_EL.$D.ctdn_m);
-    check_soon(aI_EL);
+    aI_EL.$E.Ctdn.textContent= TMX.g_untilStr(aI_EL.$D.ctdn_m);
+    TMX.check_soon(aI_EL);
 
     //EndofMonth display
     var EoM_num= alarmNow_obj.hTimO.MD && alarmNow_obj.hTimO.MD.EoM;
     aI_EL.$E.EoM.textContent= EoM_num ? "✱" :"";
     aI_EL.$E.EoM.title= EoM_num ? "MonthEnd=" +EoM_num : "";
   }
-} //alrm_initCountdown()
+}; //TMX.alrm_initCountdown()
 
 
-function alrm_add() { //from UI
-  alrm_editName("NEW");
-} //alrm_add()
+TMX.alrm_add= function() { //from UI
+  TMX.alrm_editName("NEW");
+}; //TMX.alrm_add()
 
-function alrm_execAdd() { //add 1
-  var clAlrmInst_EL= template_alarmInst_EL.cloneNode(true); //clone
-  alrm_addHelpers(clAlrmInst_EL, alrm_genId());
-  alarmsCont_EL.appendChild(clAlrmInst_EL); //add to DOM
-  if (disabler_mode) alrm_drawDisablerMode(clAlrmInst_EL);
-  alarmInst_EL= clAlrmInst_EL;
-  if (timeview_def_flag) alrm_setTorC(alarmInst_EL, true, "persist");
-} //alrm_execAdd()
+TMX.alrm_execAdd= function() { //add 1
+  var clAlrmInst_EL= tmx.template_alarmInst_EL.cloneNode(true); //clone
+  TMX.alrm_addHelpers(clAlrmInst_EL, TMX.alrm_genId());
+  tmx.alarmsCont_EL.appendChild(clAlrmInst_EL); //add to DOM
+  if (tmx.disabler_mode) TMX.alrm_drawDisablerMode(clAlrmInst_EL);
+  tmx.alarmInst_EL= clAlrmInst_EL;
+  if (tmx.timeview_def_flag) TMX.alrm_setTorC(tmx.alarmInst_EL, true, "persist");
+}; //TMX.alrm_execAdd()
 
-function alrm_genId() { //keeps id values low by utilizing unused "slots"
-  var ids_set= new Set(delIds_set); //shallow copy
-  [...aI_NL].forEach(aI_EL => {
+TMX.alrm_genId= function() { //keeps id values low by utilizing unused "slots"
+  var ids_set= new Set(tmx.delIds_set); //shallow copy
+  [...tmx.aI_NL].forEach(aI_EL => {
     ids_set.add(aI_EL.id *1);
   });
   var new_id= 1;
@@ -2175,48 +2215,48 @@ function alrm_genId() { //keeps id values low by utilizing unused "slots"
     new_id++;
   }
   return new_id;
-} //alrm_genId()
+}; //TMX.alrm_genId()
 
 
-function alrm_delete() { //from alarm delete-button
-  jm.confirm("<b>Delete</b> alarm:" +g_promStr(), "", {
+TMX.alrm_delete= function() { //from alarm delete-button
+  jm.confirm("<b>Delete</b> alarm:" +TMX.g_promStr(), "", {
     custButText: {OkBut:"Delete"},
     end_cb: resp => {
       if (resp != true) return; //null-->
-      alrm_execDelete();
+      TMX.alrm_execDelete();
     }
   });
-} //deleteAlarm()
+}; //deleteAlarm()
 
-function alrm_execDelete() { //from alrm_delete() or drag&drop
-  alrm_exeDel();
-  alarms_save();
-  sound_play("trsh");
-} //alrm_execDelete()
+TMX.alrm_execDelete= function() { //from TMX.alrm_delete() or drag&drop
+  TMX.alrm_exeDel();
+  TMX.alarms_save();
+  TMX.sound_play("trsh");
+}; //TMX.alrm_execDelete()
 
-delIds_set= new Set(); //alrm_genId() will "reuse" lower ids, this ensures unique ids (per session)
+tmx.delIds_set= new Set(); //TMX.alrm_genId() will "reuse" lower ids, this ensures unique ids (per session)
 
-function alrm_exeDel() { //from alrm_execDelete() or alarms_import()
-  if (!alarmInst_EL) return; //-->
-  alarmInst_EL.remove(); //from DOM
-  if (alarmInst_EL == wakey_aI_EL) {
-    ringer_stop("off");
-  } else if (alarmInst_EL == active_aI_EL) {
-    alrm_activate(false);
-    alarms_autoActivate();
+TMX.alrm_exeDel= function() { //from TMX.alrm_execDelete() or TMX.alarms_import()
+  if (!tmx.alarmInst_EL) return; //-->
+  tmx.alarmInst_EL.remove(); //from DOM
+  if (tmx.alarmInst_EL == tmx.wakey_aI_EL) {
+    TMX.ringer_stop("off");
+  } else if (tmx.alarmInst_EL == tmx.active_aI_EL) {
+    TMX.alrm_activate(false);
+    TMX.alarms_autoActivate();
   }
-  delIds_set.add(alarmInst_EL.id *1);
-  alarmInst_EL= undefined;
-} //alrm_exeDel()
+  tmx.delIds_set.add(tmx.alarmInst_EL.id *1);
+  tmx.alarmInst_EL= undefined;
+}; //TMX.alrm_exeDel()
 
 
-function g_promStr(n_str, t_str) {
+TMX.g_promStr= function(n_str, t_str) {
   var alStrO;
-  if (!n_str || !t_str) alStrO= g_alStrO(alarmInst_EL);
+  if (!n_str || !t_str) alStrO= TMX.g_alStrO(tmx.alarmInst_EL);
   return `<p>${n_str || alStrO.name}</p>Time:<i class="livePreview">${t_str || alStrO.time}</i>`;
-} //g_promStr()
+}; //TMX.g_promStr()
 
-function g_alStrO(aI_EL) {
+TMX.g_alStrO= function(aI_EL) {
   var str= aI_EL.$E.Name.innerHTML.replaceAll("<br>", " | ");
   var tmp_doc= new DOMParser().parseFromString(str, 'text/html');
   str= (tmp_doc.body.textContent || "").substring(0, 40);
@@ -2224,144 +2264,144 @@ function g_alStrO(aI_EL) {
     name: str,
     time: aI_EL.$E.Time.textContent
   };
-} //g_alStrO()
+}; //TMX.g_alStrO()
 
 
-function alrm_activate(aI_EL) {
-//console.trace("alrm_activate:", aId(aI_EL))
+TMX.alrm_activate= function(aI_EL) {
+//console.trace("TMX.alrm_activate:", dbg.aId(aI_EL))
 
-  if (active_aI_EL) { //prev active-alarm off
-//console.log("prev alarm off? active_aI_EL", aId(active_aI_EL))
-    classEl(active_aI_EL, ["alarmActive", "expired", "soon"], false);
-    alrm_initCountdown(active_aI_EL);
-    alrm_setCtdnView(active_aI_EL, active_aI_EL.$D.vu_cd);
-    alrm_glow(4, active_aI_EL, "darkgray");
-    sound_play("slam");
+  if (tmx.active_aI_EL) { //prev active-alarm off
+//console.log("prev alarm off? tmx.active_aI_EL", dbg.aId(tmx.active_aI_EL))
+    TMXu.classEl(tmx.active_aI_EL, ["alarmActive", "expired", "soon"], false);
+    TMX.alrm_initCountdown(tmx.active_aI_EL);
+    TMX.alrm_setCtdnView(tmx.active_aI_EL, tmx.active_aI_EL.$D.vu_cd);
+    TMX.alrm_glow(4, tmx.active_aI_EL, "darkgray");
+    TMX.sound_play("slam");
   }
 
   var on_flag= !!aI_EL; //to boolean
   if (on_flag) {
     var alrm_str= aI_EL.$E.Time.textContent;
-    var alarmNow_obj= alrm_procTimeText(alrm_str, "preview"); //nrn, final check of alrm_str
-    if (!alarmNow_obj) {on_flag= false; message_add("bad alarm time: " +alrm_str +" | " +alStrO.name, "pink"); }
+    var alarmNow_obj= TMX.alrm_procTimeText(alrm_str, "preview"); //nrn, final check of alrm_str
+    if (!alarmNow_obj) {on_flag= false; TMXu.message_add("bad alarm time: " +alrm_str +" | " +alStrO.name, "pink"); }
   }
 
   if (on_flag) { //alarm on
-    active_aI_EL= aI_EL;
-    activeCountdown_flag= true;
-    active_ctdn_m= aI_EL.$D.ctdn_m;
-    activeCountdown_EL.textContent= g_untilStr(active_ctdn_m);
-    active_hTimO= alarmNow_obj.hTimO;
+    tmx.active_aI_EL= aI_EL;
+    tmx.activeCountdown_flag= true;
+    tmx.active_ctdn_m= aI_EL.$D.ctdn_m;
+    tmx.activeCountdown_EL.textContent= TMX.g_untilStr(tmx.active_ctdn_m);
+    tmx.active_hTimO= alarmNow_obj.hTimO;
 
-    classEl(aI_EL, "alarmActive");
-    aI_EL.after(activeDiv_EL);
-    showEl(activeDiv_EL);
-    showEl(activeCountdown_EL);
-    alrm_setCtdnView(aI_EL, false); //if needed //shows time
+    TMXu.classEl(aI_EL, "alarmActive");
+    aI_EL.after(tmx.activeDiv_EL);
+    TMXu.showEl(tmx.activeDiv_EL);
+    TMXu.showEl(tmx.activeCountdown_EL);
+    TMX.alrm_setCtdnView(aI_EL, false); //if needed //shows time
 
-    clockMarker_n= undefined;
-    clock_checkMarker();
+    tmx.clockMarker_n= undefined;
+    TMX.clock_checkMarker();
 
-    sound_play("beep");
-    alrm_scrollTo();
+    TMX.sound_play("beep");
+    TMX.alrm_scrollTo();
 
   } else { //alarm off
-    active_aI_EL= undefined;
-    activeCountdown_flag= false;
-    active_ctdn_m= 0;
+    tmx.active_aI_EL= undefined;
+    tmx.activeCountdown_flag= false;
+    tmx.active_ctdn_m= 0;
 
-    showEl(activeDiv_EL, false);
-    showEl(cf_marker_EL, false);
+    TMXu.showEl(tmx.activeDiv_EL, false);
+    TMXu.showEl(tmx.cf_marker_EL, false);
   }
-} //alrm_activate()
+}; //TMX.alrm_activate()
 
-function alrm_silentExpire(aI_EL) { //alarm not active, so no ringer
-  var alStrO= g_alStrO(aI_EL);
-  var msg_EL= message_add("Alarm expired: " +alStrO.time +" | " +alStrO.name, "pink");
+TMX.alrm_silentExpire= function(aI_EL) { //alarm not active, so no ringer
+  var alStrO= TMX.g_alStrO(aI_EL);
+  var msg_EL= TMXu.message_add("Alarm expired: " +alStrO.time +" | " +alStrO.name, "pink");
   msg_EL.$exp_aI_EL= aI_EL;
   aI_EL.$exp_msg_EL= msg_EL;
-} //alrm_silentExpire()
+}; //TMX.alrm_silentExpire()
 
 
-function alarms_minuteUpdate() {
-  sysAlarm_check(sync_ms);
+TMX.alarms_minuteUpdate= function() {
+  TMX.sysAlarm_check(tmx.sync_ms);
 
-  if (!vis_ct) return; //-->
+  if (!tmx.vis_ct) return; //-->
 
   var until_str;
-  [...aI_NL].forEach(aI_EL => {
-    if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in disabler_mode all are visible)
+  [...tmx.aI_NL].forEach(aI_EL => {
+    if (aI_EL.checkVisibility()) { //skip disabled (fyi, when in tmx.disabler_mode all are visible)
       aI_EL.$D.ctdn_m-= 1; //-1 minute
-      if (aI_EL==active_aI_EL && activeCountdown_flag) active_ctdn_m= aI_EL.$D.ctdn_m;
+      if (aI_EL==tmx.active_aI_EL && tmx.activeCountdown_flag) tmx.active_ctdn_m= aI_EL.$D.ctdn_m;
 
       if (aI_EL.$D.ctdn_m <1 ) { //expire
         if (!aI_EL.classList.contains("expired")) { //new expire
-          classEl(aI_EL, "expired");
-          if (aI_EL != active_aI_EL) alrm_silentExpire(aI_EL);
+          TMXu.classEl(aI_EL, "expired");
+          if (aI_EL != tmx.active_aI_EL) TMX.alrm_silentExpire(aI_EL);
         }
 
       } else {
-        check_soon(aI_EL);
+        TMX.check_soon(aI_EL);
       }
 
-      until_str= g_untilStr(aI_EL.$D.ctdn_m);
+      until_str= TMX.g_untilStr(aI_EL.$D.ctdn_m);
       if (until_str != aI_EL.$E.Ctdn.textContent) aI_EL.$E.Ctdn.textContent= until_str;
       //.. alarms 1+ days, dont need to re-render every minute
 
     } //visible
   });
 
-  if (activeCountdown_flag) {
-    if (active_ctdn_m < 1) { //end active countdown
-      activeCountdown_flag= false;
-      showEl(activeCountdown_EL, false);
-      ringer_start(active_aI_EL);
+  if (tmx.activeCountdown_flag) {
+    if (tmx.active_ctdn_m < 1) { //end active countdown
+      tmx.activeCountdown_flag= false;
+      TMXu.showEl(tmx.activeCountdown_EL, false);
+      TMX.ringer_start(tmx.active_aI_EL);
     } else {
-      activeCountdown_EL.textContent= g_untilStr(active_ctdn_m);
-      clock_checkMarker();
+      tmx.activeCountdown_EL.textContent= TMX.g_untilStr(tmx.active_ctdn_m);
+      TMX.clock_checkMarker();
     }
 
-  } else if (snooze_ctdn_m) {
-    snooze_ctdn_m--; //inc-
-    snooze_check();
+  } else if (tmx.snooze_ctdn_m) {
+    tmx.snooze_ctdn_m--; //inc-
+    TMX.snooze_check();
   }
-} //alarms_minuteUpdate()
+}; //TMX.alarms_minuteUpdate()
 
-function check_soon(aI_EL) {
+TMX.check_soon= function(aI_EL) {
   var soon_flag= aI_EL.$D.ctdn_m < 720; //12 hrs, soon
-  if (soon_flag != aI_EL.classList.contains("soon")) classEl(aI_EL, "soon", soon_flag);
-} //check_soon()
+  if (soon_flag != aI_EL.classList.contains("soon")) TMXu.classEl(aI_EL, "soon", soon_flag);
+}; //TMX.check_soon()
 
-function alarms_sort(aa_override_arr =[]) {
-  if (!vis_ct) return; //-->
+TMX.alarms_sort= function(aa_override_arr =[]) {
+  if (!tmx.vis_ct) return; //-->
 
-  sound_play("clik");
+  TMX.sound_play("clik");
 
-  var arr= [...aI_NL];
+  var arr= [...tmx.aI_NL];
   arr
     .sort((a, b) => a.$D.ctdn_m -b.$D.ctdn_m)
-    .forEach(aI_EL => alarmsCont_EL.appendChild(aI_EL)) //reorder in DOM
+    .forEach(aI_EL => tmx.alarmsCont_EL.appendChild(aI_EL)) //reorder in DOM
   ;
 
-  if (!wakey_aI_EL) alarms_autoActivate(aa_override_arr); //no autoActivate if alarm is ringing/snoozed
+  if (!tmx.wakey_aI_EL) TMX.alarms_autoActivate(aa_override_arr); //no autoActivate if alarm is ringing/snoozed
 
-  if (active_aI_EL) active_aI_EL.after(activeDiv_EL); //alarm els sorted, move activeDiv_EL under correct alarm el
+  if (tmx.active_aI_EL) tmx.active_aI_EL.after(tmx.activeDiv_EL); //alarm els sorted, move tmx.activeDiv_EL under correct alarm el
 
-  alrm_scrollTo();
-} //alarms_sort()
+  TMX.alrm_scrollTo();
+}; //TMX.alarms_sort()
 
-function alarms_autoActivate(override_arr =[]) {
+TMX.alarms_autoActivate= function(override_arr =[]) {
   //auto activate top alarm
-  var topAI_EL= [...aI_NL].find(aI_EL => aI_EL.checkVisibility() && !aI_EL.classList.contains("expired")); //skip disabled, expired
-  if (topAI_EL && topAI_EL!=active_aI_EL && (!active_aI_EL || override_arr.includes(topAI_EL))) {
+  var topAI_EL= [...tmx.aI_NL].find(aI_EL => aI_EL.checkVisibility() && !aI_EL.classList.contains("expired")); //skip disabled, expired
+  if (topAI_EL && topAI_EL!=tmx.active_aI_EL && (!tmx.active_aI_EL || override_arr.includes(topAI_EL))) {
     //exists      not same                   dont override active, unless its in aa_override_arr
-    alrm_activate(topAI_EL);
+    TMX.alrm_activate(topAI_EL);
   }
-} //alarms_autoActivate()
+}; //TMX.alarms_autoActivate()
 
-function alarms_import(imported_str) {
+TMX.alarms_import= function(imported_str) {
   //localStorage.setItem("importedAlarm", "");
-  data_save("importedAlarm", "");
+  TMX.data_save("importedAlarm", "");
 
   var action_str;
   var spl_ar;
@@ -2381,155 +2421,155 @@ function alarms_import(imported_str) {
       if (action_str == "external") {
         time_str= spl_ar[1]; //WED 5/5 12:34pm
         tSpl_ar= time_str.split(" ");
-        if (alarmNow_obj= alrm_procTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -020`, "preview")) { // -20 minutes
-          alrm_execAdd();
+        if (alarmNow_obj= TMX.alrm_procTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -020`, "preview")) { // -20 minutes
+          TMX.alrm_execAdd();
 
           k_str= spl_ar[4] ? " (K)" : ""; //keeper league
           html_str= `${tSpl_ar[0]} <br><i>${spl_ar[3]}</i>${k_str} <i class="PC_tid" title="?">${spl_ar[5]}</i>`;
-          alarmInst_EL.$E.Name.innerHTML= html_str;
+          tmx.alarmInst_EL.$E.Name.innerHTML= html_str;
 
-          alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
-          alrm_initCountdown();
-          alrm_glow(4);
-          add_arr.push(alarmInst_EL); //for sound only
+          tmx.alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
+          TMX.alrm_initCountdown();
+          TMX.alrm_glow(4);
+          add_arr.push(tmx.alarmInst_EL); //for sound only
         }
 
       } else if (action_str == "externalDelete") {
         //externalDelete|123-1|PC
         //0              1   2
         let tid= spl_ar[1];
-        let delTid_EL= [...alarmsCont_EL.querySelectorAll("i.PC_tid")]
+        let delTid_EL= [...tmx.alarmsCont_EL.querySelectorAll("i.PC_tid")]
           .find(EL => EL.textContent == tid)
         ;
 //console.log("externalDelete tid",tid, "delTid_EL",delTid_EL) //debug
         if (delTid_EL) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
           del_arr.push(delTid_EL); //for sound only
-          alarmInst_EL= delTid_EL.closest("div.alarmInstance");
-          alrm_exeDel();
+          tmx.alarmInst_EL= delTid_EL.closest("div.alarmInstance");
+          TMX.alrm_exeDel();
         } else {
-          message_add("External-delete of " +tid +" failed");
+          TMXu.message_add("External-delete of " +tid +" failed");
         }
 
       } //action_str
     } //PC
   });
 
-  sound_play("bell", add_arr, 1500); //1400, bell is longish clip
-  sound_play("trsh", del_arr, 1000);
+  TMX.sound_play("bell", add_arr, 1500); //1400, bell is longish clip
+  TMX.sound_play("trsh", del_arr, 1000);
   //when both add and de, sounds prob mess up
 
   if (add_arr.length || del_arr.length) {
-    alarms_sort(add_arr);
-    alarms_save();
+    TMX.alarms_sort(add_arr);
+    TMX.alarms_save();
   }
-} //alarms_import()
+}; //TMX.alarms_import()
 
-function alarms_getDataArr() {
-  vis_ct= 0;
+TMX.alarms_getDataArr= function() {
+  tmx.vis_ct= 0;
   var al_arr= []; //data model, temporary
-  if (aI_NL.length) {
+  if (tmx.aI_NL.length) {
     var a_obj;
     var name_str;
-    [...aI_NL].forEach(aI_EL => {
+    [...tmx.aI_NL].forEach(aI_EL => {
       a_obj= {id:aI_EL.id *1, t:aI_EL.$E.Time.textContent}; //id, time
       if (name_str= aI_EL.$E.Name.innerHTML) a_obj.n= name_str;
       if (aI_EL.$D.vu_cd) a_obj.c= 1; //countdown view
 
-      if (disabler_mode ? !aI_EL.querySelector("input").checked : !aI_EL.checkVisibility()) a_obj.d= 1; //disabled
-      else vis_ct++;
+      if (tmx.disabler_mode ? !aI_EL.querySelector("input").checked : !aI_EL.checkVisibility()) a_obj.d= 1; //disabled
+      else tmx.vis_ct++;
 
       al_arr.push(a_obj);
     });
   }
   return al_arr;
-} //alarms_getDataArr()
+}; //TMX.alarms_getDataArr()
 
-function alarms_save() {
-  var saveAl_arr= alarms_getDataArr();
-//console.trace("alarms_save",saveAl_arr)
+TMX.alarms_save= function() {
+  var saveAl_arr= TMX.alarms_getDataArr();
+//console.trace("TMX.alarms_save",saveAl_arr)
   var json_str= JSON.stringify(saveAl_arr);
-  data_save("alarms", json_str);
-  if (tmx_alarmsSave_hook) tmx_alarmsSave_hook(json_str);
-} //alarms_save()
+  TMX.data_save("alarms", json_str);
+  TMX.HOOK("alarmsSave", json_str);
+}; //TMX.alarms_save()
 
 
-var wakeyDiv_EL= document.querySelector("div#wakeyDiv");
-var wakeySnoozeBut_EL= wakeyDiv_EL.querySelector("div#wakeySnoozeBut")
-var wakeySnzCountdown_EL= wakeyDiv_EL.querySelector("div#wakeySnzCountdown");
+tmx.wakeyDiv_EL= document.querySelector("div#wakeyDiv");
+tmx.wakeySnoozeBut_EL= tmx.wakeyDiv_EL.querySelector("div#wakeySnoozeBut")
+tmx.wakeySnzCountdown_EL= tmx.wakeyDiv_EL.querySelector("div#wakeySnzCountdown");
 
-var wakey_aI_EL;
-var ring_intimerId;
-var snooze_ctdn_m;
+tmx.wakey_aI_EL;
+tmx.ring_intimerId;
+tmx.snooze_ctdn_m;
 
-function ringer_start(aI_EL) {
-  if (aI_EL) wakey_aI_EL= aI_EL; //1st ringer_start, as opposed to snooze-end ringer_start
+TMX.ringer_start= function(aI_EL) {
+  if (aI_EL) tmx.wakey_aI_EL= aI_EL; //1st TMX.ringer_start, as opposed to snooze-end TMX.ringer_start
 
-  alrm_scrollTo("noExp");
-  sound_play("rngr");
+  TMX.alrm_scrollTo("noExp");
+  TMX.sound_play("rngr");
 
-  showEl(wakeyDiv_EL);
+  TMXu.showEl(tmx.wakeyDiv_EL);
   jm._ELs.Overlay.classList.add("flash");
-  ring_intimerId= setInterval(() => { //recurse
+  tmx.ring_intimerId= setInterval(() => { //recurse
     jm._ELs.Overlay.classList.toggle("flash");
-    sound_play("rngr");
+    TMX.sound_play("rngr");
   }, 5000);
 
-  jm.confirm("Alarm ring<p>" +active_aI_EL.$E.Name.textContent +"</p>", "", {
+  jm.confirm("Alarm ring<p>" +tmx.active_aI_EL.$E.Name.textContent +"</p>", "", {
     //jm custom cb object
     custButText: {OkBut:"OFF", CancelBut:"SNOOZE"},
     end_cb: resp => {
       if (resp) resp= "off"; //true .. "off" //else snooze
-      ringer_stop(resp);
+      TMX.ringer_stop(resp);
     }
   });
 
-} //ringer_start()
+}; //TMX.ringer_start()
 
 //note: for ringer start, if these are 'in progress'...
 //longPress, should be ok, process normally
 //drag, will be just be an unsuccessful drop
 //modal, as if it was 'paused'
 
-function ringer_stop(flag, snooze_n) { //without flag, default is 'snooze'
-  if (!wakey_aI_EL) return; //-->
+TMX.ringer_stop= function(flag, snooze_n) { //without flag, default is 'snooze'
+  if (!tmx.wakey_aI_EL) return; //-->
 
-  if (ring_intimerId) {
-    clearInterval(ring_intimerId);
-    ring_intimerId= undefined;
+  if (tmx.ring_intimerId) {
+    clearInterval(tmx.ring_intimerId);
+    tmx.ring_intimerId= undefined;
     jm._ELs.Overlay.classList.remove("flash");
   }
 
   if (flag == "off") {
-    wakey_aI_EL= undefined;
-    showEl(activeDiv_EL, false);
-    showEl(wakeyDiv_EL, false);
-    snooze_ctdn_m= 0; //if needed
+    tmx.wakey_aI_EL= undefined;
+    TMXu.showEl(tmx.activeDiv_EL, false);
+    TMXu.showEl(tmx.wakeyDiv_EL, false);
+    tmx.snooze_ctdn_m= 0; //if needed
 
-    alrm_activate(false);
-    alarms_sort();
+    TMX.alrm_activate(false);
+    TMX.alarms_sort();
 
   } else { //snooze
     //note: snooze wont be exact, since it only checks/fires at top of minute
     //eg. 5 minutes will be 4-5 minutes
-    snooze_ctdn_m= snooze_n || snooze_def_num;
-    sound_play("knoc");
+    tmx.snooze_ctdn_m= snooze_n || tmx.snooze_def_num;
+    TMX.sound_play("knoc");
   }
 
-  snooze_draw(); //if needed
-} //ringer_stop()
+  TMX.snooze_draw(); //if needed
+}; //TMX.ringer_stop()
 
-function snooze_draw() {
-  wakeySnzCountdown_EL.innerHTML= snooze_ctdn_m ? g_untilStr(snooze_ctdn_m) : "&nbsp;";
-} //snooze_draw()
+TMX.snooze_draw= function() {
+  tmx.wakeySnzCountdown_EL.innerHTML= tmx.snooze_ctdn_m ? TMX.g_untilStr(tmx.snooze_ctdn_m) : "&nbsp;";
+}; //TMX.snooze_draw()
 
-function snooze_check() {
-  snooze_draw();
-  if (!snooze_ctdn_m) { //end snooze
-    ringer_start();
+TMX.snooze_check= function() {
+  TMX.snooze_draw();
+  if (!tmx.snooze_ctdn_m) { //end snooze
+    TMX.ringer_start();
   }
-} //snooze_check()
+}; //TMX.snooze_check()
 
-function g_untilStr(m, h) {
+TMX.g_untilStr= function(m, h) {
   var str;
   if (m >= 1440) {
    str= Math.floor(m /1440) +"d";
@@ -2546,155 +2586,141 @@ function g_untilStr(m, h) {
   }
 
   return str;
-} //g_untilStr()
+}; //TMX.g_untilStr()
 
 
-var bC= new BroadcastChannel("bc0");
-bC.postMessage("init");
+tmx.bC= new BroadcastChannel("bc0");
+tmx.bC.postMessage("init");
 
-var bC_dupe_flag;
-bC.onmessage= evt => {
-//console.log("bC", evt)
-  if (evt.data == "init") bC.postMessage("dupe");
-  else if (evt.data == "dupe") bC_dupe_flag= true;
+tmx.bcDupe_flag;
+tmx.bC.onmessage= evt => {
+//console.log("tmx.bC", evt)
+  if (evt.data == "init") tmx.bC.postMessage("dupe");
+  else if (evt.data == "dupe") tmx.bcDupe_flag= true;
 };
 
 
-function PClink(tid_EL) { //PennantChase
+TMX.PClink= function(tid_EL) { //PennantChase
   var tid= tid_EL.textContent;
   var lgid= tid.split("-")[0];
   var tname= tid_EL.closest("div.alarmName").querySelector("i").textContent; //tree up then down
   //div.alarmName will contain 2 <i>, 1st will be teamname, 2nd will be tid with <i class="PC_tid">
   jm.alert(`PennantChase<br>lg${lgid} <b>${tname}</b> <a href="https://www.pennantchase.com/lgTeamLineup.aspx?tid=${tid}&lgid=${lgid}" target="_blank">Lineup</a>`);
-} //PClink()
+}; //TMX.PClink()
 
 
-function message_add(str, bgColor_str) {
-  showEl(msgHeader_EL);
-  msg_EL= template_msgInst_EL.cloneNode(true); //clone
-  msgCont_EL.appendChild(msg_EL); //add
-  msg_EL.querySelector("div.msgInfo").innerHTML= str;
-  if (bgColor_str) msg_EL.style.background= bgColor_str;
-  return msg_EL; //bonus get
-} //message_add()
 
-function message_remove(msg_EL) {
-  msg_EL.remove();
-  if (!msgCont_EL.querySelectorAll("div.msgInstance").length) showEl(msgHeader_EL, false);
-  var exp_aI_EL; if (exp_aI_EL= msg_EL.$exp_aI_EL) alrm_unexpire(exp_aI_EL);
-} //message_remove()
+tmx.alrmExpChange_flag;
 
-var alrmExpChange_flag;
-
-function alrm_unexpire(aI_EL) {
-  alrmExpChange_flag= true;
+TMX.alrm_unexpire= function(aI_EL) {
+  tmx.alrmExpChange_flag= true;
   delete aI_EL.$exp_msg_EL;
 
   if (!aI_EL.closest("div#alarmsContainer")) { //is orphan
-    //after an alarms_start() (various ways), this aI_EL is an "orphan" (not in current DOM)
+    //after an TMX.alarms_start() (various ways), this aI_EL is an "orphan" (not in current DOM)
     //reacquire alarm..
-    let _aI_EL= alarmsCont_EL.querySelector('[id="' +aI_EL.id +'"]'); //note: els dont have .getElementById()
-//console.log("alrm_unexpire, orphan:",aI_EL, "reacquire:",_aI_EL);
+    let _aI_EL= tmx.alarmsCont_EL.querySelector('[id="' +aI_EL.id +'"]'); //note: els dont have .getElementById()
+//console.log("TMX.alrm_unexpire, orphan:",aI_EL, "reacquire:",_aI_EL);
     if (_aI_EL) aI_EL= _aI_EL; //reacquired
     else return; //could not reacquire alarm //-->
   }
 
-  classEl(aI_EL, ["expired", "soon"], false);
-  alrm_initCountdown(aI_EL);
-  alrm_glow(2, aI_EL, "pink");
-} //alrm_unexpire()
+  TMXu.classEl(aI_EL, ["expired", "soon"], false);
+  TMX.alrm_initCountdown(aI_EL);
+  TMX.alrm_glow(2, aI_EL, "pink");
+}; //TMX.alrm_unexpire()
 
 
-var sysAlarms_arr= [];
-var sysAlarms_lu= {};
+tmx.sysAlarms_arr= [];
+tmx.sysAlarms_lu= {};
 
-function sysAlarm_addOrDel(name_str, ms, handler) {
+TMX.sysAlarm_addOrDel= function(name_str, ms, handler) {
   var sAO;
   if (ms != undefined) { //add
     sAO= {n:name_str, ms:ms, handler:handler};
-    sysAlarms_arr.push(sAO);
-    sysAlarms_lu[name_str]= sAO;
+    tmx.sysAlarms_arr.push(sAO);
+    tmx.sysAlarms_lu[name_str]= sAO;
 
   } else { //del
-    sAO= sysAlarms_lu[name_str];
-    sysAlarms_arr.splice(sysAlarms_arr.indexOf(sAO), 1);
-    delete sysAlarms_lu[name_str];
+    sAO= tmx.sysAlarms_lu[name_str];
+    tmx.sysAlarms_arr.splice(tmx.sysAlarms_arr.indexOf(sAO), 1);
+    delete tmx.sysAlarms_lu[name_str];
   }
-} //sysAlarm_addOrDel()
+}; //TMX.sysAlarm_addOrDel()
 
-function sysAlarm_check(ms) {
-  if (!sysAlarms_arr.length) return; //-->
+TMX.sysAlarm_check= function(ms) {
+  if (!tmx.sysAlarms_arr.length) return; //-->
 
-  sysAlarms_arr.forEach(sAO => {
+  tmx.sysAlarms_arr.forEach(sAO => {
     if (ms >= sAO.ms) {
       if (sAO.handler) { //handler goes first
         if (sAO.handler(sAO, ms)) return; //handler can abort sAO removal //-->
       }
 
-      message_add(sAO.n);
-      sysAlarm_addOrDel(sAO.n); //delete sysAlarm
+      TMXu.message_add(sAO.n);
+      TMX.sysAlarm_addOrDel(sAO.n); //delete sysAlarm
     }
   });
-} //sysAlarm_check();
+}; //TMX.sysAlarm_check();
 
 
-var clock_TZ= Intl.DateTimeFormat().resolvedOptions().timeZone;
+tmx.clock_TZ= Intl.DateTimeFormat().resolvedOptions().timeZone;
 //timezone change can happen any minute, so not going to check for it, user needs to manually do browser reload
-var clock_tzo;
-var tzoc_arr;
+tmx.clock_tzo;
+tmx.tzoc_arr;
 
-function tzoc_start() { //runs upon startup
-  clockFace_EL.querySelector("div#dtDisplay").title= clock_TZ;
+TMX.tzoc_start= function() { //runs upon startup
+  tmx.clockFace_EL.querySelector("div#dtDisplay").title= tmx.clock_TZ;
 
-  clock_tzo= start_dtO.getTimezoneOffset();
-  var year_n= start_dtO.getFullYear();
-  var tzYear_key= clock_TZ +"_" +year_n;
-  data_load("tzoc", dataO => proc_tzoc(dataO.tzoc));
+  tmx.clock_tzo= tmx.start_dtO.getTimezoneOffset();
+  var year_n= tmx.start_dtO.getFullYear();
+  var tzYear_key= tmx.clock_TZ +"_" +year_n;
+  TMX.data_load("tzoc", dataO => proc_tzoc(dataO.tzoc));
 
   function proc_tzoc(tz_str) {
     if (!tz_str) tz_str= ""; //param default only works if undeined
     var tz_ar= tz_str.split(",");
     if (tz_ar[0] != tzYear_key) { //init (annually if no travel)
       //.. if user never turns off this app, wont reset annually, edge
-      var raw_arr= tzoc_getDates(year_n);
+      var raw_arr= TMX.tzoc_getDates(year_n);
 //console.log(raw_arr)
       if (raw_arr[0] == year_n) { //nrn
         raw_arr[0]= tzYear_key;
 
-        message_add("Timezone offset changes for " +raw_arr.join(", "));
+        TMXu.message_add("Timezone offset changes for " +raw_arr.join(", "));
 
         tz_str= raw_arr.join(",");
-        data_save("tzoc", tz_str);
+        TMX.data_save("tzoc", tz_str);
 
         tz_ar= raw_arr;
       }
     }
 
-    tzoc_arr= [];
+    tmx.tzoc_arr= [];
     var alarmNow_obj, ms;
     tz_ar.forEach((str, i) => {
       if (i == 0) { //tzYear_key
-        tzoc_arr[0]= str;
+        tmx.tzoc_arr[0]= str;
       } else {
-        alarmNow_obj= alrm_procTimeText(str, "preview");
+        alarmNow_obj= TMX.alrm_procTimeText(str, "preview");
         ms= alarmNow_obj ? alarmNow_obj.ms : 0;
-        tzoc_arr[i]= {t:str, ms:ms};
+        tmx.tzoc_arr[i]= {t:str, ms:ms};
       }
     });
 
-    tzoc_check(start_dtO);
+    TMX.tzoc_check(tmx.start_dtO);
 
   } //proc_tzoc()
 
-} //tzoc_start()
+}; //TMX.tzoc_start()
 
-function tzoc_check(dtO) { //noon and midnite
-  if (tzoc_arr.length <= 1) return; //just tzYear_key, no dateTimes (no daylight savings) //-->
+TMX.tzoc_check= function(dtO) { //noon and midnite
+  if (tmx.tzoc_arr.length <= 1) return; //just tzYear_key, no dateTimes (no daylight savings) //-->
 
   var now_ms= dtO.getTime();
   var until_ms= now_ms +43200000; //12hr
   var ms;
-  tzoc_arr.forEach((tzO, i) => {
+  tmx.tzoc_arr.forEach((tzO, i) => {
     if (i) { //skip 0, tzYear_key
       ms= tzO.ms;
       if (ms >= now_ms && ms <= until_ms) add_sysAlm(tzO); //daylight savings on/off
@@ -2703,39 +2729,39 @@ function tzoc_check(dtO) { //noon and midnite
 
   function add_sysAlm(tzO) {
     var name_str= "Time zone offset change: " +tzO.t;
-    if (sysAlarms_lu[name_str]) return; //skip, already added //-->
+    if (tmx.sysAlarms_lu[name_str]) return; //skip, already added //-->
 
-    sysAlarm_addOrDel( //add
+    TMX.sysAlarm_addOrDel( //add
       name_str,
       tzO.ms,
       function(sAO, ms) { //handler
         var dtO= new Date();
         var tzo= dtO.getTimezoneOffset(); //est 300, dst 240
-        var diff_tzo= clock_tzo -tzo; //0, +- 60
+        var diff_tzo= tmx.clock_tzo -tzo; //0, +- 60
         if (!diff_tzo) return "abort_sAO_removal"; //-->
         //.. can happen if clock is slighly ahead
         //.. will try again next minute
 
-        clock_tzo= tzo;
+        tmx.clock_tzo= tzo;
         var diff_hr= Math.sign(diff_tzo); // +- 1
 
         //https://www.timeanddate.com/time/dst/transition.html
-        console.log("TZO change", diff_hr, g_fmatDtO(sync_dtO)); //DST change -1 @3:00:00.013
+        console.log("TZO change", diff_hr, dbg.g_fmatDtO(tmx.sync_dtO)); //DST change -1 @3:00:00.013
 
         //becomes 3am (forward) or 1am (back) ..
-        cf_degO.hr+= diff_hr *cf_h_inc *60;
-        clock_drawHands();
+        tmx.cf_degO.hr+= diff_hr *tmx.cf_h_inc *60;
+        TMX.clock_drawHands();
 
-        clock_hr24= dtO.getHours(); //reset
+        tmx.clock_hr24= dtO.getHours(); //reset
 
-        sound_play("clik");
+        TMX.sound_play("clik");
       } //handler
     );
   } //add_sysAlm()
 
-} //tzoc_check()
+}; //TMX.tzoc_check()
 
-function tzoc_getDates(year_n) { //determine time zone offset changes for current year
+TMX.tzoc_getDates= function(year_n) { //determine time zone offset changes for current year
   //based on the time/location settings of computer, so should work anywhere
   //generate dates once a year (after new year)
   var arr= [year_n];
@@ -2807,24 +2833,24 @@ function tzoc_getDates(year_n) { //determine time zone offset changes for curren
     return month +"/" +day +" " +hour +":00" +amPm_str;
   } //find_tzoChgInMonth()
 
-} //tzoc_getDates()
+}; //TMX.tzoc_getDates()
 
 
 
-function data_load(key, cb) {
+TMX.data_load= function(key, cb) {
   var keys_arr= Array.isArray(key) ? key : [key];
   var dataO= {};
   keys_arr.forEach(k => dataO[k]= localStorage.getItem(k) );
 //console.log("load LS", key, "dataO", dataO);
   if (cb) cb(dataO);
-} //data_load()
+}; //TMX.data_load()
 
-function data_save(key, data, cb) { //can only save 1 item per call
+TMX.data_save= function(key, data, cb) { //can only save 1 item per call
   //.. note: alarms is always all alarms, no such thing as saving 1 alarm
   localStorage.setItem(key, data);
 //console.log("save LS", key, "data", data);
   if (cb) cb("set");
-} //data_save()
+}; //TMX.data_save()
 
 /*
 //localStorage doesnt have 'getKeys'
@@ -2841,12 +2867,12 @@ console.log(allKeys);
 */
 
 
-function sound_play(ac_key, repeat_n =1, step_ms =750) {
+TMX.sound_play= function(ac_key, repeat_n =1, step_ms =750) {
   if (typeof(repeat_n) == "object") repeat_n= repeat_n.length; //repeat_n. passed in an arr
   if (!repeat_n) return; //-->
 
   if (repeat_n == 1) {
-    audioClips[ac_key].play();
+    tmx.audioClips[ac_key].play();
     return; //-->
   }
 
@@ -2854,30 +2880,15 @@ function sound_play(ac_key, repeat_n =1, step_ms =750) {
   step_play(); //kickoff
 
   function step_play() {
-    audioClips[ac_key].play();
+    tmx.audioClips[ac_key].play();
     ct++;
     if (ct < repeat_n) setTimeout(step_play, step_ms); //recurse //-->
   }
-} //sound_play()
-
-//utils
-function showEl(el, display_str ="block") {
-  //showEl(el) //on
-  //showEl(el, falsy) //off
-  //showEl(el, "inline") //on, other than "block"
-  if (el) el.style.display= display_str==false ? "none" : display_str;
-}
-function classEl(el, class_param, flag =true) { //class_param can be string or array
-  if (!el) return; //-->
-  if (Array.isArray(class_param)) el.classList[flag?"add":"remove"](...class_param);
-  else el.classList[flag?"add":"remove"](class_param);
-}
-
-
+}; //TMX.sound_play()
 
 
 //jm (modal)
-var jm= {
+const jm= {
   _ELs: {},
   _type: 0,
   _queue: [],
@@ -2965,7 +2976,7 @@ var jm= {
       } else if (typeHas("CONFIRM")) { //CONFIRM is just an ALERT with a Cancel button
         jm._displayEls("CancelBut", "inline");
 
-      } else if (typeHas("ERROR")) sound_play("buzz");
+      } else if (typeHas("ERROR")) TMX.sound_play("buzz");
 
     //} else if (type_str.search(/PROMPT$|PROMPT_TEXTAREA/) > -1) {
     } else if (typeHas("PROMPT_")) {
@@ -3069,7 +3080,7 @@ var jm= {
     liteBut("OkBut", state_flag);
     liteBut("NoBut", !state_flag);
     function liteBut(jid, flag) {
-      classEl(jm._ELs[jid], "hilite", flag);
+      TMXu.classEl(jm._ELs[jid], "hilite", flag);
     }
 
     if (submit_flag) jm._respond(); //btw, closes modal
@@ -3149,13 +3160,13 @@ var jm= {
   //'jids' param is a csv string, ._iterEls() splits and iterates
   _displayEls: function(jids, display_v) {
     jm._iterEls(jids, (el, jid) => {
-      showEl(el, display_v);
+      TMXu.showEl(el, display_v);
       if (display_v && jid.includes("But")) el.textContent= el.$origText; //init-button with orig text
     });
   },
 
   _classEls: function(jids, class_str, flag= true) {
-    jm._iterEls(jids, el => classEl(el, class_str, flag) );
+    jm._iterEls(jids, el => TMXu.classEl(el, class_str, flag) );
   },
 
   _iterEls: function(jids, itr_cb) {
@@ -3182,81 +3193,82 @@ jm.init();
 
 
 //INIT
-var init_dtO= new Date();
-console.log("INIT", init_dtO.toLocaleString());
+(() => { //IIFE
+  var init_dtO= new Date();
+  console.log("INIT", init_dtO.toLocaleString());
 
-var fClick_flag= true;
-alarms_urlImport(window.location.search);
-if (fClick_flag) { //satisfy browser requirement to allow play-sound
+  var fClick_flag= true;
+  alarms_urlImport(window.location.search);
+  if (fClick_flag) { //satisfy browser requirement to allow play-sound
 
-  data_load(["snooze_num", "timeview_flag"], dataO => {
-    snooze_def_num= (dataO.snooze_num || 5) *1; //default 5
-    timeview_def_flag= dataO.timeview_flag == "true"; //true is view-countdown, default is view-time
-  });
-
-  setTimeout(() => {
-    jm.alert(bC_dupe_flag ? "TIMECKS is already running in another window or tab, close this tab" : "Click to start", () => {
-      if (bC_dupe_flag) {
-        window.close();
-      } else {
-        clock_draw();
-        alarmsDrag_init();
-        clock_start();
-        alarms_start();
-        if (tmx_init_hook) tmx_init_hook();
-      }
+    TMX.data_load(["snooze_num", "timeview_flag"], dataO => {
+      tmx.snooze_def_num= (dataO.snooze_num || 5) *1; //default 5
+      tmx.timeview_def_flag= dataO.timeview_flag == "true"; //true is view-countdown, default is view-time
     });
-  }, 100); //allow 1st data_load and bC to complete
-}
 
+    setTimeout(() => {
+      jm.alert(tmx.bcDupe_flag ? "TIMECKS is already running in another window or tab, close this tab" : "Click to start", () => {
+        if (tmx.bcDupe_flag) {
+          window.close();
+        } else {
+          TMX.clock_draw();
+          TMX.alarmsDrag_init();
+          TMX.clock_start();
+          TMX.alarms_start();
+          TMX.HOOK("init");
+        }
+      });
+    }, 100); //allow 1st TMX.data_load and bC to complete
+  }
 
-function alarms_urlImport(q_str) { //import from via url querystring, stores "importedAlarm" in localstorage
-  //.. this is a url based endpoint, not really a webpage, self closes
-  if (!q_str) return; //-->
+  function alarms_urlImport(q_str) { //import from via url querystring, stores "importedAlarm" in localstorage
+    //.. this is a url based endpoint, not really a webpage, self closes
+    if (!q_str) return; //-->
 
-  var usp= new URLSearchParams(q_str);
-  var action_str, external_str;
+    var usp= new URLSearchParams(q_str);
+    var action_str, external_str;
 
-  //for local testing// file:///C:/Users/chaaad/Documents/GitHub/TIMECKS/index.htm
-  findQS("export");  // ?export=WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123-1
-  findQS("exportDelete"); //?exportDelete=123-1|PC
+    //for local testing// file:///C:/Users/chaaad/Documents/GitHub/TIMECKS/index.htm
+    findQS("export");  // ?export=WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123-1
+    findQS("exportDelete"); //?exportDelete=123-1|PC
 
-  function findQS(act_str) {
-    var exp_str= usp.get(act_str);
-    if (exp_str) {
-      var split_arr= exp_str.split("|");
-      if (split_arr[1] == "PC") {
-        //.. qualify //only PC can import
-        action_str= act_str.replace("export", "external");
-        external_str= exp_str;
+    function findQS(act_str) {
+      var exp_str= usp.get(act_str);
+      if (exp_str) {
+        var split_arr= exp_str.split("|");
+        if (split_arr[1] == "PC") {
+          //.. qualify //only PC can import
+          action_str= act_str.replace("export", "external");
+          external_str= exp_str;
+        }
       }
     }
-  }
 
-  if (action_str && external_str) {
-    fClick_flag= false;
+    if (action_str && external_str) {
+      fClick_flag= false;
 
-    external_str= action_str +"|" +external_str;
+      external_str= action_str +"|" +external_str;
 //console.log("external_str:", external_str);
 
-    data_load("importedAlarm", dataO => {
+      TMX.data_load("importedAlarm", dataO => {
 //console.log("dataO:", dataO);
-      var prevImport_str= dataO.importedAlarm;
-      if (prevImport_str) { //allow multiple
-        if (prevImport_str.includes(external_str)) external_str= ""; //dupe, ignore
-        else external_str= prevImport_str +"\n" +external_str; //append
-      }
-//console.log("data_save? importedAlarm:", external_str);
-      if (external_str) {
-        data_save("importedAlarm", external_str, resp => {
-          window.close();
-        });
-      } else window.close();
-    }); //data_load
-  }
+        var prevImport_str= dataO.importedAlarm;
+        if (prevImport_str) { //allow multiple
+          if (prevImport_str.includes(external_str)) external_str= ""; //dupe, ignore
+          else external_str= prevImport_str +"\n" +external_str; //append
+        }
+//console.log("TMX.data_save? importedAlarm:", external_str);
+        if (external_str) {
+          TMX.data_save("importedAlarm", external_str, resp => {
+            window.close();
+          });
+        } else window.close();
+      }); //TMX.data_load
+    }
 
-} //alarms_urlImport()
+  } //alarms_urlImport()
 
+})(); //IIFE
 
 </script>
 
