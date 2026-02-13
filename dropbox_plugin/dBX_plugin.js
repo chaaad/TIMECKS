@@ -134,7 +134,7 @@ const dBX= {
         var alarmsDBX_str, alarmsDBX_arr;
         if (files_arr.find(file_item => file_item.name == dBX.file_str)) {
           dBX.downloadData(dBX.fPath_str, fileContent_str => { //get "alarms.json" from dropbox
-console.log("firstLoad->dBX.downloadData", dBX.fPath_str, "loaded");
+//console.log("firstLoad->dBX.downloadData", dBX.fPath_str, "loaded");
 //console.log(fileContent_str);
             dBX.BUT.logo_glow("cyan");
 
@@ -158,7 +158,7 @@ console.log("firstLoad->dBX.downloadData", dBX.fPath_str, "loaded");
 
           if (alarmsLS_str != alarmsDBX_str) { //different
             //instead of comparing objects, just compare the json strs, both were sorted same way before .stringify()
-console.log("dif", alarmsLS_arr,alarmsDBX_arr);
+//console.log("dif", alarmsLS_arr,alarmsDBX_arr);
             if (!alarmsDBX_str) {
               choose("LS");
 
@@ -324,15 +324,35 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
       IMG.id= "dropboxLogo";
       IMG.src= "dropbox_plugin/dropbox_logo-mask64.png";
       IMG.addEventListener("click", evt => {
+        var sN= dBX.status_num;
+        if (sN>1 && dBX.badSave_flag) alarms_save(); //fn from main page
 
-////////////////////
-//        if (dBX.badSave_flag) do a save!
+        var but_str;
+        if (sN == 0) but_str= "Enable";
+        else if (sN == 1) but_str= "Unpause";
+        else but_str= "Pause";
 
-        //status_num, buttons
-        //0, Enable
-        //1, Unpause, Disable
-        //9, Pause, Disable
+        var custButO= {OkBut: but_str};
+        var jm_type= "confirm";
+        if (sN) {
+          custButO.OkBut= "Disable";
+          jm_type= "boolean";
+        }
 
+        jm[jm_type]("<b>Sfdgfdgdfg</b>", "", {
+          custButText: custButO,
+          end_cb: resp => {
+console.log("resp",resp)
+            if (resp == null) return; //-->
+
+              //var status_str= .....;
+              //dBX.changeStatus(status_n);
+          }
+        });
+
+
+
+/*
 //////////////stub
         var status_str= prompt("status_num:", dBX.status_num);
         if (status_str == null) return;
@@ -340,6 +360,7 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
         //////////////
 
         dBX.changeStatus(status_n);
+*/
       });
       dBX.BUT.IMG= IMG;
     }, //logo_create()

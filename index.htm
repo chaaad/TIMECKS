@@ -2179,7 +2179,7 @@ function alrm_genId() { //keeps id values low by utilizing unused "slots"
 
 
 function alrm_delete() { //from alarm delete-button
-  jm.confirm("<b>Delete</b> alarm:" +g_promStr(), {
+  jm.confirm("<b>Delete</b> alarm:" +g_promStr(), "", {
     custButText: {OkBut:"Delete"},
     end_cb: resp => {
       if (resp != true) return; //null-->
@@ -2474,7 +2474,7 @@ function ringer_start(aI_EL) {
     sound_play("rngr");
   }, 5000);
 
-  jm.confirm("Alarm ring<p>" +active_aI_EL.$E.Name.textContent +"</p>", {
+  jm.confirm("Alarm ring<p>" +active_aI_EL.$E.Name.textContent +"</p>", "", {
     //jm custom cb object
     custButText: {OkBut:"OFF", CancelBut:"SNOOZE"},
     end_cb: resp => {
@@ -3032,7 +3032,7 @@ var jm= {
     jm.dialog("ERROR", '<p class="bad">' +text_str +'</p>', "", cb); //returns true or null
   },
 
-  confirm: function(text_str, cb) {
+  confirm: function(text_str, value_flag, cb) { //value_flag not used
     jm.dialog("CONFIRM", text_str, "", cb); //returns true or null
   },
 
