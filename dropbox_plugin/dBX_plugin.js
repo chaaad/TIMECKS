@@ -313,7 +313,7 @@ const dBX= {
             background: #0062FF; /*dropbox blue*/
           }
 
-          &.pauseState {
+          &.pausedState {
             background: #80b0ff; /*lighter blue*/
           }
 
@@ -346,7 +346,11 @@ const dBX= {
           jm_type= "boolean";
         }
 
-        jm[jm_type]("<b>Cloud sync with Dropbox</b>", "", {
+        var status_str= "off";
+        if (sN == 1) status_str= "paused";
+        else if (sN > 1) status_str= "on";
+
+        jm[jm_type]("<b>Dropbox sync is: " +status_str +"</b>", "", {
           custButText: custButO,
           end_cb: resp => {
             if (resp == null) return; //null //-->
@@ -372,9 +376,12 @@ const dBX= {
 
     logo_set: function() {
       var state_str= "";
-      if (dBX.status_num == 1) state_str= "pauseState";
+      if (dBX.status_num == 1) state_str= "pausedState";
       else if (dBX.status_num > 1) state_str= dBX.badSave_flag ? "errorState" : "activeState";
       dBX.BUT.IMG.classList= state_str;
+      var title_str="Dropbox sync";
+      if (state_str) title_str+= ": " +state_str.replace("State", "");
+      dBX.BUT.IMG.title= title_str;
     } //logo_set
   } //BUT.
 
