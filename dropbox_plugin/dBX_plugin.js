@@ -45,6 +45,13 @@ const dBX= {
         })
 
     } else { //normal page
+
+      var error_str= usp.get("error");
+      //hasRedirectedFromAuth
+      //error=access_denied
+      //error_description=The+user+chose+not+to+give+your+app+access+to+their+Dropbox+account.
+      if (error_str) TMXu.ls("dbx_status", ""); //fn from main page, ls set
+
       dBX.status_num= TMXu.ls("dbx_status") || 0; //fn from main page, ls get
       //0 n/a (or off), 1 disabled (paused), 9 on
 
