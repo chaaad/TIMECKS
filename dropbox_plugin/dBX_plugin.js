@@ -179,7 +179,7 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
               }
 
               //fn from main page..
-              jm.boolean("<p>Difference found</p>" +html_str, false, { //default value, false (cloud)
+              jm.boolean("<p>Difference found between:</p>" +html_str, false, { //default value, false (cloud)
                 //jm custom cb object
                 custButText: {OkBut: "Local", NoBut: "Cloud"},
                 end_cb: resp => {
