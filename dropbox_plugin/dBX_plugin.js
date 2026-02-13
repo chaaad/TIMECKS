@@ -164,16 +164,20 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
 
             } else {
               var html_str= "<div style='display:flex; '>"; //row div, flex will make children into columns
-              addCol(alarmsLS_str);
-              addCol(alarmsDBX_str);
+              addCol("Local", alarmsLS_arr);
+              addCol("Cloud", alarmsDBX_arr);
               html_str+= '</div>'; //end row div
 
-              function addCol(str) {
-                html_str+= "<div>" +str +"</div>";
+              function addCol(title_str, arr) {
+                html_str+= "<div>"; //col
+                arr.forEach(alO => {
+                  html_str+= "<p>" +alO.n +"</p>";
+                });
+                html_str+= "</div>"; //end col
               }
 
               //fn from main page..
-              jm.boolean("<p>Local vs Cloud are different</p>" +html_str, false, { //default value, false (cloud)
+              jm.boolean("<p>Difference found</p>" +html_str, false, { //default value, false (cloud)
                 //jm custom cb object
                 custButText: {OkBut: "Local", NoBut: "Cloud"},
                 end_cb: resp => {
