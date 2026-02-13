@@ -164,8 +164,8 @@ const dBX= {
 
             } else {
               var html_str= "<div style='display:flex; '>"; //row div, flex will make children into columns
-              addCol("Local", alarmsLS_arr);
               addCol("Cloud", alarmsDBX_arr);
+              addCol("Local", alarmsLS_arr);
               html_str+= '</div>'; //end row div
 
               function addCol(title_str, arr) {
@@ -179,12 +179,11 @@ const dBX= {
               }
 
               //fn from main page..
-              jm.boolean("<p>Difference found between:</p>" +html_str, false, { //default value, false (cloud)
+              jm.confirm("<p>Difference found between:</p>" +html_str, "", {
                 //jm custom cb object
-                custButText: {OkBut: "Local", NoBut: "Cloud"},
+                custButText: {OkBut: "Use Cloud"},
                 end_cb: resp => {
-                  if (resp == null) return; //cancel, do nothing //-->
-                  choose(resp ? "LS" : "DBX");
+                  choose(resp ? "DBX" : "LS");
                 }
               });
             }
