@@ -11,15 +11,6 @@ const dBX= {
   //.accessToken_str, .refreshToken_str
   //.AUTH
 
-  ls: function(key, v) { //localStorage: get, set, v="" to rem
-    if (v != undefined) {
-      if (v == "") window.localStorage.removeItem(key); //ls rem
-      else window.localStorage.setItem(key, v); //ls set
-    } else {
-      return window.localStorage.getItem(key); //ls get
-    }
-  }, //ls()
-
   msg_err: function(err) {
     console.error(err.error || err);
   }, //msg_err()
@@ -40,9 +31,9 @@ const dBX= {
       dBX.AUTH.getAccessTokenFromCode(dBX.redirectUri_str, authCode_str)
         .then((response) => {
           dBX.accessToken_str= response.result.access_token;
-          dBX.ls("dbx_accessToken", dBX.accessToken_str); //ls set
+          TMXu.ls("dbx_accessToken", dBX.accessToken_str); //fn from main page, ls set
           dBX.refreshToken_str= response.result.refresh_token;
-          dBX.ls("dbx_refreshToken", dBX.refreshToken_str); //ls set
+          TMXu.ls("dbx_refreshToken", dBX.refreshToken_str); //fn from main page, ls set
           dBX.AUTH.setAccessToken(dBX.accessToken_str);
           dBX.API= new Dropbox.Dropbox({
             auth: dBX.AUTH
@@ -54,11 +45,11 @@ const dBX= {
         })
 
     } else { //normal page
-      dBX.status_num= dBX.ls("dbx_status") || 0; //ls get
+      dBX.status_num= TMXu.ls("dbx_status") || 0; //fn from main page, ls get
       //0 n/a (or off), 1 disabled (paused), 9 on
 
-      dBX.accessToken_str= dBX.ls("dbx_accessToken"); //ls get
-      dBX.refreshToken_str= dBX.ls("dbx_refreshToken"); //ls get
+      dBX.accessToken_str= TMXu.ls("dbx_accessToken"); //fn from main page, ls get
+      dBX.refreshToken_str= TMXu.ls("dbx_refreshToken"); //fn from main page, ls get
 
       if (dBX.status_num > 1) dBX.enable();
       else dBX.BUT.logo_set();
@@ -84,7 +75,7 @@ const dBX= {
 
   setStatus: function(status_n) {
     dBX.status_num= status_n;
-    dBX.ls("dbx_status", status_n); //ls set
+    TMXu.ls("dbx_status", status_n); //fn from main page, ls set
     dBX.BUT.logo_set();
   }, //setStatus()
 
@@ -156,7 +147,7 @@ const dBX= {
             function choose(choice_key) {
               if (choice_key == "DBX") {
                 TMX.alarms_start(alarmsDBX_arr); //clear, re-render alarms dom //fn from main page
-                dBX.ls("alarms", alarmsDBX_str); //direct save to //ls set
+                TMXu.ls("alarms", alarmsDBX_str); //direct save to //fn from main page, ls set
 
               } else if (choice_key == "LS") {
                 tmx.hookers["alarmsSave"](alarmsLS_str); //direct save to dropbox
@@ -203,10 +194,10 @@ const dBX= {
         dBX.API= undefined;
         if (paramO.accessToken) {
           dBX.accessToken_str= undefined;
-          dBX.ls("dbx_accessToken", ""); //ls rem
+          TMXu.ls("dbx_accessToken", ""); //ls rem
         } else if (paramO.refreshToken) {
           dBX.refreshToken_str= undefined;
-          dBX.ls("dbx_refreshToken", ""); //ls rem
+          TMXu.ls("dbx_refreshToken", ""); //ls rem
         }
 
         if (paramO.accessToken && dBX.refreshToken_str) {
@@ -352,6 +343,7 @@ const dBX= {
 }; //dBX
 
 
+//hooks
 tmx.hookers["init"]= function() { //hook fn from main page
   dBX.init();
 }; //tmx.hookers["init"]()

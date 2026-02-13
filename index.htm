@@ -885,6 +885,15 @@ TMXu.parseJSON= function(str) {
   return json_dat;
 };
 
+TMXu.ls= function(key, v) { //localStorage: get, set, v="" to rem
+  if (v != undefined) {
+    if (v == "") window.localStorage.removeItem(key); //ls rem
+    else window.localStorage.setItem(key, v); //ls set
+  } else {
+    return window.localStorage.getItem(key); //ls get
+  }
+}; //TMXu.ls()
+
 
 const TMX= {}; //global fns
 const tmx= {}; //global vars
@@ -2400,7 +2409,6 @@ TMX.alarms_autoActivate= function(override_arr =[]) {
 }; //TMX.alarms_autoActivate()
 
 TMX.alarms_import= function(imported_str) {
-  //localStorage.setItem("importedAlarm", "");
   TMX.data_save("importedAlarm", "");
 
   var action_str;
@@ -2485,6 +2493,7 @@ TMX.alarms_getDataArr= function() {
 }; //TMX.alarms_getDataArr()
 
 TMX.alarms_save= function() {
+  //note: always saves all alarms, no such thing as saving 1 alarm
   var saveAl_arr= TMX.alarms_getDataArr();
 //console.trace("TMX.alarms_save",saveAl_arr)
   var json_str= JSON.stringify(saveAl_arr);
@@ -2840,14 +2849,13 @@ TMX.tzoc_getDates= function(year_n) { //determine time zone offset changes for c
 TMX.data_load= function(key, cb) {
   var keys_arr= Array.isArray(key) ? key : [key];
   var dataO= {};
-  keys_arr.forEach(k => dataO[k]= localStorage.getItem(k) );
+  keys_arr.forEach(k => dataO[k]= TMXu.ls(k) ); //ls get
 //console.log("load LS", key, "dataO", dataO);
   if (cb) cb(dataO);
 }; //TMX.data_load()
 
 TMX.data_save= function(key, data, cb) { //can only save 1 item per call
-  //.. note: alarms is always all alarms, no such thing as saving 1 alarm
-  localStorage.setItem(key, data);
+  TMXu.ls(key, data); //ls set
 //console.log("save LS", key, "data", data);
   if (cb) cb("set");
 }; //TMX.data_save()
@@ -3257,7 +3265,7 @@ jm.init();
           if (prevImport_str.includes(external_str)) external_str= ""; //dupe, ignore
           else external_str= prevImport_str +"\n" +external_str; //append
         }
-//console.log("TMX.data_save? importedAlarm:", external_str);
+//console.log("importedAlarm:", external_str);
         if (external_str) {
           TMX.data_save("importedAlarm", external_str, resp => {
             window.close();
