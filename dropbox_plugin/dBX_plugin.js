@@ -349,7 +349,7 @@ const dBX= {
         if (sN == 1) status_str= "paused";
         else if (sN > 1) status_str= "on";
 
-        jm[jm_type]("<b>Dropbox sync is: " +status_str +"</b>", "", {
+        jm[jm_type]("<p>Dropbox sync</p>Status: <b>" +status_str +"</b>", "", {
           custButText: custButO,
           end_cb: resp => {
             if (resp == null) return; //null //-->
