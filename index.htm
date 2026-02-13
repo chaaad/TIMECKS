@@ -894,6 +894,10 @@ TMXu.ls= function(key, v) { //localStorage: get, set, v="" to rem
   }
 }; //TMXu.ls()
 
+TMXu.browserRemoveQuerystring= function() {
+  history.replaceState("", document.title, window.location.pathname);
+}; //TMXu.browserRemoveQuerystring()
+
 
 const TMX= {}; //global fns
 const tmx= {}; //global vars

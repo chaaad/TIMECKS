@@ -24,7 +24,7 @@ const dBX= {
     var authCode_str= usp.get("code");
 
     if (authCode_str) { //hasRedirectedFromAuth
-      history.replaceState("", document.title, window.location.pathname); //url remove hash
+      TMXu.browserRemoveQuerystring(); //fn from main page
       dBX.AUTH= new Dropbox.DropboxAuth({clientId: dBX.clientId_str});
       dBX.AUTH.setCodeVerifier(window.sessionStorage.getItem("dbx_codeVerify_key"));
       window.sessionStorage.removeItem("dbx_codeVerify_key");
@@ -50,7 +50,13 @@ const dBX= {
       //hasRedirectedFromAuth
       //error=access_denied
       //error_description=The+user+chose+not+to+give+your+app+access+to+their+Dropbox+account.
-      if (error_str) TMXu.ls("dbx_status", ""); //fn from main page, ls set
+      if (error_str) {
+        error_str= usp.get("error_description");
+        if (error_str.includes("Dropbox")) {
+          TMXu.browserRemoveQuerystring(); //fn from main page
+          TMXu.ls("dbx_status", ""); //turn off dropbox-sync //fn from main page, ls set
+        }
+      }
 
       dBX.status_num= TMXu.ls("dbx_status") || 0; //fn from main page, ls get
       //0 n/a (or off), 1 disabled (paused), 9 on
