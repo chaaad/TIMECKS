@@ -317,7 +317,7 @@ const dBX= {
         if (sN == 1) status_str= "paused";
         else if (sN > 1) status_str= "on";
 
-        var dropboxLink_str= '<br>Also, you can manage your <a href="https://www.dropbox.com/account/connected_apps" target="_blank" rel="noopener noreferrer">connected apps</a> at dropbox.com';
+        var dropboxLink_str= '<br><br>Also, you can manage your <a href="https://www.dropbox.com/account/connected_apps" target="_blank" rel="noopener noreferrer">connected apps</a> at dropbox.com';
 
         jm[jm_type]("<p>Dropbox sync</p>Status: <b>" +status_str +"</b>" +dropboxLink_str, "", {
           custButText: custButO,

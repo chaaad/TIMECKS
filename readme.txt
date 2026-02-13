@@ -103,3 +103,14 @@ Alarms
       example: ?/31 7:00 PM
   Note day "31", any day beyond the last day of the month will be considered "MonthEnd".
   So, 2/30 will also "MonthEnd" to day 28 (leap year, day 29).
+
+
+Dropbox sync
+  Two reasons you might want to use this.
+  1- You use TIMECKS on more than 1 device (eg. computer) and you want your data to be in sync.
+  2- To backup your data, it will be in:
+   <your-local-dropbox-directory>/Apps/TIMECKS/alarms.json
+   Incidentally, we only have access this subdirectory in your local-dropbox-directory
+
+  Not meant to be used with multiple conncurrent users (collaboration),
+  just one user that might use a different device.
