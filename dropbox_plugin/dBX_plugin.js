@@ -163,10 +163,17 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
               choose("LS");
 
             } else {
-var html_str= "xxxxxxxxx";
+              var html_str= "<div style='display:flex; '>"; //row div, flex will make children into columns
+              addCol(alarmsLS_str);
+              addCol(alarmsDBX_str);
+              html_str+= '</div>'; //end row div
+
+              function addCol(str) {
+                html_str+= "<div>" +str +"</div>";
+              }
 
               //fn from main page..
-              jm.boolean("<p>Local/Cloud are different</p>" +html_str, false, { //default value, false (cloud)
+              jm.boolean("<p>Local vs Cloud are different</p>" +html_str, false, { //default value, false (cloud)
                 //jm custom cb object
                 custButText: {OkBut: "Local", NoBut: "Cloud"},
                 end_cb: resp => {
@@ -313,12 +320,14 @@ var html_str= "xxxxxxxxx";
       IMG.addEventListener("click", evt => {
 
 ////////////////////
+//        if (dBX.badSave_flag) do a save!
+
         //status_num, buttons
         //0, Enable
         //1, Unpause, Disable
         //9, Pause, Disable
 
-        //////////////stub
+//////////////stub
         var status_str= prompt("status_num:", dBX.status_num);
         if (status_str == null) return;
         var status_n= Number(status_str) || 0;
