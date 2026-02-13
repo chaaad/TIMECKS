@@ -169,7 +169,7 @@ const dBX= {
           } //is diff
         } //compareThenChoose()
 
-////////if (authRedirect_flag) { }  ////need? need authRedirect_flag at all???
+        //if (authRedirect_flag) { } //not used for anything
 
       }) //success
     ; //filesListFolder
@@ -317,7 +317,9 @@ const dBX= {
         if (sN == 1) status_str= "paused";
         else if (sN > 1) status_str= "on";
 
-        jm[jm_type]("<p>Dropbox sync</p>Status: <b>" +status_str +"</b>", "", {
+        var dropboxLink_str= '<br>Also, you can manage your <a href="https://www.dropbox.com/account/connected_apps" target="_blank" rel="noopener noreferrer">connected apps</a> at dropbox.com';
+
+        jm[jm_type]("<p>Dropbox sync</p>Status: <b>" +status_str +"</b>" +dropboxLink_str, "", {
           custButText: custButO,
           end_cb: resp => {
             if (resp == null) return; //null //-->
