@@ -9,11 +9,11 @@ function createCssRule(css_str) { //lib fn
 } //createCssRule()
 
 
-tmx_init_hook= function() { //hook to fn in main page
+tmx_init_hook= function() { //hook fn from main page
   dBX.init();
 };
 
-tmx_alarmsSave_hook= function(fileContent_str) { //hook to fn in main page
+tmx_alarmsSave_hook= function(fileContent_str) { //hook fn from main page
   if (dBX.status_num != 9) return; //-->
 
   dBX.uploadData(dBX.fPath_str, fileContent_str, cb, err_cb);
@@ -138,7 +138,7 @@ console.log("firstLoad->dBX.downloadData", dBX.fPath_str, "loaded");
 //console.log(fileContent_str);
             dBX.BUT.logo_glow("cyan");
 
-            alarmsDBX_arr= xParseJSON(fileContent_str); //fn in main page
+            alarmsDBX_arr= xParseJSON(fileContent_str); //fn from main page
             if (Array.isArray(alarmsDBX_arr)) {
               alarmsDBX_arr.sort((a, b) => a.id -b.id);
               alarmsDBX_str= JSON.stringify(alarmsDBX_arr);
@@ -146,24 +146,26 @@ console.log("firstLoad->dBX.downloadData", dBX.fPath_str, "loaded");
             compareThenChoose();
           });
 
-        } else {
+        } else { //no dropbox "alarms.json"
           compareThenChoose();
         }
 
         function compareThenChoose() {
           var alarmsLS_str;
-          var alarmsLS_arr= alarms_getDataArr();
+          var alarmsLS_arr= alarms_getDataArr(); //fn from main page
           alarmsLS_arr.sort((a, b) => a.id -b.id);
           alarmsLS_str= JSON.stringify(alarmsLS_arr);
 
           if (alarmsLS_str != alarmsDBX_str) { //different
+            //instead of comparing objects, just compare the json strs, both were sorted same way before .stringify()
 console.log("dif", alarmsLS_arr,alarmsDBX_arr);
             if (!alarmsDBX_str) {
               choose("LS");
-            } else {
-              var html_str= "xxxxxxxxx";
 
-              //fn in main page..
+            } else {
+var html_str= "xxxxxxxxx";
+
+              //fn from main page..
               jm.boolean("<p>Local/Cloud are different</p>" +html_str, false, { //default value, false (cloud)
                 //jm custom cb object
                 custButText: {OkBut: "Local", NoBut: "Cloud"},
@@ -176,7 +178,7 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
 
             function choose(choice_key) {
               if (choice_key == "DBX") {
-                alarms_start(alarmsDBX_arr); //clear, re-render alarms dom //fn in main page
+                alarms_start(alarmsDBX_arr); //clear, re-render alarms dom //fn from main page
                 dBX.ls("alarms", alarmsDBX_str); //direct save to //ls set
 
               } else if (choice_key == "LS") {
