@@ -170,8 +170,9 @@ console.log("dif", alarmsLS_arr,alarmsDBX_arr);
 
               function addCol(title_str, arr) {
                 html_str+= "<div>"; //col
+                html_str+= "<p>" +title_str +"</p>";
                 arr.forEach(alO => {
-                  html_str+= "<p>" +alO.n +"</p>";
+                  html_str+= alO.n +"<br>";
                 });
                 html_str+= "</div>"; //end col
               }
