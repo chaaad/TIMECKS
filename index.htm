@@ -2091,6 +2091,16 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
     var h= htO.h;
     if (h == 12) h= 0;
     if (htO.p) h+= 12;
+
+//"alarm with timezone specified"
+//change h here
+
+//data for ui (dropdown?) to select timezone
+//text is Geographic Zone or example location
+//var arr= ["-12","Eniwetok", "-11","Samoa", "-10","Hawaii", "-9","Alaska", "-8","PST, Pacific US", "-7","MST, PDT", "-6","CST, MDT", "-5","EST, CDT", "-4","Atlantic, Canada", "-3","Brazil, Buenos Aries", "-2","Mid-Atlantic", "-1","Cape Verdes", "0","Greenwich Mean Time, Dublin", "+1","Berlin, Rome", "+2","Israel, Cairo", "+3","Moscow, Kuwait", "+4","Abu Dhabi, Muscat", "+5","Islamabad, Karachi", "+6","Almaty, Dhaka", "+7","Bangkok, Jakarta", "+8","Hong Kong, Beijing", "+9","Tokyo, Osaka", "+10","Sydney, Melbourne, Guam", "+11","Magadan, Soloman Is.", "+12","Fiji, Wellington, Auckland"];
+
+////decided to not implement, too much effort to add ui
+
     dtO.setHours(h);
 
     dtO.setMinutes(htO.m);
@@ -2252,7 +2262,7 @@ TMX.alrm_exeDel= function() { //from TMX.alrm_execDelete() or TMX.alarms_import(
     TMX.ringer_stop("off");
   } else if (tmx.alarmInst_EL == tmx.active_aI_EL) {
     TMX.alrm_activate(false);
-    TMX.alarms_autoActivate();
+    TMX.alarms_autoActivateOne();
   }
   tmx.delIds_set.add(tmx.alarmInst_EL.id *1);
   tmx.alarmInst_EL= undefined;
@@ -2392,21 +2402,21 @@ TMX.alarms_sort= function(aa_override_arr =[]) {
     .forEach(aI_EL => tmx.alarmsCont_EL.appendChild(aI_EL)) //reorder in DOM
   ;
 
-  if (!tmx.wakey_aI_EL) TMX.alarms_autoActivate(aa_override_arr); //no autoActivate if alarm is ringing/snoozed
+  if (!tmx.wakey_aI_EL) TMX.alarms_autoActivateOne(aa_override_arr); //no autoActivate if alarm is ringing/snoozed
 
   if (tmx.active_aI_EL) tmx.active_aI_EL.after(tmx.activeDiv_EL); //alarm els sorted, move tmx.activeDiv_EL under correct alarm el
 
   TMX.alrm_scrollTo();
 }; //TMX.alarms_sort()
 
-TMX.alarms_autoActivate= function(override_arr =[]) {
+TMX.alarms_autoActivateOne= function(override_arr =[]) {
   //auto activate top alarm
   var topAI_EL= [...tmx.aI_NL].find(aI_EL => aI_EL.checkVisibility() && !aI_EL.classList.contains("expired")); //skip disabled, expired
   if (topAI_EL && topAI_EL!=tmx.active_aI_EL && (!tmx.active_aI_EL || override_arr.includes(topAI_EL))) {
     //exists      not same                   dont override active, unless its in aa_override_arr
     TMX.alrm_activate(topAI_EL);
   }
-}; //TMX.alarms_autoActivate()
+}; //TMX.alarms_autoActivateOne()
 
 TMX.alarms_import= function(imported_str) {
   TMX.data_save("importedAlarm", "");

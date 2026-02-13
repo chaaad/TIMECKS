@@ -102,7 +102,7 @@ const dBX= {
             compareThenChoose();
           });
 
-        } else { //no dropbox "alarms.json"
+        } else { //no dropbox "alarms.json" //would occur normally with user's very first use of timecks-dropbox-sync
           compareThenChoose();
         }
 
@@ -116,12 +116,12 @@ const dBX= {
             //instead of comparing objects, just compare the json strs, both were sorted same way before .stringify()
 //console.log("dif", alarmsLS_arr,alarmsDBX_arr);
             if (!alarmsDBX_str) {
-              choose("LS");
+              chose("LS");
 
             } else {
               var html_str= "<div style='display:flex; '>"; //row div, flex will make children into columns
-              addCol("Cloud", alarmsDBX_arr);
               addCol("Local", alarmsLS_arr);
+              addCol("Cloud", alarmsDBX_arr);
               html_str+= '</div>'; //end row div
 
               function addCol(title_str, arr) {
@@ -134,25 +134,24 @@ const dBX= {
                 html_str+= "</div>"; //end col
               }
 
-              //fn from main page..
-              jm.confirm("<p>Difference found between:</p>" +html_str, "", {
+              jm.boolean("<p>Difference found between:</p>" +html_str +"By default, the Cloud will be used. Note: the unused one will be overwritten.", false, { //fn from main page
                 //jm custom cb object
-                custButText: {OkBut: "Use Cloud"},
+                custButText: {OkBut:"Use Local", NoBut:"Use Cloud"},
                 end_cb: resp => {
-                  choose(resp ? "DBX" : "LS");
+                  chose(resp ? "LS" : "DBX");
                 }
               });
             }
 
-            function choose(choice_key) {
+            function chose(choice_key) {
               if (choice_key == "DBX") {
                 TMX.alarms_start(alarmsDBX_arr); //clear, re-render alarms dom //fn from main page
                 TMXu.ls("alarms", alarmsDBX_str); //direct save to //fn from main page, ls set
 
-              } else if (choice_key == "LS") {
+              } else { //if (choice_key == "LS") {
                 tmx.hookers["alarmsSave"](alarmsLS_str); //direct save to dropbox
               }
-            } //choose()
+            } //chose()
 
           } //is diff
         } //compareThenChoose()
@@ -343,7 +342,7 @@ const dBX= {
 }; //dBX
 
 
-//hooks
+//tmx hooks
 tmx.hookers["init"]= function() { //hook fn from main page
   dBX.init();
 }; //tmx.hookers["init"]()
