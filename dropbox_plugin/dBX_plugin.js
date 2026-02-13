@@ -310,7 +310,11 @@ const dBX= {
           cursor: pointer;
 
           &.activeState {
-            background: #0062FF;
+            background: #0062FF; /*dropbox blue*/
+          }
+
+          &.pauseState {
+            background: #80b0ff; /*lighter blue*/
           }
 
           &.errorState {
@@ -342,7 +346,7 @@ const dBX= {
           jm_type= "boolean";
         }
 
-        jm[jm_type]("<b>Sfdgfdgdfg</b>", "", {
+        jm[jm_type]("<b>Cloud sync with Dropbox</b>", "", {
           custButText: custButO,
           end_cb: resp => {
             if (resp == null) return; //null //-->
@@ -361,16 +365,16 @@ const dBX= {
 
     }, //logo_create()
 
-    logo_glow: function(color_str ="#0062FF") { //dropbox blue
+    logo_glow: function(color_str ="black") {
       dBX.BUT.IMG.style.background= color_str;
       setTimeout(() => {dBX.BUT.IMG.style.background= ""; }, 1500); //1.5 sec
     }, //logo_glow()
 
     logo_set: function() {
       var state_str= "";
-      if (dBX.status_num > 1) state_str= dBX.badSave_flag ? "errorState" : "activeState"
+      if (dBX.status_num == 1) state_str= "pauseState";
+      else if (dBX.status_num > 1) state_str= dBX.badSave_flag ? "errorState" : "activeState";
       dBX.BUT.IMG.classList= state_str;
-      // +class "activeState", "errorState" (if has both, "errorState" will override "activeState")
     } //logo_set
   } //BUT.
 
