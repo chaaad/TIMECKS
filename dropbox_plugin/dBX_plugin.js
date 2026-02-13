@@ -96,6 +96,7 @@ const dBX= {
       dBX.refreshToken_str= dBX.ls("dbx_refreshToken"); //ls get
 
       if (dBX.status_num > 1) dBX.enable();
+      else dBX.BUT.logo_set();
     }
   }, //init()
 
