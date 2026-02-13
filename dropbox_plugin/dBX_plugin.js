@@ -112,7 +112,7 @@ const dBX= {
     //enable, 0.. 9
     //unpause, 1.. 9
 
-    if (status_n == 9) dBX.enable();
+    if (status_n==9 && !dBX.API) dBX.enable();
     else dBX.setStatus(status_n);
   }, //changeStatus()
 
@@ -323,6 +323,9 @@ const dBX= {
       document.body.appendChild(IMG);
       IMG.id= "dropboxLogo";
       IMG.src= "dropbox_plugin/dropbox_logo-mask64.png";
+
+      dBX.BUT.IMG= IMG;
+
       IMG.addEventListener("click", evt => {
         var sN= dBX.status_num;
         if (sN>1 && dBX.badSave_flag) alarms_save(); //fn from main page
@@ -335,34 +338,27 @@ const dBX= {
         var custButO= {OkBut: but_str};
         var jm_type= "confirm";
         if (sN) {
-          custButO.OkBut= "Disable";
+          custButO.NoBut= "Disable";
           jm_type= "boolean";
         }
 
         jm[jm_type]("<b>Sfdgfdgdfg</b>", "", {
           custButText: custButO,
           end_cb: resp => {
-console.log("resp",resp)
-            if (resp == null) return; //-->
+            if (resp == null) return; //null //-->
 
-              //var status_str= .....;
-              //dBX.changeStatus(status_n);
+            var change_str= resp ? custButO.OkBut : custButO.NoBut; //true or false
+            var status_n;
+            if (change_str == "Disable") status_n= 0;
+            else if (change_str == "Pause") status_n= 1;
+            else if (change_str=="Enable" || change_str=="Unpause") status_n= 9;
+
+            if (status_n != undefined) dBX.changeStatus(status_n);
           }
-        });
+        }); //jm.confirm or jm.boolean
 
+      }); //addEventListener
 
-
-/*
-//////////////stub
-        var status_str= prompt("status_num:", dBX.status_num);
-        if (status_str == null) return;
-        var status_n= Number(status_str) || 0;
-        //////////////
-
-        dBX.changeStatus(status_n);
-*/
-      });
-      dBX.BUT.IMG= IMG;
     }, //logo_create()
 
     logo_glow: function(color_str ="#0062FF") { //dropbox blue
