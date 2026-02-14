@@ -113,7 +113,7 @@ Alarms
 
     But there are some exceptions, such as UTC+13:45 or UTC+14, these are valid
 
-    To see more UTC codes or to find a UTC for a particular location, try:
+    To see more UTC codes or to find a UTC code for a particular location, try:
     https://time.is/time_zones
     or
     https://www.timeanddate.com/time/map/
