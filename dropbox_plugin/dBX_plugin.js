@@ -339,7 +339,9 @@ const dBX= {
 
       function openModal() {
         var sN= dBX.status_num;
+        var badSave_str= "";
         if (dBX.badSave_flag) {
+          badSave_str= '<br><br><span style="color:red; font-size:medium; ">An error occured during a previous "Save" operation, but by clicking on the Dropbox icon, another attempt was just made.</span>';
           if (sN == 9) { //on
             TMX.alarms_save(); //fn from main page
 
@@ -371,9 +373,9 @@ const dBX= {
 
         if (sN == 8) status_str+= " (expired access token)";
 
-        var dropboxLink_str= '<br><br>Also, you can manage your <a href="https://www.dropbox.com/account/connected_apps" target="_blank" rel="noopener noreferrer">connected apps</a> at dropbox.com';
+        var dropboxLink_str= '<br><br>Also, you can manage all your <a href="https://www.dropbox.com/account/connected_apps" target="_blank" rel="noopener noreferrer">connected apps</a> at dropbox.com';
 
-        jm[jm_type]("<p>Dropbox sync</p>Status: <b>" +status_str +"</b>" +dropboxLink_str, "", {
+        jm[jm_type]("<p>Dropbox sync</p>Status: <b>" +status_str +"</b>" +badSave_str +dropboxLink_str, "", {
           custButText: custButO,
           end_cb: resp => {
             if (resp == null) return; //null //-->

@@ -105,6 +105,20 @@ Alarms
   So, 2/30 will also "MonthEnd" to day 28 (leap year, day 29).
 
 
+  Specify a timezone (UTC)
+    example for Pacific Standard Time: 1:35 PM UTC+8
+
+    The UTC code generally ranges from -12 to +12
+    examples: UTC-12, UTC+0, UTC+12
+
+    But there are some exceptions, such as UTC+13:45 or UTC+14, these are valid
+
+    To see more UTC codes or to find a UTC for a particular location, try:
+    https://time.is/time_zones
+    or
+    https://www.timeanddate.com/time/map/
+
+
 Dropbox sync
   Two reasons you might want to use this.
   1- You use TIMECKS on more than 1 device (eg. computer) and you want your data to be in sync.

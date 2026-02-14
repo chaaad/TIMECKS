@@ -284,6 +284,10 @@ div#alarmsContainer {
       font: bold 28px "Seven Segment", sans-serif;
       color: greenyellow;
       background: black;
+
+      &.tz_utc {
+        color: cyan;
+      }
     }
 
     span.alarmCountdown {
@@ -1415,41 +1419,46 @@ tmx.alarmsCont_EL.addEventListener("click", evt => {
     TMX.ringer_stop("off");
 
   } else {
-    var _alarmInst_EL;
-    if (_alarmInst_EL= targ_EL.closest("div.alarmInstance")) {
-      tmx.alarmInst_EL= _alarmInst_EL;
+    var _al_EL;
+    if (_al_EL= targ_EL.closest("div.alarmInstance")) {
+      tmx.alarmInst_EL= _al_EL;
+      var t_cl= targ_EL.classList; //alias
 
-      if (tmx.alarmInst_EL.classList.contains("expired")) {
-        var msg_EL= tmx.alarmInst_EL.$exp_msg_EL; //TMX.alrm_unexpire() will clear .$exp_msg_EL
-        TMX.alrm_unexpire(tmx.alarmInst_EL);
+      if (_al_EL.classList.contains("expired")) {
+        var msg_EL= _al_EL.$exp_msg_EL; //TMX.alrm_unexpire() will clear .$exp_msg_EL
+        TMX.alrm_unexpire(_al_EL);
         TMX.alarms_sort();
         if (msg_EL) TMXu.message_remove(msg_EL);
         //expired alarm, so only unexpire it, ignore other commands
 
-      } else if (targ_EL.classList.contains("alarmActivate")) {
-        var toggleOff_flag= tmx.alarmInst_EL==tmx.active_aI_EL;
+      } else if (t_cl.contains("alarmActivate")) {
+        var toggleOff_flag= _al_EL==tmx.active_aI_EL;
         if (tmx.wakey_aI_EL) {
           TMX.ringer_stop("off");
-          if (!toggleOff_flag) TMX.alrm_activate(tmx.alarmInst_EL);
+          if (!toggleOff_flag) TMX.alrm_activate(_al_EL);
         } else {
-          TMX.alrm_activate(toggleOff_flag ? false : tmx.alarmInst_EL);
+          TMX.alrm_activate(toggleOff_flag ? false : _al_EL);
         }
 
       } else if (targ_EL.closest("div.alarmName")) {
-        if (targ_EL.classList.contains("PC_tid")) TMX.PClink(targ_EL);
+        if (t_cl.contains("PC_tid")) TMX.PClink(targ_EL);
         else TMX.alrm_editName();
 
-      } else if (targ_EL.classList.contains("alarmT")) {
+      } else if (t_cl.contains("alarmT")) {
         TMX.longPress_timerStop();
         if (tmx.longPress_flag) return; //-->
 
         TMX.alrm_editTime();
 
-      } else if (targ_EL.classList.contains("alarmDeleteBut")) {
+      } else if (t_cl.contains("alarmDeleteBut")) {
         TMX.alrm_delete();
 
+      } else if (t_cl.contains("alarmEoM") || t_cl.contains("alarmUTC")) {
+        var html_str= `<b>${_al_EL.$E.Name.textContent}</b><br>${_al_EL.$E.Time.textContent}<p>${targ_EL.title}</p>`;
+        jm.alert(html_str);
+
       } else if (targ_EL.tagName == "INPUT") { //disabler checkbox (there can only 1 input el in alarmInstance)
-        TMXu.classEl(tmx.alarmInst_EL, "disabledInstance", !targ_EL.checked);
+        TMXu.classEl(_al_EL, "disabledInstance", !targ_EL.checked);
         TMX.alarms_save();
       }
     }
@@ -1870,7 +1879,7 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
       //jm custom cb object
 
       begin_cb: () => {
-        livePreview_EL= jm._ELs.Description.querySelector(".livePreview");
+        pvLive_EL= jm._ELs.Description.querySelector(".pvLive");
         pop_prompt();
       },
 
@@ -1897,7 +1906,7 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
 
           tmx.alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
 
-          TMX.alrm_init(tmx.alarmInst_EL, alarmNow_obj.zzz_utc);
+          TMX.alrm_init(tmx.alarmInst_EL, alarmNow_obj.Utc);
           if (tmx.active_aI_EL == tmx.alarmInst_EL) tmx.activeCountdown_EL.textContent= tmx.alarmInst_EL.$E.Ctdn.textContent;
           TMX.alarms_sort([tmx.alarmInst_EL]);
 
@@ -1908,11 +1917,17 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
     }, NEW_str); //NEW_str as highlight
   } //time_prompt()
 
-  var livePreview_EL;
+  var pvLive_EL;
   function pop_prompt() {
     time_str= jm._ELs.Input.value;
     var alarmNow_obj= TMX.alrm_procTimeText(time_str, "previewLive");
-    livePreview_EL.innerHTML= alarmNow_obj ? (alarmNow_obj.time +"<br>" +alarmNow_obj.lpUntil) : "";
+    var pl_str= "";
+    if (alarmNow_obj) {
+      pl_str= alarmNow_obj.time;
+      if (alarmNow_obj.Utc) pl_str+= " UTC" +alarmNow_obj.Utc;
+      pl_str+= "<br>" +alarmNow_obj.plUntil;
+    }
+    pvLive_EL.innerHTML= pl_str;
   }
 
 }; //TMX.alrm_editTime()
@@ -1927,19 +1942,56 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
   else if (typeof(param) == "function") err_cb= param;
 
   //.. geared toward keypad input, with some shortcuts baked in
+  var index;
   input_str= input_str.trim();
   var raw_str= input_str.toUpperCase();
-
   var time_dtO= new Date();
   var moDaO;
   if (raw_str.includes("/") || raw_str.search(/^[SMTWF]/)==0) {
     raw_str+= " ";
-    let index= raw_str.indexOf(" ");
+    index= raw_str.indexOf(" ");
     let mD_str= raw_str.substring(0, index);
     raw_str= raw_str.substring(index +1);
     if (!raw_str) raw_str= "12"; //default midnite
     moDaO= proc_moDa(mD_str); if (!moDaO) return err("bad month/day or DoW"); //-->
   }
+
+  //utc
+  var utc_str;
+  index= raw_str.search(/ U/i); //find " U" case-insensitive (start)
+  if (index >= 0) {
+    index++; //move past 1st space
+    var index_end= raw_str.indexOf(" ", index); //find next space or end
+    if (index_end < 0) index_end= raw_str.length;
+
+    utc_str= raw_str.substring(index, index_end);
+    raw_str= raw_str.substring(0, index-1) +raw_str.substring(index_end); //extract from raw_str
+
+    utc_str= utc_str.replace(/[^0-9+-:]/g, ""); //only keep "+-:" or numbers
+
+    var hrs_str, mins_str;
+    if (utc_str.indexOf(":") >= 0) [hrs_str, mins_str]= utc_str.split(":");
+    else hrs_str= utc_str;
+
+    //these are possible: UTC+13:45, UTC+14
+    var hrs_num= Number(hrs_str);
+    if (isNaN(hrs_num) || hrs_num<-12 || hrs_num>14) { //hrs must be -12 to +14
+      hrs_str= undefined;
+    } else if (mins_str) {
+      var mins_num= Number(mins_str);
+      if (isNaN(mins_num) || mins_num<0 || mins_num>45) hrs_str= undefined; //mins must be 0 to 45
+    }
+
+    //rebuild utc_str
+    utc_str= undefined;
+    if (hrs_str) {
+      utc_str= hrs_str;
+      if (!hrs_num) utc_str= "0"; //fix "-0"
+      if (hrs_num>=0 && utc_str[0]!="+") utc_str= "+" +utc_str;
+      if (mins_str) utc_str+= ":" +mins_str;
+    }
+  } //utc
+
 
   var time_str;
   var offset_str, offsetMod_str;
@@ -1978,10 +2030,9 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
 
   if (moDaO) raw_hTimO.MD= moDaO;
 
+  var plUntil_str= "";
+
   time_dtO= g_dtO_fromHumanDtO(raw_hTimO);
-
-  var lpUntil_str;
-
   if (offset_str) {
     var ofsO;
     ofsO= g_procRawTime(offset_str, "offset");
@@ -2000,11 +2051,7 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
       time_ms+= sgn_num *ofsO.h *3600000; //60*60*1000 //modify hrs
     }
 
-    if (preview_flag == "previewLive") {
-      lpUntil_str= "(" +get_fmatHTime_str(raw_hTimO);
-      lpUntil_str+= " OFFSET";
-      lpUntil_str+= offsetMod_str +TMX.g_untilStr(ofsO.m, ofsO.h) +")";
-    }
+    if (preview_flag == "previewLive") plUntil_str= "OFFSET" +offsetMod_str +TMX.g_untilStr(ofsO.m, ofsO.h) +" ";
 
     time_dtO= new Date(time_ms);
     //DST handled here by js date ?
@@ -2016,6 +2063,84 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
       };
     }
   } //offset_str
+
+  var hTimO= {
+    h: time_dtO.getHours(), //0-23
+    m: time_dtO.getMinutes()
+  };
+  proc_24to12(hTimO);
+  if (moDaO) hTimO.MD= moDaO;
+
+
+  //hTimO done with time_dtO, so time_dtO can now be adjusted for countdown purposes
+  var CDtO= time_dtO; //alias, countdown dto
+
+  if (utc_str) {
+    //tmx.clock_tzo; //in minutes, eg. 300
+    //htO.utc is in "hr" or "hr:min"
+    let hrs_str, mins_str;
+    if (utc_str.indexOf(":") >= 0) [hrs_str, mins_str]= utc_str.split(":");
+    else hrs_str= utc_str;
+
+    let utc_m= Number(hrs_str) *60;
+    if (mins_str) utc_m+= Number(mins_str);
+
+    let tzDif_m= utc_m -tmx.clock_tzo;
+    if (tzDif_m) CDtO.setMinutes(CDtO.getMinutes() +tzDif_m);
+//console.log("tzDif_m", tzDif_m)
+  } //utc_str
+
+  //countdown, check for turnover
+  var diff_ms= CDtO -new Date();
+  if (diff_ms < 1) { //less than nowTime
+    //dtO to future
+    if (hTimO.MD) {
+      if (hTimO.MD.DoW) CDtO.setDate(CDtO.getDate() +7); //+1 week, DayOfWeek
+      else if (hTimO.MD.mW) CDtO.setMonth(CDtO.getMonth() +1); //+1 month, mon_wildcard_str
+      else CDtO.setFullYear(CDtO.getFullYear() +1); //+1 year, m/d
+
+    } else {
+      CDtO.setDate(CDtO.getDate() +1); //+1 day
+    }
+    //DST handled here by js date ?
+  }
+
+  //EndofMonth auto-adjust
+  if (moDaO && !moDaO.DoW) {
+    if (hTimO.MD.da != CDtO.getDate()) { //days mismatch
+      CDtO.setMonth(hTimO.MD.mo, 0); //no month-1 (so, next month), day 0 is -1 day
+      moDaO.EoM= CDtO.getDate(); //day (eg. for Apr, will be 30)
+    }
+  }
+
+  var aNow_obj= {
+    hTimO: hTimO,
+    time: get_fmatHTime_str(hTimO), //str
+    ms: CDtO.getTime() //countdown
+  };
+
+  if (utc_str) aNow_obj.Utc= utc_str;
+
+  if (preview_flag == "previewLive") {
+    let diff_ms= CDtO -new Date(); //ms
+    plUntil_str+= `(in: ${TMX.g_untilStr(Math.ceil(diff_ms /60000))}) `; //ms to minutes
+
+    if (moDaO && moDaO.EoM) plUntil_str+= " MonthEnd=" +moDaO.EoM;
+
+    aNow_obj.plUntil= plUntil_str;
+  }
+
+  return aNow_obj;
+
+  //----//
+
+
+
+
+  function get_nstr(str) {
+    return (str.match(/\d+/) || ["0"])[0]; //gets 'first' number, ignores rest //if none, will return "0"
+    //note: "0" is truth-y
+  }
 
   function g_procRawTime(str, offset_flag) {
     var h= 0;
@@ -2053,51 +2178,6 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
     return {h:h, m:m};
   } //g_procRawTime()
 
-  var hTimO= {
-    h: time_dtO.getHours(), //0-23
-    m: time_dtO.getMinutes()
-  };
-
-  proc_24to12(hTimO);
-  if (moDaO) hTimO.MD= moDaO;
-
-  //EndofMonth auto-adjust
-  if (moDaO && !moDaO.DoW) {
-    if (hTimO.MD.da != time_dtO.getDate()) { //days mismatch
-      time_dtO.setMonth(hTimO.MD.mo, 0); //no month-1 (so, next month), day 0 is -1 day
-      moDaO.EoM= time_dtO.getDate(); //day (eg. for Apr, will be 30)
-    }
-  }
-
-
-  //success
-  var aNow_obj= {
-    hTimO: hTimO,
-    time: get_fmatHTime_str(hTimO),
-    ms: time_dtO.getTime()
-  };
-
-
-  if (preview_flag=="previewLive" && !lpUntil_str) {
-    let diff_ms= time_dtO -new Date(); //ms
-    lpUntil_str= `(in: ${TMX.g_untilStr(Math.ceil(diff_ms /60000))})`; //ms to minutes
-  }
-
-  if (lpUntil_str) {
-    if (moDaO && moDaO.EoM) lpUntil_str+= " MonthEnd=" +moDaO.EoM;
-    aNow_obj.lpUntil= lpUntil_str;
-  }
-
-  return aNow_obj;
-
-  //----//
-
-
-  function get_nstr(str) {
-    return (str.match(/\d+/) || ["0"])[0]; //gets 'first' number, ignores rest //if none, will return "0"
-    //note: "0" is truth-y
-  }
-
   function get_fmatHTime_str(tO) {
     var str= "";
     if (tO.MD) str= (tO.MD.DoW ? tO.MD.DoW : ((tO.MD.mW || tO.MD.mo) +"/" +tO.MD.da)) +" "; //DoW or m/d
@@ -2125,33 +2205,9 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
     if (h == 12) h= 0;
     if (htO.p) h+= 12;
 
-//"alarm with timezone specified"
-//change h here
-
-//data for ui (dropdown?) to select timezone
-//text is Geographic Zone or example location
-//var arr= ["-12","Eniwetok", "-11","Samoa", "-10","Hawaii", "-9","Alaska", "-8","PST, Pacific US", "-7","MST, PDT", "-6","CST, MDT", "-5","EST, CDT", "-4","Atlantic, Canada", "-3","Brazil, Buenos Aries", "-2","Mid-Atlantic", "-1","Cape Verdes", "0","Greenwich Mean Time, Dublin", "+1","Berlin, Rome", "+2","Israel, Cairo", "+3","Moscow, Kuwait", "+4","Abu Dhabi, Muscat", "+5","Islamabad, Karachi", "+6","Almaty, Dhaka", "+7","Bangkok, Jakarta", "+8","Hong Kong, Beijing", "+9","Tokyo, Osaka", "+10","Sydney, Melbourne, Guam", "+11","Magadan, Soloman Is.", "+12","Fiji, Wellington, Auckland"];
-
-////decided to not implement, too much effort to add ui
-
     dtO.setHours(h);
-
     dtO.setMinutes(htO.m);
     dtO.setSeconds(0);
-
-    var diff_ms= dtO -new Date();
-    if (diff_ms < 1) { //if less than nowTime
-      //dtO to future
-      if (htO.MD) {
-        if (htO.MD.DoW) dtO.setDate(dtO.getDate() +7); //+1 week, DayOfWeek
-        else if (htO.MD.mW) dtO.setMonth(dtO.getMonth() +1); //+1 month, mon_wildcard_str
-        else dtO.setFullYear(dtO.getFullYear() +1); //+1 year, m/d
-
-      } else {
-        dtO.setDate(dtO.getDate() +1); //+1 day
-      }
-      //DST handled here by js date ?
-    }
 
     return dtO;
   } //g_dtO_fromHumanDtO()
@@ -2244,9 +2300,11 @@ TMX.alrm_init= function(aI_EL, utc_str ="") {
 
     //UTC display
     var u_str= "";
-    if (alarmNow_obj.zzz_utc) u_str= "UTC" +alarmNow_obj.zzz_utc; //"+2"
-    aI_EL.$E.UTC.textContent= u_str ? "🌐" : "";
+    if (alarmNow_obj.Utc) u_str= "UTC" +alarmNow_obj.Utc; //"+2"
+    aI_EL.$E.UTC.textContent= u_str ? "🌐" : ""; //globe symbol
     aI_EL.$E.UTC.title= u_str;
+
+    TMXu.classEl(aI_EL.$E.Time, "tz_utc", !!u_str);
   }
 }; //TMX.alrm_init()
 
@@ -2312,7 +2370,7 @@ TMX.alrm_exeDel= function() { //from TMX.alrm_execDelete() or TMX.alarms_import(
 TMX.g_promStr= function(n_str, t_str) {
   var alStrO;
   if (!n_str || !t_str) alStrO= TMX.g_alStrO(tmx.alarmInst_EL);
-  return `<p>${n_str || alStrO.name}</p>Time:<i class="livePreview">${t_str || alStrO.time}</i>`;
+  return `<p>${n_str || alStrO.name}</p>Time:<i class="pvLive">${t_str || alStrO.time}</i>`;
 }; //TMX.g_promStr()
 
 TMX.g_alStrO= function(aI_EL) {
