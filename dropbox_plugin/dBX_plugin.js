@@ -12,7 +12,7 @@ const dBX= {
   //.AUTH
 
   msg_err: function(err) {
-    console.error(err.error || err);
+    console.error(err);
   }, //msg_err()
 
 
@@ -258,7 +258,6 @@ const dBX= {
         if (cb) cb(response);
       })
       .catch(function(err) {
-console.log()
         if (err.error && err.error[".tag"]=="expired_access_token") handle_expiredAT();
         dBX.msg_err(err);
         if (err_cb) err_cb(err);
