@@ -1977,17 +1977,20 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
     var hrs_num= Number(hrs_str);
     if (isNaN(hrs_num) || hrs_num<-12 || hrs_num>14) { //hrs must be -12 to +14
       hrs_str= undefined;
-    } else if (mins_str) {
-      var mins_num= Number(mins_str);
-      if (isNaN(mins_num) || mins_num<0 || mins_num>45) hrs_str= undefined; //mins must be 0 to 45
+    } else {
+      hrs_str= String(hrs_num);
+      if (mins_str) {
+        var mins_num= Number(mins_str);
+        if (isNaN(mins_num) || mins_num<0 || mins_num>45) hrs_str= undefined; //mins must be 0 to 45
+        else mins_str= String(mins_num);
+      }
     }
 
     //rebuild utc_str
     utc_str= undefined;
     if (hrs_str) {
       utc_str= hrs_str;
-      if (!hrs_num) utc_str= "0"; //fix "-0"
-      if (hrs_num>=0 && utc_str[0]!="+") utc_str= "+" +utc_str;
+      if (hrs_num >= 0) utc_str= "+" +utc_str;
       if (mins_str) utc_str+= ":" +mins_str;
     }
   } //utc
@@ -2051,7 +2054,7 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
       time_ms+= sgn_num *ofsO.h *3600000; //60*60*1000 //modify hrs
     }
 
-    if (preview_flag == "previewLive") plUntil_str= "OFFSET" +offsetMod_str +TMX.g_untilStr(ofsO.m, ofsO.h) +" ";
+    if (preview_flag == "previewLive") plUntil_str= "OFFSET" +offsetMod_str +TMX.g_untilStr(ofsO.m, ofsO.h) +"<br>";
 
     time_dtO= new Date(time_ms);
     //DST handled here by js date ?
