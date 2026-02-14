@@ -143,7 +143,7 @@ ul {list-style: none; }
 /*checkbox*/
 
 div.textBox {
-  max-width: 290px;
+  max-width: 340px;
   overflow: auto;
   font-size: medium;
   font-weight: 600;
@@ -256,9 +256,18 @@ div#alarmsContainer {
     }
 
     span.alarmEoM {
-      color: blue;
+      color: orange;
       display: inline-block;
-      min-width: 8px;
+      min-width: 16px;
+      cursor: default;
+    }
+
+    span.alarmUTC {
+      display: inline-block;
+      min-width: 20px;
+      cursor: default;
+      font-size: 16px;
+      vertical-align: top;
     }
 
     span.alarmT {
@@ -658,7 +667,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     input#jwmInput {
       margin-bottom: 12px;
       width: 360px;
-      font-size: xxx-large;
+      font-size: xx-large;
       padding: 4px;
     }
     textarea#jwmTextarea {
@@ -751,6 +760,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     <span class="alarmEoM"></span>
     <span class="alarmT alarmTime" title="Edit time (LONG PRESS to change default view)"></span>
     <span class="alarmT alarmCountdown" title="Edit time (LONG PRESS to change default view)"></span>
+    <span class="alarmUTC"></span>
     <span class="alarmDeleteBut closeButton" title="Delete"></span>
   </div>
 
@@ -897,6 +907,22 @@ TMXu.ls= function(key, v) { //localStorage: get, set, v="" to rem
 TMXu.browserRemoveQuerystring= function() {
   history.replaceState("", document.title, window.location.pathname);
 }; //TMXu.browserRemoveQuerystring()
+
+TMXu.txtFile_fetch= async function(url_str, cb) {
+  var resp;
+  try {
+    resp= await fetch(url_str); //no local testing with file:///...
+//console.log("resp:", resp);
+    if (resp.ok) {
+      var str= await resp.text();
+      cb(str);
+    } else {
+      console.error("Fetch error2:", resp.statusText); cb();
+    }
+  } catch (err) {
+    console.error("Fetch error1:", err); cb();
+  }
+}; //TMXu.txtFile_fetch()
 
 
 const TMX= {}; //global fns
@@ -1268,7 +1294,7 @@ document.addEventListener("keyup", evt => { //capture any keyup
 tmx.topButs_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
   if (targ_EL.id == "editStgsBut") {
-    TMX.stgs_tog(targ_EL);
+    TMX.stgs.tog(targ_EL);
   } else if (targ_EL == tmx.disabler_EL) {
     TMX.disablerMode_toggle();
   } else if (targ_EL.id == "trashCan") {
@@ -1281,13 +1307,13 @@ tmx.topButs_EL.addEventListener("click", evt => {
 tmx.stgCont_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
   if (targ_EL.id == "stgdSnzBut") {
-    TMX.stgs_dSnz();
+    TMX.stgs.defSnz();
   } else if (targ_EL.id == "stgdATVBut") {
-    TMX.stgs_dATV();
+    TMX.stgs.defATV();
   } else if (targ_EL.id == "stgRDatBut") {
-    TMX.stgs_rDat();
+    TMX.stgs.rawDat();
   } else if (targ_EL.id == "stgRdMeBut") {
-    TMX.stgs_rdMe();
+    TMX.stgs.readMe();
   }
 });
 
@@ -1435,36 +1461,38 @@ tmx.wakeLock_EL.addEventListener("click", TMX.wakeLock_set); //toggle //no more 
 
 //https://developer.chrome.com/blog/new-in-chrome-79/#wake-lock
 tmx.wakeLock_OBJ;
-TMX._wakeLock_on= async function() {
-  if (document.hidden) return; //-->
-	try {
-		tmx.wakeLock_OBJ= await navigator.wakeLock.request();
-    TMXu.classEl(tmx.wakeLock_EL, "on");
-
-  	tmx.wakeLock_OBJ.addEventListener("release", () => {
-      TMX.sound_play("knoc");
-  		tmx.wakeLock_OBJ= undefined; //clear global
-      TMXu.classEl(tmx.wakeLock_EL, "on", false);
-  	});
-	} catch (err) {console.log(err.message); }
-}; //TMX._wakeLock_on()
-
-TMX._wakeLock_off= async function() { //note: minimizing of browser, or unfocus of browser tab, will automatically release wakeLock
-	if (!tmx.wakeLock_OBJ) return; //-->
-  try {await tmx.wakeLock_OBJ.release(); }
-	catch (err) {console.log(err.message); }
-}; //TMX._wakeLock_off()
 
 TMX.wakeLock_set= function(flag) { //on, off, click-evt (toggle)
 	if (flag == "on") {
-    if (!tmx.wakeLock_OBJ) TMX._wakeLock_on();
+    if (!tmx.wakeLock_OBJ) wakeLock_on();
   } else if (flag == "off") {
-    if (tmx.wakeLock_OBJ) TMX._wakeLock_off();
+    if (tmx.wakeLock_OBJ) wakeLock_off();
   } else { //wakeLock button click
     //TMX.wakeLock_set(tmx.wakeLock_OBJ ? "off" : "on"); //toggle
     //no more toggle, wakeLock became auto, just show msg
     jm.alert("<b>Wake Lock</b> prevents computer from going into sleep mode.<br>However, Wake Lock won't work if this page is hidden.");
   }
+
+  async function wakeLock_on() {
+    if (document.hidden) return; //-->
+  	try {
+  		tmx.wakeLock_OBJ= await navigator.wakeLock.request();
+      TMXu.classEl(tmx.wakeLock_EL, "on");
+
+    	tmx.wakeLock_OBJ.addEventListener("release", () => {
+        TMX.sound_play("knoc");
+    		tmx.wakeLock_OBJ= undefined; //clear global
+        TMXu.classEl(tmx.wakeLock_EL, "on", false);
+    	});
+  	} catch (err) {console.log(err.message); }
+  } //wakeLock_on()
+
+  async function wakeLock_off() { //note: minimizing of browser, or unfocus of browser tab, will automatically release wakeLock
+  	if (!tmx.wakeLock_OBJ) return; //-->
+    try {await tmx.wakeLock_OBJ.release(); }
+  	catch (err) {console.log(err.message); }
+  } //wakeLock_off()
+
 }; //TMX.wakeLock_set()
 
 document.addEventListener("visibilitychange", function() {
@@ -1474,13 +1502,15 @@ document.addEventListener("visibilitychange", function() {
 });
 
 tmx.stg_mode;
-TMX.stgs_tog= function(but_EL) {
+TMX.stgs= {};
+
+TMX.stgs.tog= function(but_EL) {
   tmx.stg_mode= !tmx.stg_mode;
   TMXu.showEl(tmx.stgCont_EL, tmx.stg_mode ? undefined : false);
   TMXu.classEl(but_EL, "down", tmx.stg_mode);
-}; //TMX.stgs_tog()
+}; //TMX.stgs.tog()
 
-TMX.stgs_dSnz= function(key) {
+TMX.stgs.defSnz= function(key) {
   jm.prompt("<p>Default Snooze duration</p>(minutes, 1-30)", tmx.snooze_def_num, resp => {
     if (resp == null) return; //-->
 
@@ -1496,9 +1526,9 @@ TMX.stgs_dSnz= function(key) {
       TMX.data_save("snooze_num", tmx.snooze_def_num);
     }
   }, "highlight");
-}; //TMX.stgs_dSnz()
+}; //TMX.stgs.defSnz()
 
-TMX.stgs_dATV= function(key) {
+TMX.stgs.defATV= function(key) {
   jm.boolean("<p>Default AlarmTime View</p>", tmx.timeview_def_flag, {
     //jm custom cb object
     custButText: {OkBut: "Countdown", NoBut: "Time"},
@@ -1508,9 +1538,9 @@ TMX.stgs_dATV= function(key) {
       TMX.data_save("timeview_flag", tmx.timeview_def_flag);
     }
   });
-}; //TMX.stgs_dATV()
+}; //TMX.stgs.defATV()
 
-TMX.stgs_rDat= function() {
+TMX.stgs.rawDat= function() {
   TMX.data_load("alarms", dataO => {
     var json_str= dataO.alarms;
     var json_dat= TMXu.parseJSON(json_str);
@@ -1532,11 +1562,11 @@ TMX.stgs_rDat= function() {
     }); //jm.prompt_textarea()
 
   }); //TMX.data_load()
-}; //TMX.stgs_rDat()
+}; //TMX.stgs.rawDat()
 
-TMX.stgs_rdMe= function() {
+TMX.stgs.readMe= function() {
   var url_str= "readme.txt";
-  TMX.txtFile_fetch(url_str, str => {
+  TMXu.txtFile_fetch(url_str, str => {
     if (str) {
       var modal_EL= document.getElementById("jwmModal");
       jm.alert("<p>Read Me</p><pre>" +str +"<pre>", {
@@ -1549,23 +1579,8 @@ TMX.stgs_rdMe= function() {
       TMXu.message_add("Reading " +url_str +" failed");
     }
   });
-}; //TMX.stgs_rdMe()
+}; //TMX.stgs.readMe()
 
-TMX.txtFile_fetch= async function(url_str, cb) {
-  var resp;
-  try {
-    resp= await fetch(url_str); //no local testing with file:///...
-//console.log("resp:", resp);
-    if (resp.ok) {
-      var str= await resp.text();
-      cb(str);
-    } else {
-      console.error("Fetch error2:", resp.statusText); cb();
-    }
-  } catch (err) {
-    console.error("Fetch error1:", err); cb();
-  }
-}; //TMX.txtFile_fetch()
 
 TMX.trash_clicked= function() {
   jm.alert("You can delete an alarm by Dragging and Dropping it onto the <b>Trash</b> button");
@@ -1607,7 +1622,7 @@ TMX.alarms_start= function(al_arr) {
       TMX.alrm_addHelpers(aInst_EL, a_obj.id);
       aInst_EL.$E.Name.innerHTML= a_obj.n || ""; //alarm name
       aInst_EL.$E.Time.textContent= a_obj.t; //alarm time
-      TMX.alrm_initCountdown(aInst_EL);
+      TMX.alrm_init(aInst_EL);
       if (a_obj.c) TMX.alrm_setTorC(aInst_EL, true, "persist"); //init alarm countdown view
 
       if (tmx.disabler_mode) {
@@ -1770,7 +1785,8 @@ TMX.alrm_addHelpers= function(aI_EL, id) { //.dataset only stores strings
     Name: aI_EL.querySelector("div.alarmName"),
     Time: aI_EL.querySelector("span.alarmTime"),
     Ctdn: aI_EL.querySelector("span.alarmCountdown"),
-    EoM: aI_EL.querySelector("span.alarmEoM")
+    EoM: aI_EL.querySelector("span.alarmEoM"),
+    UTC: aI_EL.querySelector("span.alarmUTC")
   };
 }; //TMX.alrm_addHelpers()
 
@@ -1835,6 +1851,9 @@ TMX.alrm_editName= function(NEW_flag) { //if new, NEW_flag is "NEW"
 
 TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
   var orig_time_str= NEW_str ? "12:00" : tmx.alarmInst_EL.$E.Time.textContent;
+
+  if (tmx.alarmInst_EL.$E.UTC.textContent) orig_time_str+= " " +tmx.alarmInst_EL.$E.UTC.title;
+
   var time_str= orig_time_str;
   var prom_str= "<b>Time</b> for " +(NEW_str?"new ":"") +"alarm:" +TMX.g_promStr(NEW_str, time_str);
   timePrompt_fn(); //so can be reused as err fn
@@ -1870,7 +1889,14 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
           }
 
           tmx.alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
-          TMX.alrm_initCountdown();
+
+          var utc_str= "";
+//
+///if specTZ, utc_str= "UTC+2"
+          tmx.alarmInst_EL.$E.UTC.textContent= "🌐";
+          tmx.alarmInst_EL.$E.UTC.title= utc_str;
+
+          TMX.alrm_init();
           if (tmx.active_aI_EL == tmx.alarmInst_EL) tmx.activeCountdown_EL.textContent= tmx.alarmInst_EL.$E.Ctdn.textContent;
           TMX.alarms_sort([tmx.alarmInst_EL]);
 
@@ -1991,7 +2017,8 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
   } //offset_str
 
   function g_procRawTime(str, offset_flag) {
-    var h= m= 0;
+    var h= 0;
+    var m= 0;
 
     var split_arr= str.split(/:|\./);
     if (split_arr.length > 1) { //contains ":" or ".", explicit hrs and mns
@@ -2029,6 +2056,7 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
     h: time_dtO.getHours(), //0-23
     m: time_dtO.getMinutes()
   };
+
   proc_24to12(hTimO);
   if (moDaO) hTimO.MD= moDaO;
 
@@ -2198,21 +2226,21 @@ TMX.alrm_setCtdnView= function(aI_EL, flag) {
   TMXu.showEl(aI_EL.$E.Time, !flag ? "inline-block" : false);
 }; //TMX.alrm_setCtdnView()
 
-TMX.alrm_initCountdown= function(aI_EL =tmx.alarmInst_EL) {
+TMX.alrm_init= function(aI_EL =tmx.alarmInst_EL) {
   var alarmNow_obj= TMX.alrm_procTimeText(aI_EL.$E.Time.textContent, "preview");
   if (alarmNow_obj) {
     var ms= alarmNow_obj.ms -new Date();
     if (ms < 60000) ms= 60000; //minimum of 1 minute
     aI_EL.$D.ctdn_m= Math.ceil(ms /60000);
     aI_EL.$E.Ctdn.textContent= TMX.g_untilStr(aI_EL.$D.ctdn_m);
-    TMX.check_soon(aI_EL);
+    TMX.alrm_checkSoon(aI_EL);
 
     //EndofMonth display
     var EoM_num= alarmNow_obj.hTimO.MD && alarmNow_obj.hTimO.MD.EoM;
     aI_EL.$E.EoM.textContent= EoM_num ? "✱" :"";
     aI_EL.$E.EoM.title= EoM_num ? "MonthEnd=" +EoM_num : "";
   }
-}; //TMX.alrm_initCountdown()
+}; //TMX.alrm_init()
 
 
 TMX.alrm_add= function() { //from UI
@@ -2229,7 +2257,7 @@ TMX.alrm_execAdd= function() { //add 1
 }; //TMX.alrm_execAdd()
 
 TMX.alrm_genId= function() { //keeps id values low by utilizing unused "slots"
-  var ids_set= new Set(tmx.delIds_set); //shallow copy
+  var ids_set= new Set(tmx.deletedAlrmIds_set); //shallow copy
   [...tmx.aI_NL].forEach(aI_EL => {
     ids_set.add(aI_EL.id *1);
   });
@@ -2257,7 +2285,7 @@ TMX.alrm_execDelete= function() { //from TMX.alrm_delete() or drag&drop
   TMX.sound_play("trsh");
 }; //TMX.alrm_execDelete()
 
-tmx.delIds_set= new Set(); //TMX.alrm_genId() will "reuse" lower ids, this ensures unique ids (per session)
+tmx.deletedAlrmIds_set= new Set(); //TMX.alrm_genId() will "reuse" lower ids, this ensures unique ids (per session)
 
 TMX.alrm_exeDel= function() { //from TMX.alrm_execDelete() or TMX.alarms_import()
   if (!tmx.alarmInst_EL) return; //-->
@@ -2268,7 +2296,7 @@ TMX.alrm_exeDel= function() { //from TMX.alrm_execDelete() or TMX.alarms_import(
     TMX.alrm_activate(false);
     TMX.alarms_autoActivateOne();
   }
-  tmx.delIds_set.add(tmx.alarmInst_EL.id *1);
+  tmx.deletedAlrmIds_set.add(tmx.alarmInst_EL.id *1);
   tmx.alarmInst_EL= undefined;
 }; //TMX.alrm_exeDel()
 
@@ -2296,7 +2324,7 @@ TMX.alrm_activate= function(aI_EL) {
   if (tmx.active_aI_EL) { //prev active-alarm off
 //console.log("prev alarm off? tmx.active_aI_EL", dbg.aId(tmx.active_aI_EL))
     TMXu.classEl(tmx.active_aI_EL, ["alarmActive", "expired", "soon"], false);
-    TMX.alrm_initCountdown(tmx.active_aI_EL);
+    TMX.alrm_init(tmx.active_aI_EL);
     TMX.alrm_setCtdnView(tmx.active_aI_EL, tmx.active_aI_EL.$D.vu_cd);
     TMX.alrm_glow(4, tmx.active_aI_EL, "darkgray");
     TMX.sound_play("slam");
@@ -2345,6 +2373,11 @@ TMX.alrm_silentExpire= function(aI_EL) { //alarm not active, so no ringer
   aI_EL.$exp_msg_EL= msg_EL;
 }; //TMX.alrm_silentExpire()
 
+TMX.alrm_checkSoon= function(aI_EL) {
+  var soon_flag= aI_EL.$D.ctdn_m < 720; //12 hrs, soon
+  if (soon_flag != aI_EL.classList.contains("soon")) TMXu.classEl(aI_EL, "soon", soon_flag);
+}; //TMX.alrm_checkSoon()
+
 
 TMX.alarms_minuteUpdate= function() {
   TMX.sysAlarm_check(tmx.sync_ms);
@@ -2364,7 +2397,7 @@ TMX.alarms_minuteUpdate= function() {
         }
 
       } else {
-        TMX.check_soon(aI_EL);
+        TMX.alrm_checkSoon(aI_EL);
       }
 
       until_str= TMX.g_untilStr(aI_EL.$D.ctdn_m);
@@ -2389,11 +2422,6 @@ TMX.alarms_minuteUpdate= function() {
     TMX.snooze_check();
   }
 }; //TMX.alarms_minuteUpdate()
-
-TMX.check_soon= function(aI_EL) {
-  var soon_flag= aI_EL.$D.ctdn_m < 720; //12 hrs, soon
-  if (soon_flag != aI_EL.classList.contains("soon")) TMXu.classEl(aI_EL, "soon", soon_flag);
-}; //TMX.check_soon()
 
 TMX.alarms_sort= function(aa_override_arr =[]) {
   if (!tmx.vis_ct) return; //-->
@@ -2451,7 +2479,7 @@ TMX.alarms_import= function(imported_str) {
           tmx.alarmInst_EL.$E.Name.innerHTML= html_str;
 
           tmx.alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
-          TMX.alrm_initCountdown();
+          TMX.alrm_init();
           TMX.alrm_glow(4);
           add_arr.push(tmx.alarmInst_EL); //for sound only
         }
@@ -2649,7 +2677,7 @@ TMX.alrm_unexpire= function(aI_EL) {
   }
 
   TMXu.classEl(aI_EL, ["expired", "soon"], false);
-  TMX.alrm_initCountdown(aI_EL);
+  TMX.alrm_init(aI_EL);
   TMX.alrm_glow(2, aI_EL, "pink");
 }; //TMX.alrm_unexpire()
 

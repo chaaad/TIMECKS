@@ -96,10 +96,9 @@ const dBX= {
     //loadFilesList
     dBX.API.filesListFolder({path: ""}) // C:\Users\chaaad\Dropbox\Apps\TIMECKS
       .then(response => { //success
+        dBX.setStatus(9); //on
+
         var files_arr= response.result.entries;
-
-        dBX.setStatus(9);
-
         var alarmsDBX_str, alarmsDBX_arr;
         if (files_arr.find(file_item => file_item.name == dBX.file_str)) {
           dBX.downloadData(dBX.fPath_str, fileContent_str => { //get "alarms.json" from dropbox
@@ -189,7 +188,7 @@ const dBX= {
   }, //doAuth()
 
 
-  initApi: function() {
+  initApi: function(reconnected_cb) {
     var paramO;
     if (dBX.accessToken_str) paramO= {accessToken:dBX.accessToken_str};
     else paramO= {clientId:dBX.clientId_str, clientSecret:dBX.clientSecret_str, refreshToken:dBX.refreshToken_str};
@@ -198,7 +197,8 @@ const dBX= {
     dBX.API.usersGetCurrentAccount()
       .then((response) => {
 //console.log(paramO, "Auto-Authentication successful:", response);
-        dBX.firstLoad();
+        if (!reconnected_cb) dBX.firstLoad();
+        else reconnected_cb();
       })
       .catch(err => {
         dBX.msg_err(err);
@@ -214,7 +214,7 @@ const dBX= {
 
         if (paramO.accessToken && dBX.refreshToken_str) {
             //accessToken failed (prob error.status 401), try refreshToken
-            dBX.initApi(paramO); //recurse (cant go endless)
+            dBX.initApi(); //recurse (cant go endless)
 
         } else {
           //refreshToken failed, do auth from the top
@@ -223,6 +223,29 @@ const dBX= {
       })
     ;
   }, //initApi()
+
+
+  uplAlarms: function(json_str) {
+    if (dBX.status_num != 9) return; //-->
+
+    dBX.uploadData(dBX.fPath_str, json_str, cb, err_cb);
+
+    function cb(response) {
+//console.log("uplAlarms, response",response)
+      dBX.BUT.logo_glow("limegreen");
+      setBSFlag(response.status == 200);
+    }
+
+    function err_cb(err) {
+      setBSFlag(false);
+    }
+
+    function setBSFlag(ok_flag) {
+      if (dBX.badSave_flag == !ok_flag) return; //-->
+      dBX.badSave_flag= !ok_flag;
+      dBX.BUT.logo_set();
+    }
+  }, //uplAlarms()
 
 
   uploadData: function(filePath_str, fileContent_str, cb, err_cb) {
@@ -235,11 +258,25 @@ const dBX= {
         if (cb) cb(response);
       })
       .catch(function(err) {
+console.log()
+        if (err.error && err.error[".tag"]=="expired_access_token") handle_expiredAT();
         dBX.msg_err(err);
         if (err_cb) err_cb(err);
       })
     ;
+
+    function handle_expiredAT() {
+      dBX.API= undefined;
+      dBX.accessToken_str= undefined;
+      TMXu.ls("dbx_accessToken", ""); //ls rem
+      dBX.setStatus(8); //expired access token
+      dBX.initApi(() => { //reconnected_cb
+        dBX.setStatus(9); //on
+      });
+    } //handle_expiredAT()
+
   }, //uploadData()
+
 
   downloadData: function(filePath_str, cb) {
     dBX.API.filesDownload({path: filePath_str}) // Use the full path, starting with a '/'
@@ -298,8 +335,24 @@ const dBX= {
       dBX.BUT.IMG= IMG;
 
       IMG.addEventListener("click", evt => {
+        openModal();
+      }); //addEventListener
+
+      function openModal() {
         var sN= dBX.status_num;
-        if (sN>1 && dBX.badSave_flag) TMX.alarms_save(); //fn from main page
+        if (dBX.badSave_flag) {
+          if (sN == 9) { //on
+            TMX.alarms_save(); //fn from main page
+
+          } else if (sN == 8) { //expired access token
+            dBX.initApi(() => { //reconnected_cb
+              dBX.setStatus(9); //on
+              TMX.alarms_save(); //fn from main page
+              jm._respond("Escape"); //close this modal //fn from main page
+              openModal(); //re-open this modal
+            });
+          }
+        }
 
         var but_str;
         if (sN == 0) but_str= "Enable";
@@ -317,6 +370,8 @@ const dBX= {
         if (sN == 1) status_str= "paused";
         else if (sN > 1) status_str= "on";
 
+        if (sN == 8) status_str+= " (expired access token)";
+
         var dropboxLink_str= '<br><br>Also, you can manage your <a href="https://www.dropbox.com/account/connected_apps" target="_blank" rel="noopener noreferrer">connected apps</a> at dropbox.com';
 
         jm[jm_type]("<p>Dropbox sync</p>Status: <b>" +status_str +"</b>" +dropboxLink_str, "", {
@@ -333,8 +388,7 @@ const dBX= {
             if (status_n != undefined) dBX.changeStatus(status_n);
           }
         }); //jm.confirm or jm.boolean
-
-      }); //addEventListener
+      } //openModal()
 
     }, //logo_create()
 
@@ -362,21 +416,6 @@ tmx.hookers["init"]= function() { //hook fn from main page
   dBX.init();
 }; //tmx.hookers["init"]()
 
-tmx.hookers["alarmsSave"]= function(fileContent_str) { //hook fn from main page
-  if (dBX.status_num != 9) return; //-->
-
-  dBX.uploadData(dBX.fPath_str, fileContent_str, cb, err_cb);
-  function cb(response) {
-//console.log("tmx.hookers["alarmsSave"]->dBX.uploadData (json), response",response)
-    dBX.BUT.logo_glow("limegreen");
-    setFlag(response.status == 200);
-  }
-  function err_cb(err) {
-    setFlag(false);
-  }
-  function setFlag(ok_flag) {
-    if (dBX.badSave_flag == !ok_flag) return; //-->
-    dBX.badSave_flag= !ok_flag;
-    dBX.BUT.logo_set();
-  }
+tmx.hookers["alarmsSave"]= function(json_str) { //hook fn from main page
+  dBX.uplAlarms(json_str);
 }; //tmx.hookers["alarmsSave"]()
