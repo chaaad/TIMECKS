@@ -146,7 +146,7 @@ const dBX= {
                 html_str+= "</div>"; //end col
               }
 
-              jm.boolean("<p>Difference found between:</p>" +html_str +"By default, the Cloud will be used. Note: the unused one will be overwritten.", false, { //fn from main page
+              jm.boolean("<p>Difference found between:</p>" +html_str +"By default, will Use Cloud.<br>Note: the unused one will be overwritten.", false, { //fn from main page
                 //jm custom cb object
                 custButText: {OkBut:"Use Local", NoBut:"Use Cloud"},
                 end_cb: resp => {
