@@ -1501,6 +1501,7 @@ document.addEventListener("visibilitychange", function() {
   //else (on sleep, browser minimized or tab switch, another window covers this window), do nothing
 });
 
+
 tmx.stg_mode;
 TMX.stgs= {};
 
@@ -1622,7 +1623,7 @@ TMX.alarms_start= function(al_arr) {
       TMX.alrm_addHelpers(aInst_EL, a_obj.id);
       aInst_EL.$E.Name.innerHTML= a_obj.n || ""; //alarm name
       aInst_EL.$E.Time.textContent= a_obj.t; //alarm time
-      TMX.alrm_init(aInst_EL);
+      TMX.alrm_init(aInst_EL, a_obj.u); //"+2"
       if (a_obj.c) TMX.alrm_setTorC(aInst_EL, true, "persist"); //init alarm countdown view
 
       if (tmx.disabler_mode) {
@@ -1849,11 +1850,17 @@ TMX.alrm_editName= function(NEW_flag) { //if new, NEW_flag is "NEW"
 
 }; //TMX.alrm_editName()
 
+TMX.alrm_utcTime= function(al_el, u_str) {
+  var time_str= al_el.$E.Time.textContent;
+  if (u_str) u_str= "UTC" +u_str;
+  else if (al_el.$E.UTC.textContent) u_str= al_el.$E.UTC.title;
+
+  if (u_str) time_str+= " " +u_str;
+  return time_str;
+}; //TMX.alrm_utcTime
+
 TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
-  var orig_time_str= NEW_str ? "12:00" : tmx.alarmInst_EL.$E.Time.textContent;
-
-  if (tmx.alarmInst_EL.$E.UTC.textContent) orig_time_str+= " " +tmx.alarmInst_EL.$E.UTC.title;
-
+  var orig_time_str= NEW_str ? "12:00" : TMX.alrm_utcTime(tmx.alarmInst_EL);
   var time_str= orig_time_str;
   var prom_str= "<b>Time</b> for " +(NEW_str?"new ":"") +"alarm:" +TMX.g_promStr(NEW_str, time_str);
   timePrompt_fn(); //so can be reused as err fn
@@ -1890,13 +1897,7 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
 
           tmx.alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
 
-          var utc_str= "";
-//
-///if specTZ, utc_str= "UTC+2"
-          tmx.alarmInst_EL.$E.UTC.textContent= "🌐";
-          tmx.alarmInst_EL.$E.UTC.title= utc_str;
-
-          TMX.alrm_init();
+          TMX.alrm_init(tmx.alarmInst_EL, alarmNow_obj.zzz_utc);
           if (tmx.active_aI_EL == tmx.alarmInst_EL) tmx.activeCountdown_EL.textContent= tmx.alarmInst_EL.$E.Ctdn.textContent;
           TMX.alarms_sort([tmx.alarmInst_EL]);
 
@@ -2089,7 +2090,7 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
 
   return aNow_obj;
 
-
+  //----//
 
 
   function get_nstr(str) {
@@ -2226,8 +2227,9 @@ TMX.alrm_setCtdnView= function(aI_EL, flag) {
   TMXu.showEl(aI_EL.$E.Time, !flag ? "inline-block" : false);
 }; //TMX.alrm_setCtdnView()
 
-TMX.alrm_init= function(aI_EL =tmx.alarmInst_EL) {
-  var alarmNow_obj= TMX.alrm_procTimeText(aI_EL.$E.Time.textContent, "preview");
+TMX.alrm_init= function(aI_EL, utc_str ="") {
+  var uTime_str= TMX.alrm_utcTime(aI_EL, utc_str);
+  var alarmNow_obj= TMX.alrm_procTimeText(uTime_str, "preview");
   if (alarmNow_obj) {
     var ms= alarmNow_obj.ms -new Date();
     if (ms < 60000) ms= 60000; //minimum of 1 minute
@@ -2239,6 +2241,12 @@ TMX.alrm_init= function(aI_EL =tmx.alarmInst_EL) {
     var EoM_num= alarmNow_obj.hTimO.MD && alarmNow_obj.hTimO.MD.EoM;
     aI_EL.$E.EoM.textContent= EoM_num ? "✱" :"";
     aI_EL.$E.EoM.title= EoM_num ? "MonthEnd=" +EoM_num : "";
+
+    //UTC display
+    var u_str= "";
+    if (alarmNow_obj.zzz_utc) u_str= "UTC" +alarmNow_obj.zzz_utc; //"+2"
+    aI_EL.$E.UTC.textContent= u_str ? "🌐" : "";
+    aI_EL.$E.UTC.title= u_str;
   }
 }; //TMX.alrm_init()
 
@@ -2332,9 +2340,9 @@ TMX.alrm_activate= function(aI_EL) {
 
   var on_flag= !!aI_EL; //to boolean
   if (on_flag) {
-    var alrm_str= aI_EL.$E.Time.textContent;
-    var alarmNow_obj= TMX.alrm_procTimeText(alrm_str, "preview"); //nrn, final check of alrm_str
-    if (!alarmNow_obj) {on_flag= false; TMXu.message_add("bad alarm time: " +alrm_str +" | " +alStrO.name, "pink"); }
+    var uTime_str= TMX.alrm_utcTime(aI_EL);
+    var alarmNow_obj= TMX.alrm_procTimeText(uTime_str, "preview"); //nrn, final check of alrm_str
+    if (!alarmNow_obj) {on_flag= false; TMXu.message_add("bad alarm time: " +uTime_str +" | " +alStrO.name, "pink"); }
   }
 
   if (on_flag) { //alarm on
@@ -2479,7 +2487,7 @@ TMX.alarms_import= function(imported_str) {
           tmx.alarmInst_EL.$E.Name.innerHTML= html_str;
 
           tmx.alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
-          TMX.alrm_init();
+          TMX.alrm_init(tmx.alarmInst_EL);
           TMX.alrm_glow(4);
           add_arr.push(tmx.alarmInst_EL); //for sound only
         }
@@ -2524,6 +2532,7 @@ TMX.alarms_getDataArr= function() {
       a_obj= {id:aI_EL.id *1, t:aI_EL.$E.Time.textContent}; //id, time
       if (name_str= aI_EL.$E.Name.innerHTML) a_obj.n= name_str;
       if (aI_EL.$D.vu_cd) a_obj.c= 1; //countdown view
+      if (aI_EL.$E.UTC.title) a_obj.u= aI_EL.$E.UTC.title.replace("UTC", "");
 
       if (tmx.disabler_mode ? !aI_EL.querySelector("input").checked : !aI_EL.checkVisibility()) a_obj.d= 1; //disabled
       else tmx.vis_ct++;
