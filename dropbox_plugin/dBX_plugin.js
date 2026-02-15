@@ -47,7 +47,6 @@ const dBX= {
     } else { //normal page
 
       var error_str= usp.get("error");
-      //hasRedirectedFromAuth
       //error=access_denied
       //error_description=The+user+chose+not+to+give+your+app+access+to+their+Dropbox+account.
       if (error_str) {
@@ -74,23 +73,56 @@ const dBX= {
     else dBX.doAuth();
   }, //enable()
 
-  changeStatus: function(status_n) {
-    if (dBX.status_num == status_n) return; //-->
+  initApi: function(reconnected_cb) {
+    var paramO;
+    if (dBX.accessToken_str) paramO= {accessToken:dBX.accessToken_str};
+    else paramO= {clientId:dBX.clientId_str, clientSecret:dBX.clientSecret_str, refreshToken:dBX.refreshToken_str};
 
-    //pause, 9 -> 1
-    //disable 1or9 -> 0
-    //enable, 0 -> 9
-    //unpause, 1 -> 9
+    dBX.API= new Dropbox.Dropbox(paramO);
+    dBX.API.usersGetCurrentAccount()
+      .then((response) => {
+//console.log(paramO, "Auto-Authentication successful:", response);
+        if (!reconnected_cb) dBX.firstLoad();
+        else reconnected_cb();
+      })
+      .catch(err => {
+        dBX.msg_err(err);
 
-    if (status_n==9 && !dBX.API) dBX.enable();
-    else dBX.setStatus(status_n);
-  }, //changeStatus()
+        dBX.API= undefined;
+        if (paramO.accessToken) {
+          dBX.accessToken_str= undefined;
+          TMXu.ls("dbx_accessToken", ""); //ls rem
+        } else if (paramO.refreshToken) {
+          dBX.refreshToken_str= undefined;
+          TMXu.ls("dbx_refreshToken", ""); //ls rem
+        }
 
-  setStatus: function(status_n) {
-    dBX.status_num= status_n;
-    TMXu.ls("dbx_status", status_n); //fn from main page, ls set
-    dBX.BUT.logo_set();
-  }, //setStatus()
+        if (paramO.accessToken && dBX.refreshToken_str) {
+            //accessToken failed (prob error.status 401), try refreshToken
+            dBX.initApi(); //recurse (cant go endless)
+
+        } else {
+          //no tokens
+          //or accessToken failed, no refreshToken
+          //or refreshToken failed
+          dBX.doAuth();
+        }
+      })
+    ;
+  }, //initApi()
+
+  doAuth: function() { //redirect to dropbox site, then redirects back to this site with querystring "&code=.. "
+    dBX.AUTH= new Dropbox.DropboxAuth({clientId: dBX.clientId_str});
+    dBX.AUTH.getAuthenticationUrl(dBX.redirectUri_str, undefined, "code", "offline", undefined, undefined, true)
+      .then(auth_url => {
+        window.sessionStorage.setItem("dbx_codeVerify_key", dBX.AUTH.codeVerifier);
+        window.location.href= auth_url; //-->
+      })
+      .catch(function(err) {
+        dBX.msg_err(err);
+      })
+  }, //doAuth()
+
 
   firstLoad: function(authRedirect_flag) {
     //loadFilesList
@@ -175,77 +207,49 @@ const dBX= {
 
   }, //firstLoad()
 
-  doAuth: function() { //redirect to dropbox site, then redirects back to this site with querystring "&code=.. "
-    dBX.AUTH= new Dropbox.DropboxAuth({clientId: dBX.clientId_str});
-    dBX.AUTH.getAuthenticationUrl(dBX.redirectUri_str, undefined, "code", "offline", undefined, undefined, true)
-      .then(auth_url => {
-        window.sessionStorage.setItem("dbx_codeVerify_key", dBX.AUTH.codeVerifier);
-        window.location.href= auth_url; //-->
+
+  changeStatus: function(status_n) {
+    if (dBX.status_num == status_n) return; //-->
+
+    //pause, 9 -> 1
+    //disable 1or9 -> 0
+    //enable, 0 -> 9
+    //unpause, 1 -> 9
+
+    if (status_n==9 && !dBX.API) dBX.enable();
+    else dBX.setStatus(status_n);
+  }, //changeStatus()
+
+  setStatus: function(status_n) {
+    //0 off
+    //1 paused
+    //8 on, but expired access token
+    //9 on
+    dBX.status_num= status_n;
+    TMXu.ls("dbx_status", status_n); //fn from main page, ls set
+    dBX.BUT.logo_set();
+  }, //setStatus()
+
+
+  downloadData: function(filePath_str, cb) {
+    dBX.API.filesDownload({path: filePath_str}) // Use the full path, starting with a '/'
+      .then(function(response) {
+        //The response contains a 'fileBlob' field with the file data
+        const file_blob= response.result.fileBlob;
+
+        //Use FileReader to read the Blob content in the browser
+        const reader= new FileReader();
+        reader.onloadend= function() {
+//console.log(reader.result); //This will print the file content
+          if (cb) cb(reader.result);
+        };
+        reader.readAsText(file_blob); //Read the blob as plain text
       })
       .catch(function(err) {
         dBX.msg_err(err);
       })
-  }, //doAuth()
-
-
-  initApi: function(reconnected_cb) {
-    var paramO;
-    if (dBX.accessToken_str) paramO= {accessToken:dBX.accessToken_str};
-    else paramO= {clientId:dBX.clientId_str, clientSecret:dBX.clientSecret_str, refreshToken:dBX.refreshToken_str};
-
-    dBX.API= new Dropbox.Dropbox(paramO);
-    dBX.API.usersGetCurrentAccount()
-      .then((response) => {
-//console.log(paramO, "Auto-Authentication successful:", response);
-        if (!reconnected_cb) dBX.firstLoad();
-        else reconnected_cb();
-      })
-      .catch(err => {
-        dBX.msg_err(err);
-
-        dBX.API= undefined;
-        if (paramO.accessToken) {
-          dBX.accessToken_str= undefined;
-          TMXu.ls("dbx_accessToken", ""); //ls rem
-        } else if (paramO.refreshToken) {
-          dBX.refreshToken_str= undefined;
-          TMXu.ls("dbx_refreshToken", ""); //ls rem
-        }
-
-        if (paramO.accessToken && dBX.refreshToken_str) {
-            //accessToken failed (prob error.status 401), try refreshToken
-            dBX.initApi(); //recurse (cant go endless)
-
-        } else {
-          //refreshToken failed, do auth from the top
-          dBX.doAuth();
-        }
-      })
     ;
-  }, //initApi()
-
-
-  uplAlarms: function(json_str) {
-    if (dBX.status_num != 9) return; //-->
-
-    dBX.uploadData(dBX.fPath_str, json_str, cb, err_cb);
-
-    function cb(response) {
-//console.log("uplAlarms, response",response)
-      dBX.BUT.logo_glow("limegreen");
-      setBSFlag(response.status == 200);
-    }
-
-    function err_cb(err) {
-      setBSFlag(false);
-    }
-
-    function setBSFlag(ok_flag) {
-      if (dBX.badSave_flag == !ok_flag) return; //-->
-      dBX.badSave_flag= !ok_flag;
-      dBX.BUT.logo_set();
-    }
-  }, //uplAlarms()
+  }, //downloadData()
 
 
   uploadData: function(filePath_str, fileContent_str, cb, err_cb) {
@@ -269,6 +273,7 @@ const dBX= {
       dBX.accessToken_str= undefined;
       TMXu.ls("dbx_accessToken", ""); //ls rem
       dBX.setStatus(8); //expired access token
+      //auto try to reconnect
       dBX.initApi(() => { //reconnected_cb
         dBX.setStatus(9); //on
       });
@@ -277,25 +282,28 @@ const dBX= {
   }, //uploadData()
 
 
-  downloadData: function(filePath_str, cb) {
-    dBX.API.filesDownload({path: filePath_str}) // Use the full path, starting with a '/'
-      .then(function(response) {
-        //The response contains a 'fileBlob' field with the file data
-        const file_blob= response.result.fileBlob;
+  uplAlarms: function(json_str) {
+    if (dBX.status_num != 9) return; //-->
 
-        //Use FileReader to read the Blob content in the browser
-        const reader= new FileReader();
-        reader.onloadend= function() {
-//console.log(reader.result); //This will print the file content
-          if (cb) cb(reader.result);
-        };
-        reader.readAsText(file_blob); //Read the blob as plain text
-      })
-      .catch(function(err) {
-        dBX.msg_err(err);
-      })
-    ;
-  }, //downloadData()
+    dBX.uploadData(dBX.fPath_str, json_str, cb, err_cb);
+
+    function cb(response) {
+//console.log("uplAlarms, response",response)
+      dBX.BUT.logo_glow("limegreen");
+      setBSFlag(response.status != 200);
+    }
+
+    function err_cb(err) {
+      setBSFlag(true);
+    }
+
+    function setBSFlag(err_flag) {
+      if (dBX.badSave_flag == err_flag) return; //-->
+      dBX.badSave_flag= err_flag;
+      dBX.BUT.logo_set();
+    }
+  }, //uplAlarms()
+
 
   BUT: {
     //.IMG
@@ -353,7 +361,8 @@ const dBX= {
                 TMX.alarms_save(); //fn from main page
 
               } else if (sN == 8) { //expired access token
-                dBX.initApi(() => {//reconnected_cb
+                //try to reconnect
+                dBX.initApi(() => { //reconnected_cb
                   dBX.setStatus(9); //on
                   TMX.alarms_save(); //fn from main page
                 });
@@ -391,12 +400,12 @@ const dBX= {
             if (resp == null) return; //null //-->
 
             var change_str= resp ? custButO.OkBut : custButO.NoBut; //true or false
-            var status_n;
-            if (change_str == "Disable") status_n= 0;
-            else if (change_str == "Pause") status_n= 1;
-            else if (change_str=="Enable" || change_str=="Unpause") status_n= 9;
+            var new_sN;
+            if (change_str == "Disable") new_sN= 0;
+            else if (change_str == "Pause") new_sN= 1;
+            else if (change_str=="Enable" || change_str=="Unpause") new_sN= 9;
 
-            if (status_n != undefined) dBX.changeStatus(status_n);
+            if (new_sN != undefined) dBX.changeStatus(new_sN);
           }
         }); //jm.confirm or jm.boolean
       } //openModal()
