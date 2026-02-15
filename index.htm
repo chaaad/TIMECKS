@@ -1131,7 +1131,6 @@ TMX.clock_advance= function() { //+1 clock minute
       TMX.clock_drawDay(toh_dtO || tmx.sync_dtO);
       TMX.tzoc_check(tmx.sync_dtO);
     }
-//console.log("TOP OF HR", dbg.g_fmatDtO(tmx.sync_dtO))
   } //top of hr
 
   TMX.clock_drawHands();
@@ -1154,7 +1153,6 @@ TMX.clock_advance= function() { //+1 clock minute
 
     } else if (tmx.clock_jump_ct) { //not 0
       if (tmx.clock_jump_ct > 0) { //post-sleep stage 2/3
-//console.log("clock jumped ahead", tmx.clock_jump_ct, "min", dbg.g_fmatDtO(tmx.sync_dtO), dbg.g_fmatSDM()) //debug
         tmx.clock_jump_ct= -1; //stage 3
         tmx.inc_ms= 60000 +tmx.sync_diff_ms; //get back in sync
         TMXu.classEl(tmx.cf_handM_EL, "slept");
@@ -1173,7 +1171,6 @@ TMX.clock_advance= function() { //+1 clock minute
     //when throttle ends, this low tmx.inc_ms makes the next sync actually ahead!
     } else if (tmx.sync_diff_ms>100 || tmx.clock_throt_flag) { //fast (or throt stage 2)
       if (!tmx.clock_throt_flag) { //post-throt stage 1/2
-//console.log("clock throt", dbg.g_fmatDtO(tmx.sync_dtO), dbg.g_fmatSDM()) //debug
         tmx.clock_throt_flag= true; //stage 2
         tmx.inc_ms= 60000 +tmx.sync_diff_ms; //get back in sync
         TMXu.classEl(tmx.cf_handM_EL, "throt");
@@ -1198,7 +1195,6 @@ TMX.clock_advance= function() { //+1 clock minute
 
     //when system sleeps, everything stops
 
-//console.log("advanced Clock",  dbg.g_fmatDtO(tmx.sync_dtO), dbg.g_fmatSDM(), tmx.inc_ms )
   } //tmx.sync_diff_ms
 
   TMX.alarms_minuteUpdate();
@@ -1236,25 +1232,12 @@ TMX.restart= function() { //post long sleep
 }; //TMX.restart()
 
 
-//debug utils (console.log)
+//debug utils
 const dbg= {
   g_fmatDtO: function(dtO =new Date()) { //formatted time string, eg. "@11:48:22.005" //shows ms
     return "@" +(dtO.getHours()%12||12) +":" +dtO.toISOString().substring(14, 23);
     //.. toISOString(), eg. "2011-10-05T14:48:22.005Z"
-  }, //dbg.g_fmatDtO()
-  g_fmatSDM: function() { //formatted tmx.sync_diff_ms string, eg. "dif+12"
-    var str= "dif";
-    if (tmx.sync_diff_ms > 0) str+= "+";
-    return str +tmx.sync_diff_ms;
-  }, //dbg.g_fmatSDM()
-  aId: function(aI_EL) { //not really an id, but good for debugging
-    if (aI_EL) return aI_EL.$E.Name.textContent +", " +aI_EL.$E.Ctdn.textContent;
-  }, //dbg.aId()
-  log_aIs: function(str ="") {
-    var arr= [];
-    [...tmx.aI_NL].forEach(aI_EL  => arr.push(dbg.aId(aI_EL)));
-    console.log(str, arr)
-  } //log_aIs()
+  }
 };
 
 tmx.body_EL= document.querySelector("body");
@@ -1326,7 +1309,6 @@ tmx.stgCont_EL.addEventListener("click", evt => {
 //create Message Header
 tmx.msgHeader_EL= TMXu.message_add("Messages");
 tmx.msgHeader_EL.classList.remove("msgInstance"); //no longer a commoner
-//tmx.msgHeader_EL.style.cssText= "background:slategrey; color:white; ";
 TMXu.showEl(tmx.msgHeader_EL, false);
 
 tmx.msgDelAllBut_EL= tmx.msgHeader_EL.querySelector("span.msgDeleteBut");
@@ -1615,8 +1597,8 @@ TMX.alarms_start= function(al_arr) {
   }
 
   function render(al_arr) {
-    //al_arr is closest thing to a data model in this app
-    //temporary, rest of the time, data is solely in the DOM
+    //al_arr is almost a data model, but is temporary
+    //rest of the time, data is solely in the DOM
 
     tmx.disblr_ct= 0;
     tmx.vis_ct= 0;
@@ -1689,14 +1671,7 @@ TMX.alarmsDrag_init= function() {
 
     dragAl_EL= evt.target;
     TMXu.classEl(dragAl_EL, "dragging");
-    //evt.dataTransfer.effectAllowed= "move"; //what does this even do? unnecessary for this reorder functionality
-
-    /* //got rid of alarms manual ordering, so no alarms drag reordering
-    var ct= 0;
-    [...tmx.aI_NL].forEach(aI_EL => {if (aI_EL.checkVisibility()) aI_EL.$D.drag_i= ct++; }); //drag index
-    //.. current order, set .drag_i for each alarm
-    // .drag_i is only accurate up until the drop, it must be popped upon every dragStart
-    */
+    //evt.dataTransfer.effectAllowed= "move"; //what does this even do?
   } //dragStart()
 
   function dragOver(evt) {
@@ -1719,25 +1694,6 @@ TMX.alarmsDrag_init= function() {
         clear();
         prev_dragOver_EL= undefined;
       }
-
-      /* //got rid of alarms manual ordering, so no alarms drag reordering
-      if (dragOvAl_EL= dragOver_EL.closest("div.alarmInstance")) { //alarm instance (reorder)
-        if (prev_dragOver_EL) clear();
-        if (dragOvAl_EL == dragAl_EL) return; //-->
-
-        //evt.dataTransfer.dropEffect= "move"; //what does this do? unneeded for reorder
-
-        const boundingRect= dragOvAl_EL.getBoundingClientRect();
-        const offset_y= boundingRect.y +(boundingRect.height /2);
-        if (evt.clientY-offset_y < 0) {
-          if (dragOvAl_EL.$D.drag_i-1 != dragAl_EL.$D.drag_i) TMXu.classEl(dragOvAl_EL, "dropAbove");
-        } else {
-          if (dragOvAl_EL.$D.drag_i+1 != dragAl_EL.$D.drag_i) TMXu.classEl(dragOvAl_EL, "dropBelow");
-        }
-
-        prev_dragOver_EL= dragOvAl_EL;
-      }
-      */
     }
   } //dragOver()
 
@@ -1751,18 +1707,6 @@ TMX.alarmsDrag_init= function() {
       if (dropOn_EL == tmx.trash_EL) {
         tmx.alarmInst_EL= dragAl_EL;
         TMX.alrm_execDelete();
-
-      /* //got rid of alarms manual ordering, so no alarms drag reordering
-      } else if (dropOn_EL.classList.contains("dropAbove") || dropOn_EL.classList.contains("dropBelow")) {
-
-        //move in DOM..
-        if (dropOn_EL.classList.contains("dropAbove")) dropOn_EL.before(dragAl_EL);
-        else dropOn_EL.after(dragAl_EL);
-
-        if (tmx.active_aI_EL) tmx.active_aI_EL.after(tmx.activeDiv_EL);
-
-        TMX.alarms_save();
-        */
       }
     }
 
@@ -2088,7 +2032,6 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
 
     let tzDif_m= utc_m -tmx.clock_tzo;
     if (tzDif_m) CDtO.setMinutes(CDtO.getMinutes() +tzDif_m);
-//console.log("tzDif_m", tzDif_m)
   } //utc_str
 
   //countdown, check for turnover
@@ -2386,10 +2329,7 @@ TMX.g_alStrO= function(aI_EL) {
 
 
 TMX.alrm_activate= function(aI_EL) {
-//console.trace("TMX.alrm_activate:", dbg.aId(aI_EL))
-
   if (tmx.active_aI_EL) { //prev active-alarm off
-//console.log("prev alarm off? tmx.active_aI_EL", dbg.aId(tmx.active_aI_EL))
     TMXu.classEl(tmx.active_aI_EL, ["alarmActive", "expired", "soon"], false);
     TMX.alrm_init(tmx.active_aI_EL);
     TMX.alrm_setCtdnView(tmx.active_aI_EL, tmx.active_aI_EL.$D.vu_cd);
@@ -2970,20 +2910,6 @@ TMX.data_save= function(key, data, cb) { //can only save 1 item per call
   if (cb) cb("set");
 }; //TMX.data_save()
 
-/*
-//localStorage doesnt have 'getKeys'
-function getAllLocalStorageKeys() {
-  const keys = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    keys.push(key);
-  }
-  return keys;
-}
-const allKeys = getAllLocalStorageKeys();
-console.log(allKeys);
-*/
-
 
 TMX.sound_play= function(ac_key, repeat_n =1, step_ms =750) {
   if (typeof(repeat_n) == "object") repeat_n= repeat_n.length; //repeat_n. passed in an arr
@@ -3401,7 +3327,9 @@ jm.init();
 
 </script>
 
+<!--dropbox sync --start-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dropbox.js/10.34.0/Dropbox-sdk.min.js" integrity="sha512-PTKs+sPreCz6TLyLj9CYx3LxxPZmY5k1k5Yb5Y5mUQzngf/XUxNdtyWwYjcPcOZJm4wSYiicZr0kotLmDIRFmQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="dropbox_plugin/dBX_plugin.js"></script>
+<!--dropbox sync --end-->
 
 </html>
