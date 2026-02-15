@@ -384,7 +384,7 @@ const dBX= {
 
         if (sN == 8) status_str+= " (expired access token)";
 
-        jm[jm_type]("<p>Dropbox sync</p>Status: <b>" +status_str +"</b>" +badSave_str +dropboxLink_str, "", {
+        jm[jm_type]("<p>Dropbox sync</p>Status: <b>" +status_str +"</b>" +badSave_str +dropboxLink_str, true, {
           custButText: custButO,
           begin_cb: begin_cb,
           end_cb: resp => {
