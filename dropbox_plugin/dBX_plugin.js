@@ -340,20 +340,30 @@ const dBX= {
       function openModal() {
         var sN= dBX.status_num; //alias
         var badSave_str= "";
+        var begin_cb;
         if (dBX.badSave_flag) {
-          badSave_str= '<br><br><span style="color:red; font-size:medium; ">An error occured during a previous <b>Save</b> operation, but when you clicked the <b>Dropbox</b> icon, another <b>Save</b> attempt was made.</span>';
-          if (sN == 9) { //on
-            TMX.alarms_save(); //fn from main page
+          badSave_str= '<br><br><span style="color:red; font-size:medium; ">An error occured during a previous <b>Save</b> operation.</span>';
+          if (sN > 1) badSave_str+= '<button class="saveAlarms">Save Now</button>';
 
-          } else if (sN == 8) { //expired access token
-            dBX.initApi(() => { //reconnected_cb
-              dBX.setStatus(9); //on
-              TMX.alarms_save(); //fn from main page
-              jm._respond("Escape"); //close this modal //fn from main page
-              openModal(); //re-open this modal
-            });
-          }
-        }
+          begin_cb= function() {
+            var saveBut_el= jm._ELs.Description.querySelector("BUTTON.saveAlarms");
+            if (saveBut_el) saveBut_el.addEventListener("click", evt => {
+              jm.close();
+              if (sN == 9) { //on
+                TMX.alarms_save(); //fn from main page
+
+              } else if (sN == 8) { //expired access token
+                dBX.initApi(() => {//reconnected_cb
+                  dBX.setStatus(9); //on
+                  TMX.alarms_save(); //fn from main page
+                });
+              }
+            }); //addEventListener
+          };
+
+        } //dBX.badSave_flag
+
+        var dropboxLink_str= "";
 
         var but_str;
         if (sN == 0) but_str= "Enable";
@@ -365,6 +375,7 @@ const dBX= {
         if (sN) {
           custButO.NoBut= "Disable";
           jm_type= "boolean";
+          dropboxLink_str= '<br><br><span style="font-size:small; ">Also, you can manage all your <a href="https://www.dropbox.com/account/connected_apps" target="_blank" rel="noopener noreferrer">connected apps</a> at dropbox.com</span>';
         }
 
         var status_str= "off";
@@ -373,10 +384,9 @@ const dBX= {
 
         if (sN == 8) status_str+= " (expired access token)";
 
-        var dropboxLink_str= '<br><br><span style="font-size:small; ">Also, you can manage all your <a href="https://www.dropbox.com/account/connected_apps" target="_blank" rel="noopener noreferrer">connected apps</a> at dropbox.com</span>';
-
         jm[jm_type]("<p>Dropbox sync</p>Status: <b>" +status_str +"</b>" +badSave_str +dropboxLink_str, "", {
           custButText: custButO,
+          begin_cb: begin_cb,
           end_cb: resp => {
             if (resp == null) return; //null //-->
 

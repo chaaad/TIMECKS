@@ -368,12 +368,12 @@ div#alarmsContainer {
 
     div#activeCountdown {}
 
-    div#wakeyDiv {
+    div#ringDiv {
       display: none;
       margin-top: 16px;
 
-      div#wakeySnoozeBut,
-      div#wakeyOffBut {
+      div#ringSnoozeBut,
+      div#ringOffBut {
         width: 100%;
         height:60px;
         line-height:60px;
@@ -390,10 +390,10 @@ div#alarmsContainer {
           opacity: 100%;
         }
       }
-      div#wakeyOffBut {
+      div#ringOffBut {
         background: #0078d0;
       }
-      div#wakeySnoozeBut {
+      div#ringSnoozeBut {
         background: chocolate;
 
         div { /*snooze numbers*/
@@ -411,7 +411,7 @@ div#alarmsContainer {
       }
     }
 
-    div#wakeySnzCountdown {}
+    div#ringSnzCountdown {}
   }
 
   .countdown {
@@ -795,9 +795,9 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
   <div id="activeDiv">
     <div id="activeCountdown" class="countdown"></div>
-    <div id="wakeyDiv">
-      <div id="wakeyOffBut" class="button">OFF</div>
-      <div id="wakeySnoozeBut" class="button">
+    <div id="ringDiv">
+      <div id="ringOffBut" class="button">OFF</div>
+      <div id="ringSnoozeBut" class="button">
         SNOOZE
         <div>
           <span>1</span>
@@ -808,7 +808,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
           <span>30</span>
         </div>
       </div>
-      <div id="wakeySnzCountdown" class="countdown">&nbsp;</div>
+      <div id="ringSnzCountdown" class="countdown">&nbsp;</div>
     </div>
   </div>
 
@@ -1410,12 +1410,12 @@ tmx.alarmsCont_EL.addEventListener("dragstart", () => {
 tmx.alarmsCont_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
 
-  if (targ_EL.closest("div#wakeySnoozeBut")) {
+  if (targ_EL.closest("div#ringSnoozeBut")) {
     var n;
     if (targ_EL.tagName == "SPAN") n= targ_EL.textContent *1;
     TMX.ringer_stop("snooze", n);
 
-  } else if (targ_EL.closest("div#wakeyOffBut")) {
+  } else if (targ_EL.closest("div#ringOffBut")) {
     TMX.ringer_stop("off");
 
   } else {
@@ -1433,7 +1433,7 @@ tmx.alarmsCont_EL.addEventListener("click", evt => {
 
       } else if (t_cl.contains("alarmActivate")) {
         var toggleOff_flag= _al_EL==tmx.active_aI_EL;
-        if (tmx.wakey_aI_EL) {
+        if (tmx.ring_aI_EL) {
           TMX.ringer_stop("off");
           if (!toggleOff_flag) TMX.alrm_activate(_al_EL);
         } else {
@@ -1870,9 +1870,10 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
   var orig_time_str= NEW_str ? "12:00" : TMX.alrm_utcTime(tmx.alarmInst_EL);
   var time_str= orig_time_str;
   var prom_str= "<b>Time</b> for " +(NEW_str?"new ":"") +"alarm:" +TMX.g_promStr(NEW_str, time_str);
-  timePrompt_fn(); //so can be reused as err fn
+  var pvLive_EL;
+  timePrompt_fn();
 
-  function timePrompt_fn() {
+  function timePrompt_fn() { //also reused as err fn
     jm.prompt(prom_str, time_str, {
       //jm custom cb object
 
@@ -1915,7 +1916,6 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
     }, NEW_str); //NEW_str as highlight
   } //time_prompt()
 
-  var pvLive_EL;
   function pop_prompt() {
     time_str= jm._ELs.Input.value;
     var alarmNow_obj= TMX.alrm_procTimeText(time_str, "previewLive");
@@ -2357,7 +2357,7 @@ tmx.deletedAlrmIds_set= new Set(); //TMX.alrm_genId() will "reuse" lower ids, th
 TMX.alrm_exeDel= function() { //from TMX.alrm_execDelete() or TMX.alarms_import()
   if (!tmx.alarmInst_EL) return; //-->
   tmx.alarmInst_EL.remove(); //from DOM
-  if (tmx.alarmInst_EL == tmx.wakey_aI_EL) {
+  if (tmx.alarmInst_EL == tmx.ring_aI_EL) {
     TMX.ringer_stop("off");
   } else if (tmx.alarmInst_EL == tmx.active_aI_EL) {
     TMX.alrm_activate(false);
@@ -2501,7 +2501,7 @@ TMX.alarms_sort= function(aa_override_arr =[]) {
     .forEach(aI_EL => tmx.alarmsCont_EL.appendChild(aI_EL)) //reorder in DOM
   ;
 
-  if (!tmx.wakey_aI_EL) TMX.alarms_autoActivateOne(aa_override_arr); //no autoActivate if alarm is ringing/snoozed
+  if (!tmx.ring_aI_EL) TMX.alarms_autoActivateOne(aa_override_arr); //no autoActivate if alarm is ringing/snoozed
 
   if (tmx.active_aI_EL) tmx.active_aI_EL.after(tmx.activeDiv_EL); //alarm els sorted, move tmx.activeDiv_EL under correct alarm el
 
@@ -2612,21 +2612,21 @@ TMX.alarms_save= function() {
 }; //TMX.alarms_save()
 
 
-tmx.wakeyDiv_EL= document.querySelector("div#wakeyDiv");
-tmx.wakeySnoozeBut_EL= tmx.wakeyDiv_EL.querySelector("div#wakeySnoozeBut")
-tmx.wakeySnzCountdown_EL= tmx.wakeyDiv_EL.querySelector("div#wakeySnzCountdown");
+tmx.ringDiv_EL= document.querySelector("div#ringDiv");
+tmx.ringSnoozeBut_EL= tmx.ringDiv_EL.querySelector("div#ringSnoozeBut")
+tmx.ringSnzCountdown_EL= tmx.ringDiv_EL.querySelector("div#ringSnzCountdown");
 
-tmx.wakey_aI_EL;
+tmx.ring_aI_EL;
 tmx.ring_intimerId;
 tmx.snooze_ctdn_m;
 
 TMX.ringer_start= function(aI_EL) {
-  if (aI_EL) tmx.wakey_aI_EL= aI_EL; //1st TMX.ringer_start, as opposed to snooze-end TMX.ringer_start
+  if (aI_EL) tmx.ring_aI_EL= aI_EL; //1st TMX.ringer_start, as opposed to snooze-end TMX.ringer_start
 
   TMX.alrm_scrollTo("noExp");
   TMX.sound_play("rngr");
 
-  TMXu.showEl(tmx.wakeyDiv_EL);
+  TMXu.showEl(tmx.ringDiv_EL);
   jm._ELs.Overlay.classList.add("flash");
   tmx.ring_intimerId= setInterval(() => { //recurse
     jm._ELs.Overlay.classList.toggle("flash");
@@ -2650,7 +2650,7 @@ TMX.ringer_start= function(aI_EL) {
 //modal, as if it was 'paused'
 
 TMX.ringer_stop= function(flag, snooze_n) { //without flag, default is 'snooze'
-  if (!tmx.wakey_aI_EL) return; //-->
+  if (!tmx.ring_aI_EL) return; //-->
 
   if (tmx.ring_intimerId) {
     clearInterval(tmx.ring_intimerId);
@@ -2659,9 +2659,9 @@ TMX.ringer_stop= function(flag, snooze_n) { //without flag, default is 'snooze'
   }
 
   if (flag == "off") {
-    tmx.wakey_aI_EL= undefined;
+    tmx.ring_aI_EL= undefined;
     TMXu.showEl(tmx.activeDiv_EL, false);
-    TMXu.showEl(tmx.wakeyDiv_EL, false);
+    TMXu.showEl(tmx.ringDiv_EL, false);
     tmx.snooze_ctdn_m= 0; //if needed
 
     TMX.alrm_activate(false);
@@ -2678,7 +2678,7 @@ TMX.ringer_stop= function(flag, snooze_n) { //without flag, default is 'snooze'
 }; //TMX.ringer_stop()
 
 TMX.snooze_draw= function() {
-  tmx.wakeySnzCountdown_EL.innerHTML= tmx.snooze_ctdn_m ? TMX.g_untilStr(tmx.snooze_ctdn_m) : "&nbsp;";
+  tmx.ringSnzCountdown_EL.innerHTML= tmx.snooze_ctdn_m ? TMX.g_untilStr(tmx.snooze_ctdn_m) : "&nbsp;";
 }; //TMX.snooze_draw()
 
 TMX.snooze_check= function() {
@@ -3036,7 +3036,7 @@ const jm= {
     });
 
     jm._mouseHandler("Overlay_mousedown", evt => { //"click" can get accidental "click"
-      if (evt.target == jm._ELs.Overlay) jm._respond("Overlay Click"); //closeModal
+      if (evt.target == jm._ELs.Overlay) jm._respond("Overlay Click"); //close modal
     });
 
     jm._mouseHandler("OkBut", evt => {
@@ -3124,7 +3124,7 @@ const jm= {
           if (cb.begin_cb() == false) return; //caller can abort //-->
         }
 
-        jm._cbObject(cb, true); //true, add listeners
+        jm._cbObject(cb, "start");
 
       } else if (typeof(cb) != "function") { //otherwise should a fn (that is the 'end' callback)
         cb= undefined; //error, no message
@@ -3143,7 +3143,7 @@ const jm= {
       //needed by _booleanKeystroke()
     }
 
-    jm.openModal("jwmModal");
+    jm._modelOpen("jwmModal");
 
     //modal needs to be visible to .focus() or .select()
     if (typeHas("PROMPT_")) {
@@ -3177,6 +3177,47 @@ const jm= {
     jm.dialog("PROMPT_TEXTAREA", text_str, value_str, cb, highlight_flag); //returns string or null
   },
 
+
+  close: function() {
+    if (document.body.classList.has("jw-modal-active")) jm._respond("Escape");
+  },
+
+  _cbObject: function(cbO, mode_key) { //mode_key: start, finish
+    var jid, el, evt_key;
+    Object.keys(cbO).forEach(c_code => {
+      if (c_code == "custButText") {
+        if (mode_key=="start") {
+          var but_hash= cbO[c_code];
+          if (typeof(but_hash) == "object") { //eg. {CancelBut: "SNOOZE"}
+            Object.keys(but_hash).forEach(b_key => {
+              if (el= jm._ELs[b_key]) el.textContent= but_hash[b_key];
+            });
+          }
+        }
+      } else if (c_code=="begin_cb" || c_code=="end_cb") {
+        //do nothing
+
+      } else { //custom hooks
+        [jid, evt_key]= c_code.split("_");
+        if (evt_key) {
+          if (el= jm._ELs[jid]) {
+            if (mode_key=="start") el.addEventListener(evt_key, cbO[c_code]);
+            else el.removeEventListener(evt_key, cbO[c_code]);
+          }
+        }
+      }
+    });
+
+    //c_code
+      //custButText
+      //begin_cb, returns nothing
+      //end_cb, returns resp
+      //(custom hooks, handler on any event on any jm._ELs item, returns event)
+        //eg. "Input_keyup" is 'keyup' event on input#jwmInput
+        //eg. "OkBut_mouseover" is 'mouseover' event on button#jwmOkBut
+
+  }, //_cbObject
+
   _booleanKeystroke: function(key) {
     //boolean dialogs have 3 buttons, Yes, No and Cancel
     //they are highlightable by nav keys, and is submittable by shortcut key (Y/N)
@@ -3202,13 +3243,13 @@ const jm= {
     }
 
     if (submit_flag) jm._respond(); //btw, closes modal
-  },
+  }, //_booleanKeystroke
 
   _respond: function(act_code ="") {
     if (jm._type=="ALERT" && act_code=="Escape") return; //-->
     //hacky - but dont allow esc key for ALERT, because it wont satisfy browser restriction for sound to play
 
-    jm.closeModal();
+    jm._modalClose();
 
     var cb= jm._cb;
     if (cb) {
@@ -3223,7 +3264,7 @@ const jm= {
       }
 
       if (typeof(cb) == "object") {
-        jm._cbObject(cb, false); //false, remove listeners
+        jm._cbObject(cb, "finish");
         if (cb.end_cb) cb.end_cb(resp);
       } else {
         cb(resp);
@@ -3233,37 +3274,6 @@ const jm= {
     if (jm._queue.length) jm._queue.shift()(); //remove it from queue and then run it as a function!
   }, //_respond
 
-  _cbObject: function(cbO, add_flag) { //add_flag, true for begin / false for end
-    var jid, el, evt_key;
-    Object.keys(cbO).forEach(c_code => {
-      if (c_code=="custButText" && add_flag) {
-        var but_hash= cbO[c_code];
-        if (typeof(but_hash) == "object") { //eg. {CancelBut: "SNOOZE"}
-          Object.keys(but_hash).forEach(b_key => {
-            if (el= jm._ELs[b_key]) el.textContent= but_hash[b_key];
-          });
-        }
-
-      } else { //custom hooks
-        [jid, evt_key]= c_code.split("_");
-        if (evt_key) {
-          if (el= jm._ELs[jid]) {
-            if (add_flag) el.addEventListener(evt_key, cbO[c_code]);
-            else el.removeEventListener(evt_key, cbO[c_code]);
-          }
-        }
-      }
-    });
-
-    //c_code
-      //custButText
-      //begin_cb, returns nothing
-      //end_cb, returns resp
-      //(custom hooks, handler on any event on any jm._ELs item, returns event)
-        //eg. "Input_keyup" is 'keyup' event on input#jwmInput
-        //eg. "OkBut_mouseover" is 'mouseover' event on button#jwmOkBut
-
-  }, //_cbObject
 
   //jm utils
   _mouseHandler: function(el, clk_cb) { //default is "click", but can cutomize, eg. "Overlay_mousedown"
@@ -3294,16 +3304,17 @@ const jm= {
     });
   },
 
-  //adapted from: https://jasonwatmore.com/post/2023/01/04/vanilla-js-css-modal-popup-dialog-tutorial-with-example
-  openModal: function(id) { //open modal by id
+  _modelOpen: function(id) { //open modal by id
     document.body.classList.add("jw-modal-active");
     var el;
     if (el= document.getElementById(id)) el.classList.add("open");
   },
-  closeModal: function() { //close currently open modal
+  _modalClose: function() { //close currently open modal
     document.body.classList.remove("jw-modal-active");
     jm._ELs.Overlay.querySelector(".open").classList.remove("open");
   }
+
+  //adapted from: https://jasonwatmore.com/post/2023/01/04/vanilla-js-css-modal-popup-dialog-tutorial-with-example
 }; //jm
 jm.init();
 
