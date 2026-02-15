@@ -1466,7 +1466,9 @@ tmx.alarmsCont_EL.addEventListener("click", evt => {
 });
 
 
-tmx.wakeLock_EL.addEventListener("click", TMX.wakeLock_set); //toggle //no more toggle, just a msg
+tmx.wakeLock_EL.addEventListener("click", evt => {
+  jm.alert("<b>Wake Lock</b> prevents computer from going into sleep mode. However, Wake Lock won't work if this page is hidden.");
+});
 
 //https://developer.chrome.com/blog/new-in-chrome-79/#wake-lock
 tmx.wakeLock_OBJ;
@@ -1476,10 +1478,6 @@ TMX.wakeLock_set= function(flag) { //on, off, click-evt (toggle)
     if (!tmx.wakeLock_OBJ) wakeLock_on();
   } else if (flag == "off") {
     if (tmx.wakeLock_OBJ) wakeLock_off();
-  } else { //wakeLock button click
-    //TMX.wakeLock_set(tmx.wakeLock_OBJ ? "off" : "on"); //toggle
-    //no more toggle, wakeLock became auto, just show msg
-    jm.alert("<b>Wake Lock</b> prevents computer from going into sleep mode.<br>However, Wake Lock won't work if this page is hidden.");
   }
 
   async function wakeLock_on() {
@@ -1593,7 +1591,7 @@ TMX.stgs.readMe= function() {
 
 
 TMX.trash_clicked= function() {
-  jm.alert("You can delete an alarm by Dragging and Dropping it onto the <b>Trash</b> button");
+  jm.alert("You can delete an alarm by Dragging and Dropping it onto the <b>Trash</b> icon");
 }; //TMX.trash_clicked()
 
 tmx.activeCountdown_flag;
