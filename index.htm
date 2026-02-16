@@ -807,8 +807,8 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   <div id="localeContainerDiv">
     <div id="localeBut">🌐Time Zone</div>
     <span id="localeLocalSpan">LOCAL</span>
-    <span id="localeNameSpan"></span>
-    <span id="localeDeleteBut">X</span>
+    <span id="localeNameSpan" title="Locale"></span>
+    <span id="localeDeleteBut" title="Remove Locale">X</span>
     <div id="localeChooserDiv">
       Choose:
       <select id="localeAreasSel"></select>
@@ -903,14 +903,15 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 
 const TMXu= {}; //global utils
-TMXu.showEl= function(el, display_v) {
-  if (display_v && typeof(display_v)!="string") display_v= "block"; //truthy
+TMXu.showEl= function(el, display_param) { //display_param is truthy, unless its a string, then it true and string is used as value (eg. "inline")
+  if (!el) return; //-->
+  if (display_param && typeof(display_param)!="string") display_param= "block"; //truthy to block
   //TMXu.showEl(el, truthy) //on
   //TMXu.showEl(el, "inline") //on, but other than "block"
   //TMXu.showEl(el, falsy) //off
-  if (el) el.style.display= display_v ? display_v : "none";
+  el.style.display= display_param ? display_param : "none";
 };
-TMXu.classEl= function(el, class_param, flag =true) { //class_param can be string or array
+TMXu.classEl= function(el, class_param, flag) { //class_param can be string or array //flag is truthy
   if (!el) return; //-->
   if (Array.isArray(class_param)) el.classList[flag?"add":"remove"](...class_param);
   else el.classList[flag?"add":"remove"](class_param);
@@ -1199,7 +1200,7 @@ TMX.clock_advance= function() { //+1 clock minute
       if (tmx.clock_jump_ct > 0) { //post-sleep stage 2/3
         tmx.clock_jump_ct= -1; //stage 3
         tmx.inc_ms= 60000 +tmx.sync_diff_ms; //get back in sync
-        TMXu.classEl(tmx.cf_handM_EL, "slept");
+        TMXu.classEl(tmx.cf_handM_EL, "slept", true);
         TMX.clock_drawSyncHands();
         TMX.sound_play("clik", (tmx.clock_jump_ct>3 ? 3 : tmx.clock_jump_ct), 500);
 
@@ -1217,7 +1218,7 @@ TMX.clock_advance= function() { //+1 clock minute
       if (!tmx.clock_throt_flag) { //post-throt stage 1/2
         tmx.clock_throt_flag= true; //stage 2
         tmx.inc_ms= 60000 +tmx.sync_diff_ms; //get back in sync
-        TMXu.classEl(tmx.cf_handM_EL, "throt");
+        TMXu.classEl(tmx.cf_handM_EL, "throt", true);
         TMX.clock_drawSyncHands();
         TMX.sound_play("clik", 2, 500);
 
@@ -1513,7 +1514,7 @@ TMX.wakeLock_set= function(flag) { //on, off, click-evt (toggle)
     if (document.hidden) return; //-->
   	try {
   		tmx.wakeLock_OBJ= await navigator.wakeLock.request();
-      TMXu.classEl(tmx.wakeLock_EL, "on");
+      TMXu.classEl(tmx.wakeLock_EL, "on", true);
 
     	tmx.wakeLock_OBJ.addEventListener("release", () => {
         TMX.sound_play("knoc");
@@ -1544,7 +1545,7 @@ TMX.stgs= {};
 TMX.stgs.tog= function(but_EL) {
   tmx.stg_mode= !tmx.stg_mode;
   TMXu.showEl(tmx.stgCont_EL, tmx.stg_mode ? true : false);
-  TMXu.classEl(but_EL, "down", tmx.stg_mode);
+  TMXu.classEl(but_EL, "down", tmx.stg_mode, true);
 }; //TMX.stgs.tog()
 
 TMX.stgs.defSnz= function(key) {
@@ -1608,7 +1609,7 @@ TMX.stgs.readMe= function() {
       var modal_EL= document.getElementById("jwmModal");
       jm.alert("<p>Read Me</p><pre>" +str +"<pre>", {
         //jm custom cb object
-        begin_cb: () => {TMXu.classEl(modal_EL, "wide"); },
+        begin_cb: () => {TMXu.classEl(modal_EL, "wide", true); },
         end_cb: () => {TMXu.classEl(modal_EL, "wide", false); }
       });
 
@@ -1718,7 +1719,7 @@ TMX.alarmsDrag_init= function() {
     if (dragAl_EL) clear("fully"); //recover after a failed drop
 
     dragAl_EL= evt.target;
-    TMXu.classEl(dragAl_EL, "dragging");
+    TMXu.classEl(dragAl_EL, "dragging", true);
     //evt.dataTransfer.effectAllowed= "move"; //what does this even do?
   } //dragStart()
 
@@ -1733,7 +1734,7 @@ TMX.alarmsDrag_init= function() {
       if (dragOver_EL == prev_dragOver_EL) return; //-->
 
       if (prev_dragOver_EL) clear();
-      TMXu.classEl(dragOver_EL, "dropTrash");
+      TMXu.classEl(dragOver_EL, "dropTrash", true);
 
       prev_dragOver_EL= dragOver_EL;
 
@@ -1930,13 +1931,15 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
       jm._ELs.locale_chooser= document.querySelector("div#localeChooserDiv");
 
       document.querySelector("div#localeBut").addEventListener("click", evt => toggle_localeChooser() ); //🌐
-      jm._ELs.locale_name.addEventListener("click", evt => toggle_localeChooser() );
+      jm._ELs.locale_name.addEventListener("click", evt => toggle_localeChooser(true) );
 
       var localeLocalEl= document.querySelector("span#localeLocalSpan"); //"LOCAL"
-      localeLocalEl.addEventListener("click", evt => toggle_localeChooser() );
+      localeLocalEl.addEventListener("click", evt => toggle_localeChooser(true) );
 
-      function toggle_localeChooser() {
-        jm._ELs.locale_chooser.classList.toggle("css_hidden");
+      function toggle_localeChooser(flag) { //flag will override toggle, truthy show/hide
+        if (flag == undefined) jm._ELs.locale_chooser.classList.toggle("css_hidden");
+        else TMXu.classEl(jm._ELs.locale_chooser, "css_hidden", !flag); //!reverese flag, "css_hidden" acts reversed, hide/show
+
         if (!jm._ELs.locale_chooser.$D_started_flag) {
           jm._ELs.locale_chooser.$D_started_flag= true;
           var locale_str;
@@ -1982,7 +1985,7 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
         var str= localesDropdownEl.value;
         if (str) str= areaDropdownEl.value +"/" +str;
         TMX.setLocalename(str);
-        TMXu.classEl(jm._ELs.locale_chooser, "css_hidden");
+        TMXu.classEl(jm._ELs.locale_chooser, "css_hidden", true);
       });
 
       var localeDeleteEl= document.querySelector("span#localeDeleteBut");
@@ -1996,7 +1999,7 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
         jm._ELs.locale_name.textContent= locale_str;
         TMXu.showEl(localeDeleteEl, locale_str?"inline":false);
         TMXu.showEl(localeLocalEl, locale_str?false:"inline");
-        if (!locale_str) TMXu.classEl(jm._ELs.locale_chooser, "css_hidden");
+        if (!locale_str) TMXu.classEl(jm._ELs.locale_chooser, "css_hidden", true);
 
         //bug or just weird, pvLive_EL is incorrectly scoped, refers to the one from this auto-init
         if (init_flag) pvLive_EL= jm._ELs.Description.querySelector(".pvLive");
@@ -2121,7 +2124,7 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
   //hTimO done with time_dtO, so time_dtO can now be adjusted for countdown purposes
   var CDtO= time_dtO; //alias, countdown dto
 
-  if (loc_str) { //"America/Los_Angeles"
+  if (loc_str) { //eg. "America/Los_Angeles"
     var tzDif_m= Math.round((CDtO -TMX.timezoned_date(CDtO, loc_str)) /60000);
     CDtO.setMinutes(CDtO.getMinutes() +tzDif_m);
   }
@@ -2138,7 +2141,11 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
     } else {
       CDtO.setDate(CDtO.getDate() +1); //+1 day
     }
-    //DST handled here by js date ?
+
+    if (loc_str) {
+      diff_ms= CDtO -new Date(); //passed interntional dateline?
+      if (diff_ms < 1) CDtO.setDate(CDtO.getDate() +1); //+1 day
+    }
   }
 
   //EndofMonth auto-adjust
@@ -2158,7 +2165,7 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
   if (loc_str) aNow_obj.loc= loc_str;
 
   if (preview_flag == "previewLive") {
-    let diff_ms= CDtO -new Date(); //ms
+    diff_ms= aNow_obj.ms -new Date(); //ms
     plUntil_str+= `(in: ${TMX.g_untilStr(Math.ceil(diff_ms /60000))}) `; //ms to minutes
 
     if (moDaO && moDaO.EoM) plUntil_str+= " MonthEnd=" +moDaO.EoM;
@@ -2334,7 +2341,7 @@ TMX.alrm_init= function(aI_EL) {
 
     //loc display
     aI_EL.$E.Loc.textContent= alarmNow_obj.loc ? "🌐" : ""; //globe symbol
-    TMXu.classEl(aI_EL.$E.Time, "tz_loc", alarmNow_obj.loc!=undefined); //time w loc is cyan
+    TMXu.classEl(aI_EL.$E.Time, "tz_loc", alarmNow_obj.loc); //time w loc is cyan
   }
 }; //TMX.alrm_init()
 
@@ -2436,7 +2443,7 @@ TMX.alrm_activate= function(aI_EL) {
     tmx.activeCountdown_EL.textContent= TMX.g_untilStr(tmx.active_ctdn_m);
     tmx.active_hTimO= alarmNow_obj.hTimO;
 
-    TMXu.classEl(aI_EL, "alarmActive");
+    TMXu.classEl(aI_EL, "alarmActive", true);
     aI_EL.insertAdjacentElement("afterend", tmx.activeDiv_EL);
     TMXu.showEl(tmx.activeDiv_EL, true);
     TMXu.showEl(tmx.activeCountdown_EL, true);
@@ -2484,7 +2491,7 @@ TMX.alarms_minuteUpdate= function() {
 
       if (aI_EL.$D.ctdn_m <1 ) { //expire
         if (!aI_EL.classList.contains("expired")) { //new expire
-          TMXu.classEl(aI_EL, "expired");
+          TMXu.classEl(aI_EL, "expired", true);
           if (aI_EL != tmx.active_aI_EL) TMX.alrm_silentExpire(aI_EL);
         }
 
