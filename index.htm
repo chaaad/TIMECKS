@@ -1909,7 +1909,7 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
     utc_str= raw_str.substring(index, index_end);
     raw_str= raw_str.substring(0, index-1) +raw_str.substring(index_end); //extract from raw_str
 
-    utc_str= utc_str.replace(/[^0-9+-:]/g, ""); //only keep "+-:" or numbers
+    utc_str= utc_str.replace(/[^0-9+-:]/g, ""); //remove if not "+-:" or numbers
 
     var hrs_str, mins_str;
     if (utc_str.indexOf(":") >= 0) [hrs_str, mins_str]= utc_str.split(":");
@@ -1920,11 +1920,17 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
     if (isNaN(hrs_num) || hrs_num<-12 || hrs_num>14) { //hrs must be -12 to +14
       hrs_str= undefined;
     } else {
-      hrs_str= String(hrs_num);
+      hrs_str= String(hrs_num); //regenerate, will lose "+" and leading "0"s
+
       if (mins_str) {
-        var mins_num= Number(mins_str);
-        if (isNaN(mins_num) || mins_num<0 || mins_num>45) hrs_str= undefined; //mins must be 0 to 45
-        else mins_str= String(mins_num);
+        if (mins_str.length!=2 || /\D/.test(mins_str)) { //minutes must be 2 numbers
+          mins_str= undefined;
+        } else {
+          var mins_num= Number(mins_str);
+          if (mins_num==0 || mins_num>59) mins_str= undefined; //mins must be >0 to 59
+          //extra lenient, we allow somethimg like ":01"
+          //but prob only ":30", ":45" allowed, maybe ":15"
+        }
       }
     }
 
@@ -1932,7 +1938,7 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
     utc_str= undefined;
     if (hrs_str) {
       utc_str= hrs_str;
-      if (hrs_num >= 0) utc_str= "+" +utc_str;
+      if (hrs_num >= 0) utc_str= "+" +utc_str; //add "+"
       if (mins_str) utc_str+= ":" +mins_str;
     }
   } //utc
@@ -2020,7 +2026,7 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
   //hTimO done with time_dtO, so time_dtO can now be adjusted for countdown purposes
   var CDtO= time_dtO; //alias, countdown dto
 
-  if (utc_str) {
+  if (utc_str) { //cannot account for "daylight saving time"
     //tmx.clock_tzo; //in minutes, eg. 300
     //htO.utc is in "hr" or "hr:min"
     let hrs_str, mins_str;

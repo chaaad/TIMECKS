@@ -118,6 +118,9 @@ Alarms
     or
     https://www.timeanddate.com/time/map/
 
+    Sorry, an alarm with UTC cannot account for "daylight saving time".
+    That would require an storing a timezone instead of a UTC.
+
 
 Dropbox sync
   Two reasons you might want to use this.
