@@ -105,21 +105,15 @@ Alarms
   So, 2/30 will also "MonthEnd" to day 28 (leap year, day 29).
 
 
-  Specify a timezone (UTC)
-    example for Pacific Standard Time: 1:35 PM UTC+8
+  Specify a timezone by Locale
+    In the "edit time" modal, you can click "Time Zone" to access more controls to select a Locale.
 
-    The UTC code generally ranges from -12 to +12
-    examples: UTC-12, UTC+0, UTC+12
-
-    But there are some exceptions, such as UTC+13:45 or UTC+14, these are valid
-
-    To see more UTC codes or to find a UTC code for a particular location, try:
-    https://time.is/time_zones
-    or
-    https://www.timeanddate.com/time/map/
-
-    Sorry, an alarm with UTC cannot account for "daylight saving time".
-    That would require an storing a timezone instead of a UTC.
+    FYI, time zones are a bit tricky to use, mainly because of Daylight Savings Time.
+    Different places in the same zone may have different times, so you really need a specify a location.
+    So instead of having to choose from of a list of every city in the world,
+    some smart people came up with "Locales".
+    Its basically a simplified list of major cities or well know areas,
+    you just have to determine which one works for the location you have in mind.
 
 
 Dropbox sync
