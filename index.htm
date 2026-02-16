@@ -11,6 +11,10 @@
 
 <style type="text/css">
 
+.css_hidden { /*can toggle show/hide*/
+  display: none;
+}
+
 /*prereq css begin*/
 /*https://codepen.io*/
 body {
@@ -262,7 +266,7 @@ div#alarmsContainer {
       cursor: default;
     }
 
-    span.alarmUTC {
+    span.alarmLoc {
       display: inline-block;
       min-width: 20px;
       cursor: default;
@@ -285,7 +289,7 @@ div#alarmsContainer {
       color: greenyellow;
       background: black;
 
-      &.tz_utc {
+      &.tz_loc {
         color: cyan;
       }
     }
@@ -592,6 +596,33 @@ div#clockFace {
 } /*clockface*/
 
 
+div#localeContainerDiv {
+  margin-bottom: 24px;
+
+  div#localeBut, span#localeLocalSpan, span#localeNameSpan, span#localeDeleteBut {
+    cursor: pointer;
+  }
+
+  span#localeLocalSpan {
+    font-weight: 600;
+  }
+
+  span#localeNameSpan {
+    font-weight: 800;
+  }
+
+  span#localeDeleteBut {
+    color: red;
+  }
+
+  select {
+    margin-top: 24px;
+    font-size: large;
+  }
+
+} /*localeContainerDiv*/
+
+
 /* MODAL
 adapted from: https://jasonwatmore.com/post/2023/01/04/vanilla-js-css-modal-popup-dialog-tutorial-with-example#styles-css
 -------------------------------*/
@@ -764,13 +795,25 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     <span class="alarmEoM"></span>
     <span class="alarmT alarmTime" title="Edit time (LONG PRESS to change default view)"></span>
     <span class="alarmT alarmCountdown" title="Edit time (LONG PRESS to change default view)"></span>
-    <span class="alarmUTC"></span>
+    <span class="alarmLoc"></span>
     <span class="alarmDeleteBut closeButton" title="Delete"></span>
   </div>
 
   <div class="textBox msgInstance">
     <span class="msgDeleteBut closeButton small" title="Delete msessage"></span>
     <div class="msgInfo"></div>
+  </div>
+
+  <div id="localeContainerDiv">
+    <div id="localeBut">🌐Time Zone</div>
+    <span id="localeLocalSpan">LOCAL</span>
+    <span id="localeNameSpan"></span>
+    <span id="localeDeleteBut">X</span>
+    <div id="localeChooserDiv">
+      Choose:
+      <select id="localeAreasSel"></select>
+      <select id="localesSel"></select>
+    </div>
   </div>
 
 </div>
@@ -860,11 +903,12 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 
 
 const TMXu= {}; //global utils
-TMXu.showEl= function(el, display_str ="block") {
-  //TMXu.showEl(el) //on
+TMXu.showEl= function(el, display_v) {
+  if (display_v && typeof(display_v)!="string") display_v= "block"; //truthy
+  //TMXu.showEl(el, truthy) //on
+  //TMXu.showEl(el, "inline") //on, but other than "block"
   //TMXu.showEl(el, falsy) //off
-  //TMXu.showEl(el, "inline") //on, other than "block"
-  if (el) el.style.display= display_str==false ? "none" : display_str;
+  if (el) el.style.display= display_v ? display_v : "none";
 };
 TMXu.classEl= function(el, class_param, flag =true) { //class_param can be string or array
   if (!el) return; //-->
@@ -873,7 +917,7 @@ TMXu.classEl= function(el, class_param, flag =true) { //class_param can be strin
 };
 
 TMXu.message_add= function(str, bgColor_str) {
-  TMXu.showEl(tmx.msgHeader_EL);
+  TMXu.showEl(tmx.msgHeader_EL, true);
   var msg_EL= tmx.template_msgInst_EL.cloneNode(true); //clone
   tmx.msgCont_EL.appendChild(msg_EL); //add
   msg_EL.querySelector("div.msgInfo").innerHTML= str;
@@ -1435,7 +1479,10 @@ tmx.alarmsCont_EL.addEventListener("click", evt => {
       } else if (t_cl.contains("alarmDeleteBut")) {
         TMX.alrm_delete();
 
-      } else if (t_cl.contains("alarmEoM") || t_cl.contains("alarmUTC")) {
+      } else if (t_cl.contains("alarmLoc")) {
+        TMX.alrm_editTime();
+
+      } else if (t_cl.contains("alarmEoM")) {
         var html_str= `<b>${_al_EL.$E.Name.textContent}</b><br>${_al_EL.$E.Time.textContent}<p>${targ_EL.title}</p>`;
         jm.alert(html_str);
 
@@ -1496,7 +1543,7 @@ TMX.stgs= {};
 
 TMX.stgs.tog= function(but_EL) {
   tmx.stg_mode= !tmx.stg_mode;
-  TMXu.showEl(tmx.stgCont_EL, tmx.stg_mode ? undefined : false);
+  TMXu.showEl(tmx.stgCont_EL, tmx.stg_mode ? true : false);
   TMXu.classEl(but_EL, "down", tmx.stg_mode);
 }; //TMX.stgs.tog()
 
@@ -1612,7 +1659,8 @@ TMX.alarms_start= function(al_arr) {
       TMX.alrm_addHelpers(aInst_EL, a_obj.id);
       aInst_EL.$E.Name.innerHTML= a_obj.n || ""; //alarm name
       aInst_EL.$E.Time.textContent= a_obj.t; //alarm time
-      TMX.alrm_init(aInst_EL, a_obj.u); //"+2"
+      if (a_obj.l) aInst_EL.$E.Loc.title= a_obj.l; //alarm loc
+      TMX.alrm_init(aInst_EL);
       if (a_obj.c) TMX.alrm_setTorC(aInst_EL, true, "persist"); //init alarm countdown view
 
       if (tmx.disabler_mode) {
@@ -1738,7 +1786,7 @@ TMX.alrm_addHelpers= function(aI_EL, id) { //.dataset only stores strings
     Time: aI_EL.querySelector("span.alarmTime"),
     Ctdn: aI_EL.querySelector("span.alarmCountdown"),
     EoM: aI_EL.querySelector("span.alarmEoM"),
-    UTC: aI_EL.querySelector("span.alarmUTC")
+    Loc: aI_EL.querySelector("span.alarmLoc")
   };
 }; //TMX.alrm_addHelpers()
 
@@ -1801,18 +1849,13 @@ TMX.alrm_editName= function(NEW_flag) { //if new, NEW_flag is "NEW"
 
 }; //TMX.alrm_editName()
 
-TMX.alrm_utcTime= function(al_el, u_str) {
-  var time_str= al_el.$E.Time.textContent;
-  if (u_str) u_str= "UTC" +u_str;
-  else if (al_el.$E.UTC.textContent) u_str= al_el.$E.UTC.title;
-
-  if (u_str) time_str+= " " +u_str;
-  return time_str;
-}; //TMX.alrm_utcTime
-
 TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
-  var orig_time_str= NEW_str ? "12:00" : TMX.alrm_utcTime(tmx.alarmInst_EL);
+  var orig_time_str= NEW_str ? "12:00" : tmx.alarmInst_EL.$E.Time.textContent;
   var time_str= orig_time_str;
+
+  var orig_loc_str= tmx.alarmInst_EL.$E.Loc.title;
+  var loc_str= orig_loc_str;
+
   var prom_str= "<b>Time</b> for " +(NEW_str?"new ":"") +"alarm:" +TMX.g_promStr(NEW_str, time_str);
   var pvLive_EL;
   timePrompt_fn();
@@ -1823,7 +1866,7 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
 
       begin_cb: () => {
         pvLive_EL= jm._ELs.Description.querySelector(".pvLive");
-        pop_prompt();
+        insertLocaleControls();
       },
 
       //custom hook
@@ -1833,13 +1876,17 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
       },
 
       end_cb: resp => {
+        jm._ELs.locale_container.remove(); //not altogether, just from DOM
+
+        if (resp == null) return; //-->
+
         var mod_time_str= resp;
-        if (mod_time_str==null || (mod_time_str==orig_time_str && !NEW_str)) return; //-->
+        var mod_loc_str= jm._ELs.locale_name.textContent;
+        if (mod_time_str==orig_time_str && mod_loc_str==orig_loc_str && !NEW_str) return; //-->
 
         //proc input str
         var alarmNow_obj;
-        if (alarmNow_obj= TMX.alrm_procTimeText(mod_time_str, timePrompt_fn)) {
-          //time_prompt() as err cb (try again)
+        if (alarmNow_obj= TMX.alrm_procTimeText(mod_time_str, mod_loc_str, timePrompt_fn)) { //timePrompt_fn as err_cb
 
           if (NEW_str) {
             TMX.alrm_execAdd();
@@ -1848,8 +1895,9 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
           }
 
           tmx.alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
+          tmx.alarmInst_EL.$E.Loc.title= alarmNow_obj.loc || "";
 
-          TMX.alrm_init(tmx.alarmInst_EL, alarmNow_obj.Utc);
+          TMX.alrm_init(tmx.alarmInst_EL);
           if (tmx.active_aI_EL == tmx.alarmInst_EL) tmx.activeCountdown_EL.textContent= tmx.alarmInst_EL.$E.Ctdn.textContent;
           TMX.alarms_sort([tmx.alarmInst_EL]);
 
@@ -1861,23 +1909,116 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
   } //time_prompt()
 
   function pop_prompt() {
-    time_str= jm._ELs.Input.value;
-    var alarmNow_obj= TMX.alrm_procTimeText(time_str, "previewLive");
+    loc_str= jm._ELs.locale_name.textContent;
+    var alarmNow_obj= TMX.alrm_procTimeText(jm._ELs.Input.value, loc_str, "previewLive");
     var pl_str= "";
     if (alarmNow_obj) {
       pl_str= alarmNow_obj.time;
-      if (alarmNow_obj.Utc) pl_str+= " UTC" +alarmNow_obj.Utc;
       pl_str+= "<br>" +alarmNow_obj.plUntil;
     }
     pvLive_EL.innerHTML= pl_str;
-  }
+  } //pop_prompt()
+
+
+  function insertLocaleControls() {
+    if (!jm._ELs.locale_container) { //auto-init
+      jm._ELs.locale_container= document.querySelector("div#localeContainerDiv");
+      //is in template div, but not really a template, just an easy place to hide it
+      //single instance that gets embedded into modal when needed
+
+      jm._ELs.locale_name= document.querySelector("span#localeNameSpan");
+      jm._ELs.locale_chooser= document.querySelector("div#localeChooserDiv");
+
+      document.querySelector("div#localeBut").addEventListener("click", evt => toggle_localeChooser() ); //🌐
+      jm._ELs.locale_name.addEventListener("click", evt => toggle_localeChooser() );
+
+      var localeLocalEl= document.querySelector("span#localeLocalSpan"); //"LOCAL"
+      localeLocalEl.addEventListener("click", evt => toggle_localeChooser() );
+
+      function toggle_localeChooser() {
+        jm._ELs.locale_chooser.classList.toggle("css_hidden");
+        if (!jm._ELs.locale_chooser.$D_started_flag) {
+          jm._ELs.locale_chooser.$D_started_flag= true;
+          var locale_str;
+          if (locale_str= jm._ELs.locale_name.textContent) {
+            var split_arr= locale_str.split("/");
+            areaDropdownEl.value= split_arr[0];
+            pop_localesDropdown();
+            localesDropdownEl.value= split_arr[1];
+
+          } else {
+            areaDropdownEl.value= "";
+            localesDropdownEl.options.length= 1; //clear except for 1st option (blank)
+          }
+        }
+      } //toggle_localeChooser()
+
+      var localeAreas_arr= TMX.init_localesList();
+      var areaDropdownEl= document.querySelector("select#localeAreasSel");
+      areaDropdownEl.add(new Option("")); //1st option blank
+      localeAreas_arr.forEach(area_str => {
+        areaDropdownEl.add(new Option(area_str));
+      });
+
+      var localesDropdownEl= document.querySelector("select#localesSel");
+      localesDropdownEl.add(new Option("")); //1st option is blank
+      areaDropdownEl.addEventListener("change", evt => {
+        localesDropdownEl.options.length= 1; //clear except for 1st option (blank)
+        if (areaDropdownEl.value) pop_localesDropdown();
+        else TMX.setLocalename("");
+      });
+
+      function pop_localesDropdown() {
+        var area_str= areaDropdownEl.value;
+        var len= area_str.length +1;
+        tmx.locales_arr.forEach(areaLocale_str => {
+          if (areaLocale_str.indexOf(area_str) == 0) {
+            localesDropdownEl.add(new Option(areaLocale_str.substring(len)));
+          }
+        });
+      }
+
+      localesDropdownEl.addEventListener("change", evt => {
+        var str= localesDropdownEl.value;
+        if (str) str= areaDropdownEl.value +"/" +str;
+        TMX.setLocalename(str);
+        TMXu.classEl(jm._ELs.locale_chooser, "css_hidden");
+      });
+
+      var localeDeleteEl= document.querySelector("span#localeDeleteBut");
+
+      localeDeleteEl.addEventListener("click", evt => {
+        localesDropdownEl.value= "";
+        TMX.setLocalename("");
+      });
+
+      TMX.setLocalename= function(locale_str, init_flag) {
+        jm._ELs.locale_name.textContent= locale_str;
+        TMXu.showEl(localeDeleteEl, locale_str?"inline":false);
+        TMXu.showEl(localeLocalEl, locale_str?false:"inline");
+        if (!locale_str) TMXu.classEl(jm._ELs.locale_chooser, "css_hidden");
+
+        //bug or just weird, pvLive_EL is incorrectly scoped, refers to the one from this auto-init
+        if (init_flag) pvLive_EL= jm._ELs.Description.querySelector(".pvLive");
+
+        pop_prompt();
+      } //TMX.setLocalename();
+
+    }
+  } //auto-init
+
+  jm._ELs.Input.insertAdjacentElement("afterend", jm._ELs.locale_container);
+  jm._ELs.locale_chooser.classList.add("css_hidden");
+  delete jm._ELs.locale_chooser.$D_started_flag;
+
+  TMX.setLocalename(loc_str, "init");
 
 }; //TMX.alrm_editTime()
 
 
 tmx.DoW_arr= "SUN,MON,TUE,WED,THU,FRI,SAT".split(",");
 
-TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if raw_str is good
+TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_obj if raw_str is good
   var preview_flag;
   var err_cb;
   if (typeof(param) == "string") preview_flag= param; //'preview' will not alert errors
@@ -1897,52 +2038,6 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
     if (!raw_str) raw_str= "12"; //default midnite
     moDaO= proc_moDa(mD_str); if (!moDaO) return err("bad month/day or DoW"); //-->
   }
-
-  //utc
-  var utc_str;
-  index= raw_str.search(/ U/i); //find " U" case-insensitive (start)
-  if (index >= 0) {
-    index++; //move past 1st space
-    var index_end= raw_str.indexOf(" ", index); //find next space or end
-    if (index_end < 0) index_end= raw_str.length;
-
-    utc_str= raw_str.substring(index, index_end);
-    raw_str= raw_str.substring(0, index-1) +raw_str.substring(index_end); //extract from raw_str
-
-    utc_str= utc_str.replace(/[^0-9+-:]/g, ""); //remove if not "+-:" or numbers
-
-    var hrs_str, mins_str;
-    if (utc_str.indexOf(":") >= 0) [hrs_str, mins_str]= utc_str.split(":");
-    else hrs_str= utc_str;
-
-    //these are possible: UTC+13:45, UTC+14
-    var hrs_num= Number(hrs_str);
-    if (isNaN(hrs_num) || hrs_num<-12 || hrs_num>14) { //hrs must be -12 to +14
-      hrs_str= undefined;
-    } else {
-      hrs_str= String(hrs_num); //regenerate, will lose "+" and leading "0"s
-
-      if (mins_str) {
-        if (mins_str.length!=2 || /\D/.test(mins_str)) { //minutes must be 2 numbers
-          mins_str= undefined;
-        } else {
-          var mins_num= Number(mins_str);
-          if (mins_num==0 || mins_num>59) mins_str= undefined; //mins must be >0 to 59
-          //extra lenient, we allow somethimg like ":01"
-          //but prob only ":30", ":45" allowed, maybe ":15"
-        }
-      }
-    }
-
-    //rebuild utc_str
-    utc_str= undefined;
-    if (hrs_str) {
-      utc_str= hrs_str;
-      if (hrs_num >= 0) utc_str= "+" +utc_str; //add "+"
-      if (mins_str) utc_str+= ":" +mins_str;
-    }
-  } //utc
-
 
   var time_str;
   var offset_str, offsetMod_str;
@@ -2026,19 +2121,10 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
   //hTimO done with time_dtO, so time_dtO can now be adjusted for countdown purposes
   var CDtO= time_dtO; //alias, countdown dto
 
-  if (utc_str) { //cannot account for "daylight saving time"
-    //tmx.clock_tzo; //in minutes, eg. 300
-    //htO.utc is in "hr" or "hr:min"
-    let hrs_str, mins_str;
-    if (utc_str.indexOf(":") >= 0) [hrs_str, mins_str]= utc_str.split(":");
-    else hrs_str= utc_str;
-
-    let utc_m= Number(hrs_str) *60;
-    if (mins_str) utc_m+= Number(mins_str);
-
-    let tzDif_m= utc_m -tmx.clock_tzo;
-    if (tzDif_m) CDtO.setMinutes(CDtO.getMinutes() +tzDif_m);
-  } //utc_str
+  if (loc_str) { //"America/Los_Angeles"
+    var tzDif_m= Math.round((CDtO -TMX.timezoned_date(CDtO, loc_str)) /60000);
+    CDtO.setMinutes(CDtO.getMinutes() +tzDif_m);
+  }
 
   //countdown, check for turnover
   var diff_ms= CDtO -new Date();
@@ -2069,7 +2155,7 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
     ms: CDtO.getTime() //countdown
   };
 
-  if (utc_str) aNow_obj.Utc= utc_str;
+  if (loc_str) aNow_obj.loc= loc_str;
 
   if (preview_flag == "previewLive") {
     let diff_ms= CDtO -new Date(); //ms
@@ -2144,7 +2230,6 @@ TMX.alrm_procTimeText= function(input_str, param) { //returns alarmNow_obj if ra
 
   function g_dtO_fromHumanDtO(htO) { //from human time 12:59am/pm, to computer time 23:59
     var dtO= new Date(); //dateobj, start as now, but most items will be re-set
-
     if (htO.MD) {
       if (htO.MD.yr) dtO.setFullYear(htO.MD.yr, htO.MD.mo -1, htO.MD.da); //y //m 0..11 //d 1..31 //near New Year day
       else dtO.setMonth(htO.MD.mo -1, htO.MD.da); //m 0..11 //d 1..31
@@ -2233,9 +2318,8 @@ TMX.alrm_setCtdnView= function(aI_EL, flag) {
   TMXu.showEl(aI_EL.$E.Time, !flag ? "inline-block" : false);
 }; //TMX.alrm_setCtdnView()
 
-TMX.alrm_init= function(aI_EL, utc_str ="") {
-  var uTime_str= TMX.alrm_utcTime(aI_EL, utc_str);
-  var alarmNow_obj= TMX.alrm_procTimeText(uTime_str, "preview");
+TMX.alrm_init= function(aI_EL) {
+  var alarmNow_obj= TMX.alrm_procTimeText(aI_EL.$E.Time.textContent, aI_EL.$E.Loc.title, "preview");
   if (alarmNow_obj) {
     var ms= alarmNow_obj.ms -new Date();
     if (ms < 60000) ms= 60000; //minimum of 1 minute
@@ -2248,13 +2332,9 @@ TMX.alrm_init= function(aI_EL, utc_str ="") {
     aI_EL.$E.EoM.textContent= EoM_num ? "✱" :"";
     aI_EL.$E.EoM.title= EoM_num ? "MonthEnd=" +EoM_num : "";
 
-    //UTC display
-    var u_str= "";
-    if (alarmNow_obj.Utc) u_str= "UTC" +alarmNow_obj.Utc; //"+2"
-    aI_EL.$E.UTC.textContent= u_str ? "🌐" : ""; //globe symbol
-    aI_EL.$E.UTC.title= u_str;
-
-    TMXu.classEl(aI_EL.$E.Time, "tz_utc", !!u_str);
+    //loc display
+    aI_EL.$E.Loc.textContent= alarmNow_obj.loc ? "🌐" : ""; //globe symbol
+    TMXu.classEl(aI_EL.$E.Time, "tz_loc", alarmNow_obj.loc!=undefined); //time w loc is cyan
   }
 }; //TMX.alrm_init()
 
@@ -2345,8 +2425,7 @@ TMX.alrm_activate= function(aI_EL) {
 
   var on_flag= !!aI_EL; //to boolean
   if (on_flag) {
-    var uTime_str= TMX.alrm_utcTime(aI_EL);
-    var alarmNow_obj= TMX.alrm_procTimeText(uTime_str, "preview"); //nrn, final check of alrm_str
+    var alarmNow_obj= TMX.alrm_procTimeText(aI_EL.$E.Time.textContent, aI_EL.$E.Loc.title, "preview"); //nrn, final check of alrm_str
     if (!alarmNow_obj) {on_flag= false; TMXu.message_add("bad alarm time: " +uTime_str +" | " +alStrO.name, "pink"); }
   }
 
@@ -2358,9 +2437,9 @@ TMX.alrm_activate= function(aI_EL) {
     tmx.active_hTimO= alarmNow_obj.hTimO;
 
     TMXu.classEl(aI_EL, "alarmActive");
-    aI_EL.after(tmx.activeDiv_EL);
-    TMXu.showEl(tmx.activeDiv_EL);
-    TMXu.showEl(tmx.activeCountdown_EL);
+    aI_EL.insertAdjacentElement("afterend", tmx.activeDiv_EL);
+    TMXu.showEl(tmx.activeDiv_EL, true);
+    TMXu.showEl(tmx.activeCountdown_EL, true);
     TMX.alrm_setCtdnView(aI_EL, false); //if needed //shows time
 
     tmx.clockMarker_n= undefined;
@@ -2449,7 +2528,7 @@ TMX.alarms_sort= function(aa_override_arr =[]) {
 
   if (!tmx.ring_aI_EL) TMX.alarms_autoActivateOne(aa_override_arr); //no autoActivate if alarm is ringing/snoozed
 
-  if (tmx.active_aI_EL) tmx.active_aI_EL.after(tmx.activeDiv_EL); //alarm els sorted, move tmx.activeDiv_EL under correct alarm el
+  if (tmx.active_aI_EL) tmx.active_aI_EL.insertAdjacentElement("afterend", tmx.activeDiv_EL); //alarm els sorted, move tmx.activeDiv_EL under correct alarm el
 
   TMX.alrm_scrollTo();
 }; //TMX.alarms_sort()
@@ -2484,7 +2563,7 @@ TMX.alarms_import= function(imported_str) {
       if (action_str == "external") {
         time_str= spl_ar[1]; //WED 5/5 12:34pm
         tSpl_ar= time_str.split(" ");
-        if (alarmNow_obj= TMX.alrm_procTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -020`, "preview")) { // -20 minutes
+        if (alarmNow_obj= TMX.alrm_procTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -020`, "", "preview")) { // -20 minutes
           TMX.alrm_execAdd();
 
           k_str= spl_ar[4] ? " (K)" : ""; //keeper league
@@ -2537,7 +2616,7 @@ TMX.alarms_getDataArr= function() {
       a_obj= {id:aI_EL.id *1, t:aI_EL.$E.Time.textContent}; //id, time
       if (name_str= aI_EL.$E.Name.innerHTML) a_obj.n= name_str;
       if (aI_EL.$D.vu_cd) a_obj.c= 1; //countdown view
-      if (aI_EL.$E.UTC.title) a_obj.u= aI_EL.$E.UTC.title.replace("UTC", "");
+      if (aI_EL.$E.Loc.title) a_obj.l= aI_EL.$E.Loc.title;
 
       if (tmx.disabler_mode ? !aI_EL.querySelector("input").checked : !aI_EL.checkVisibility()) a_obj.d= 1; //disabled
       else tmx.vis_ct++;
@@ -2572,7 +2651,7 @@ TMX.ringer_start= function(aI_EL) {
   TMX.alrm_scrollTo("noExp");
   TMX.sound_play("rngr");
 
-  TMXu.showEl(tmx.ringDiv_EL);
+  TMXu.showEl(tmx.ringDiv_EL, true);
   jm._ELs.Overlay.classList.add("flash");
   tmx.ring_intimerId= setInterval(() => { //recurse
     jm._ELs.Overlay.classList.toggle("flash");
@@ -2767,7 +2846,7 @@ TMX.tzoc_start= function() { //runs upon startup
       if (i == 0) { //tzYear_key
         tmx.tzoc_arr[0]= str;
       } else {
-        alarmNow_obj= TMX.alrm_procTimeText(str, "preview");
+        alarmNow_obj= TMX.alrm_procTimeText(str, "", "preview");
         ms= alarmNow_obj ? alarmNow_obj.ms : 0;
         tmx.tzoc_arr[i]= {t:str, ms:ms};
       }
@@ -2793,7 +2872,7 @@ TMX.tzoc_check= function(dtO) { //noon and midnite
   });
 
   function add_sysAlm(tzO) {
-    var name_str= "Time zone offset change: " +tzO.t;
+    var name_str= "LOCAL Time zone offset change: " +tzO.t;
     if (tmx.sysAlarms_lu[name_str]) return; //skip, already added //-->
 
     TMX.sysAlarm_addOrDel( //add
@@ -2900,6 +2979,21 @@ TMX.tzoc_getDates= function(year_n) { //determine time zone offset changes for c
 
 }; //TMX.tzoc_getDates()
 
+
+TMX.init_localesList= function() {
+  const areas_Set= new Set();
+  const locales_arr= Intl.supportedValuesOf("timeZone");
+  locales_arr.forEach(key => {
+    areas_Set.add(key.split("/")[0]);
+  });
+  tmx.locales_arr= locales_arr;
+  return [...areas_Set];
+}; //init_localesList()
+
+TMX.timezoned_date= function(dateV, tz_str) {
+  //https://stackoverflow.com/questions/10087819/convert-date-to-another-timezone-in-javascript
+  return new Date((typeof dateV=="string" ? new Date(dateV) : dateV).toLocaleString("en-US", {timeZone: tz_str}));
+}; //timezoned_date()
 
 
 TMX.data_load= function(key, cb) {
@@ -3034,7 +3128,7 @@ const jm= {
 
       jm._ELs.aliasIO.value= value_str;
 
-      jm._displayEls("aliasIO");
+      jm._displayEls("aliasIO", true);
       jm._displayEls("CancelBut", "inline");
 
     } else {
