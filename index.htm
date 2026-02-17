@@ -599,7 +599,7 @@ div#clockFace {
 div#localeContainerDiv {
   margin-bottom: 24px;
 
-  div#localeBut, span#localeLocalSpan, span#localeNameSpan, span#localeDeleteBut {
+  div#localeBut, span#localeLocalSpan, span#lLocaleNameSpan, span#localeDeleteBut {
     cursor: pointer;
   }
 
@@ -608,7 +608,7 @@ div#localeContainerDiv {
     font-weight: 600;
   }
 
-  span#localeNameSpan {
+  span#lLocaleNameSpan {
     font-weight: 800;
   }
 
@@ -808,12 +808,12 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   <div id="localeContainerDiv">
     <div id="localeBut">🌐Time Zone</div>
     <span id="localeLocalSpan">LOCAL</span>
-    <span id="localeNameSpan" title="Locale"></span>
+    <span id="lLocaleNameSpan" title="Locale"></span>
     <span id="localeDeleteBut" title="Remove Locale">X</span>
     <div id="localeChooserDiv">
       Choose:
-      <select id="localeAreasSel"></select>
-      <select id="localesSel"></select>
+      <select id="localeRegionsSel"></select>
+      <select id="localePlacesSel"></select>
     </div>
   </div>
 
@@ -1924,98 +1924,104 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
 
   function insertLocaleControls() {
     if (!jm._ELs.locale_container) { //auto-init
-      jm._ELs.locale_container= document.querySelector("div#localeContainerDiv");
+      var cont_el= document.querySelector("div#localeContainerDiv");
+      jm._ELs.locale_container= cont_el;
       //is in template div, but not really a template, just an easy place to hide it
       //single instance that gets embedded into modal when needed
 
-      jm._ELs.locale_name= document.querySelector("span#localeNameSpan");
-      jm._ELs.locale_chooser= document.querySelector("div#localeChooserDiv");
+      jm._ELs.locale_name= cont_el.querySelector("span#lLocaleNameSpan");
+      jm._ELs.locale_chooser= cont_el.querySelector("div#localeChooserDiv");
 
-      document.querySelector("div#localeBut").addEventListener("click", evt => toggle_localeChooser() ); //🌐
+      cont_el.querySelector("div#localeBut").addEventListener("click", evt => toggle_localeChooser() ); //🌐
       jm._ELs.locale_name.addEventListener("click", evt => toggle_localeChooser(true) );
 
-      var localeLocalEl= document.querySelector("span#localeLocalSpan"); //"LOCAL"
+      var localeLocalEl= cont_el.querySelector("span#localeLocalSpan"); //"LOCAL"
       localeLocalEl.addEventListener("click", evt => toggle_localeChooser(true) );
 
-      function toggle_localeChooser(flag) { //flag will override toggle, truthy show/hide
+      var locales_ARR, regions_ARR;
+
+      function toggle_localeChooser(flag) { //not just toggle, flag (truthy) will show/hide
         if (flag == undefined) jm._ELs.locale_chooser.classList.toggle("css_hidden");
         else TMXu.classEl(jm._ELs.locale_chooser, "css_hidden", !flag); //!reverese flag, "css_hidden" acts reversed, hide/show
 
-        if (!jm._ELs.locale_chooser.$D_started_flag) {
+        if (!jm._ELs.locale_chooser.$D_started_flag) { //start modal session
           jm._ELs.locale_chooser.$D_started_flag= true;
-          var locale_str;
-          if (locale_str= jm._ELs.locale_name.textContent) {
-            var split_arr= locale_str.split("/");
-            areaDropdownEl.value= split_arr[0];
-            pop_localesDropdown();
-            localesDropdownEl.value= split_arr[1];
+
+          if (!locales_ARR) { //auto-init, even deeper lazy
+            [locales_ARR, regions_ARR]= TMX.init_localesList();
+            regions_ARR.forEach(area_str => {
+              regionsSelEl.add(new Option(area_str));
+            });
+          }
+
+          let l_str;
+          if (l_str= jm._ELs.locale_name.textContent) {
+            regionsSelEl.value= l_str.split("/")[0]; //region_str
+            pop_placesSel();
+            placesSelEl.value= l_str.substring(regionString_len); //locale_str
 
           } else {
-            areaDropdownEl.value= "";
-            localesDropdownEl.options.length= 1; //clear except for 1st option (blank)
+            regionsSelEl.value= "";
+            placesSelEl.options.length= 1; //clear except for 1st option (blank)
           }
-        }
+        } //start modal session
+
       } //toggle_localeChooser()
 
-      var localeAreas_arr= TMX.init_localesList();
-      var areaDropdownEl= document.querySelector("select#localeAreasSel");
-      areaDropdownEl.add(new Option("")); //1st option blank
-      localeAreas_arr.forEach(area_str => {
-        areaDropdownEl.add(new Option(area_str));
+      var regionsSelEl= cont_el.querySelector("select#localeRegionsSel");
+      regionsSelEl.add(new Option("")); //1st option blank
+      regionsSelEl.addEventListener("change", evt => {
+        placesSelEl.options.length= 1; //clear except for 1st option (blank)
+        if (regionsSelEl.value) pop_placesSel();
+        else TMX.setLocaleName("");
       });
 
-      var localesDropdownEl= document.querySelector("select#localesSel");
-      localesDropdownEl.add(new Option("")); //1st option is blank
-      areaDropdownEl.addEventListener("change", evt => {
-        localesDropdownEl.options.length= 1; //clear except for 1st option (blank)
-        if (areaDropdownEl.value) pop_localesDropdown();
-        else TMX.setLocalename("");
+      var placesSelEl= cont_el.querySelector("select#localePlacesSel");
+      placesSelEl.add(new Option("")); //1st option is blank
+      placesSelEl.addEventListener("change", evt => {
+        var str= placesSelEl.value;
+        if (str) str= regionsSelEl.value +"/" +str;
+        TMX.setLocaleName(str);
+        TMXu.classEl(jm._ELs.locale_chooser, "css_hidden", true);
       });
 
-      function pop_localesDropdown() {
-        var area_str= areaDropdownEl.value;
-        var len= area_str.length +1;
-        tmx.locales_arr.forEach(areaLocale_str => {
-          if (areaLocale_str.indexOf(area_str) == 0) {
-            localesDropdownEl.add(new Option(areaLocale_str.substring(len)));
+      var regionString_len;
+      function pop_placesSel() {
+        var region_str= regionsSelEl.value;
+        regionString_len= region_str.length +1;
+        locales_ARR.forEach(locale_str => {
+          if (locale_str.indexOf(region_str) == 0) {
+            placesSelEl.add(new Option(locale_str.substring(regionString_len)));
           }
         });
       }
 
-      localesDropdownEl.addEventListener("change", evt => {
-        var str= localesDropdownEl.value;
-        if (str) str= areaDropdownEl.value +"/" +str;
-        TMX.setLocalename(str);
-        TMXu.classEl(jm._ELs.locale_chooser, "css_hidden", true);
-      });
-
-      var localeDeleteEl= document.querySelector("span#localeDeleteBut");
-
+      var localeDeleteEl= cont_el.querySelector("span#localeDeleteBut");
       localeDeleteEl.addEventListener("click", evt => {
-        localesDropdownEl.value= "";
-        TMX.setLocalename("");
+        placesSelEl.value= "";
+        TMX.setLocaleName("");
       });
 
-      TMX.setLocalename= function(locale_str, init_flag) {
+      TMX.setLocaleName= function(locale_str, init_flag) {
         jm._ELs.locale_name.textContent= locale_str;
         TMXu.showEl(localeDeleteEl, locale_str?"inline":false);
         TMXu.showEl(localeLocalEl, locale_str?false:"inline");
         if (!locale_str) TMXu.classEl(jm._ELs.locale_chooser, "css_hidden", true);
 
-        //bug or just weird, pvLive_EL is incorrectly scoped, refers to the one from this auto-init
+        //bug or just weird, pvLive_EL is incorrectly scoped, refers to the one from this auto-init //tbd?
         if (init_flag) pvLive_EL= jm._ELs.Description.querySelector(".pvLive");
 
         pop_prompt();
-      } //TMX.setLocalename();
+      } //TMX.setLocaleName();
 
     }
   } //auto-init
 
-  jm._ELs.Input.insertAdjacentElement("afterend", jm._ELs.locale_container);
-  jm._ELs.locale_chooser.classList.add("css_hidden");
-  delete jm._ELs.locale_chooser.$D_started_flag;
+  jm._ELs.Input.insertAdjacentElement("afterend", jm._ELs.locale_container); //cont_el
+  TMXu.classEl(jm._ELs.locale_chooser, "css_hidden", true);
+  delete jm._ELs.locale_chooser.$D_started_flag; //clear modal session
 
-  TMX.setLocalename(loc_str, "init");
+  TMX.setLocaleName(loc_str, "init");
 
 }; //TMX.alrm_editTime()
 
@@ -2990,13 +2996,12 @@ TMX.tzoc_getDates= function(year_n) { //determine time zone offset changes for c
 
 
 TMX.init_localesList= function() {
-  const areas_Set= new Set();
+  const regions_Set= new Set();
   const locales_arr= Intl.supportedValuesOf("timeZone");
   locales_arr.forEach(key => {
-    areas_Set.add(key.split("/")[0]);
+    regions_Set.add(key.split("/")[0]);
   });
-  tmx.locales_arr= locales_arr;
-  return [...areas_Set];
+  return [locales_arr, [...regions_Set]];
 }; //init_localesList()
 
 TMX.timezoned_date= function(dateV, tz_str) {
