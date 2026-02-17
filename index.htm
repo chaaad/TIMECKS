@@ -2131,9 +2131,11 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
   //hTimO done with time_dtO, so time_dtO can now be adjusted for countdown purposes
   var CDtO= time_dtO; //alias, countdown dto
 
+  if (moDaO && moDaO.EoM) CDtO.setMonth(moDaO.mo, 0); //eg. .setMonth(2, 0) //mar 0, means feb 28
+
   if (loc_str) { //eg. "America/Los_Angeles"
     var tzDif_m= Math.round((CDtO -TMX.timezoned_date(CDtO, loc_str)) /60000);
-    CDtO.setMinutes(CDtO.getMinutes() +tzDif_m);
+    CDtO.setMinutes(CDtO.getMinutes() +tzDif_m); //+- minutes
   }
 
   //countdown, check for turnover
@@ -2153,14 +2155,6 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
     if (loc_str) {
       diff_ms= CDtO -new Date(); //passed interntional dateline?
       if (diff_ms < 1) CDtO.setDate(CDtO.getDate() +1); //+1 day
-    }
-  }
-
-  //EndofMonth auto-adjust
-  if (moDaO && !moDaO.DoW) {
-    if (hTimO.MD.da != CDtO.getDate()) { //days mismatch
-      CDtO.setMonth(hTimO.MD.mo, 0); //no month-1 (so, next month), day 0 is -1 day
-      moDaO.EoM= CDtO.getDate(); //day (eg. for Apr, will be 30)
     }
   }
 
@@ -2271,6 +2265,7 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
 
   function proc_moDa(mD_str) { //if success, returns obj
     var mon_wildcard_str;
+    var EoM_num;
     var DoW_str;
     if (mD_str.includes("/")) { // m/d (month/day)
       var month, day, year;
@@ -2284,6 +2279,19 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
 
       day*= 1;
       if (isNaN(day) || day<1 || day>31) day= 1; //not verifying against number of days in month
+
+      //possible EoM
+      if (day == 31) {
+        var EoMdtO= new Date();
+        //our "month" var is 1-indexed, js "monnth" is 0-indexed
+        EoMdtO.setMonth(month, 0); //nextMonth 0th day, means thisMonth last day
+        if (EoMdtO -new Date() < 0) {
+          EoMdtO.setFullYear(EoMdtO.getFullYear() +1); //+1 year
+          EoMdtO.setMonth(month, 0); //re-do, leap day handled
+        }
+        EoM_num= EoMdtO.getDate(); //the last day of month
+        if (day <= EoM_num) EoM_num= undefined;
+      }
 
     } else if (mD_str.search(/^[SMTWF]/) == 0) { // DoW (Day of Week)
       var match_arr= [];
@@ -2311,8 +2319,13 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
       da: day
     };
     if (year) o.yr= year;
-    if (DoW_str) o.DoW= DoW_str;
-    else if (mon_wildcard_str) o.mW= mon_wildcard_str;
+
+    if (DoW_str) {
+      o.DoW= DoW_str;
+    } else {
+      if (mon_wildcard_str) o.mW= mon_wildcard_str;
+      if (EoM_num) o.EoM= EoM_num;
+    }
 
     //success
     return o;
