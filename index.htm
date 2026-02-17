@@ -289,8 +289,8 @@ div#alarmsContainer {
       color: greenyellow;
       background: black;
 
-      &.tz_loc {
-        color: cyan;
+      &.dt_adjusted {
+        color: orange;
       }
     }
 
@@ -680,6 +680,9 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
         color: cornflowerblue;
         &.E {
           color: red;
+        }
+        span.adjusted_tm {
+          color: darkorange;
         }
       }
 
@@ -1485,7 +1488,7 @@ tmx.alarmsCont_EL.addEventListener("click", evt => {
         TMX.alrm_editTime();
 
       } else if (t_cl.contains("alarmEoM")) {
-        var html_str= `<b>${_al_EL.$E.Name.textContent}</b><br>${_al_EL.$E.Time.textContent}<p>${targ_EL.title}</p>`;
+        var html_str= `<b>${_al_EL.$E.Name.textContent}</b><br>${_al_EL.$D.hTime_str}<p>${targ_EL.title}</p>`;
         jm.alert(html_str);
 
       } else if (targ_EL.tagName == "INPUT") { //disabler checkbox (there can only 1 input el in alarmInstance)
@@ -1655,13 +1658,26 @@ TMX.alarms_start= function(al_arr) {
     tmx.alarmInst_EL= undefined;
 
     var aInst_EL;
+    var t_str, aNow_obj;
     al_arr.forEach(a_obj => {
       aInst_EL= tmx.template_alarmInst_EL.cloneNode(true); //clone
       tmx.alarmsCont_EL.appendChild(aInst_EL); //add
       TMX.alrm_addHelpers(aInst_EL, a_obj.id);
       aInst_EL.$E.Name.innerHTML= a_obj.n || ""; //alarm name
-      aInst_EL.$E.Time.textContent= a_obj.t; //alarm time
-      if (a_obj.l) aInst_EL.$E.Loc.title= a_obj.l; //alarm loc
+
+      t_str= a_obj.t; //alarm time
+      aInst_EL.$D.hTime_str= t_str; //alarm time
+      if (a_obj.l || t_str.indexOf("/31")>0) {
+        if (aNow_obj= TMX.alrm_procTimeText(t_str, a_obj.l, "preview")) {
+          if (aNow_obj.hTimeA_str != t_str) t_str= aNow_obj.hTimeA_str;
+        }
+      }
+      aInst_EL.$E.Time.textContent= t_str;
+
+      if (a_obj.l) { //alarm loc
+        aInst_EL.$D.loc= a_obj.l;
+        aInst_EL.$E.Loc.title= a_obj.l;
+      }
       TMX.alrm_init(aInst_EL);
       if (a_obj.c) TMX.alrm_setTorC(aInst_EL, true, "persist"); //init alarm countdown view
 
@@ -1852,10 +1868,10 @@ TMX.alrm_editName= function(NEW_flag) { //if new, NEW_flag is "NEW"
 }; //TMX.alrm_editName()
 
 TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
-  var orig_time_str= NEW_str ? "12:00" : tmx.alarmInst_EL.$E.Time.textContent;
+  var orig_time_str= NEW_str ? "12:00" : tmx.alarmInst_EL.$D.hTime_str;
   var time_str= orig_time_str;
 
-  var orig_loc_str= tmx.alarmInst_EL.$E.Loc.title;
+  var orig_loc_str= tmx.alarmInst_EL.$D.loc;
   var loc_str= orig_loc_str;
 
   var prom_str= "<b>Time</b> for " +(NEW_str?"new ":"") +"alarm:" +TMX.g_promStr(NEW_str, time_str);
@@ -1889,14 +1905,16 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
         //proc input str
         var alarmNow_obj;
         if (alarmNow_obj= TMX.alrm_procTimeText(mod_time_str, mod_loc_str, timePrompt_fn)) { //timePrompt_fn as err_cb
-
           if (NEW_str) {
             TMX.alrm_execAdd();
             TMX.sound_play("bell");
             tmx.alarmInst_EL.$E.Name.innerHTML= NEW_str;
           }
 
-          tmx.alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
+          tmx.alarmInst_EL.$D.hTime_str= alarmNow_obj.hTime_str;
+          tmx.alarmInst_EL.$E.Time.textContent= alarmNow_obj.hTimeA_str || alarmNow_obj.hTime_str;
+
+          tmx.alarmInst_EL.$D.loc= alarmNow_obj.loc;
           tmx.alarmInst_EL.$E.Loc.title= alarmNow_obj.loc || "";
 
           TMX.alrm_init(tmx.alarmInst_EL);
@@ -1912,11 +1930,17 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
 
   function pop_prompt() {
     loc_str= jm._ELs.locale_name.textContent;
-    var alarmNow_obj= TMX.alrm_procTimeText(jm._ELs.Input.value, loc_str, "previewLive");
+    var aNow_obj= TMX.alrm_procTimeText(jm._ELs.Input.value, loc_str, "previewLive");
     var pl_str= "";
-    if (alarmNow_obj) {
-      pl_str= alarmNow_obj.time;
-      pl_str+= "<br>" +alarmNow_obj.plUntil;
+    if (aNow_obj) {
+      pl_str= aNow_obj.hTime_str;
+      pl_str+= "<br>" +aNow_obj.plUntil;
+      if (aNow_obj.hTimeA_str) {
+        pl_str+= '<br><span class="adjusted_tm">Local: ' +aNow_obj.hTimeA_str;
+        var md= aNow_obj.hTimO.MD;
+        if (md && md.EoM) pl_str+= ", MonthEnd=" +md.EoM;
+        pl_str+= "</span>";
+      }
     }
     pvLive_EL.innerHTML= pl_str;
   } //pop_prompt()
@@ -2038,7 +2062,7 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
   var index;
   input_str= input_str.trim();
   var raw_str= input_str.toUpperCase();
-  var time_dtO= new Date();
+  var time_dtO= new Date(); //now
   var moDaO;
   if (raw_str.includes("/") || raw_str.search(/^[SMTWF]/)==0) {
     raw_str+= " ";
@@ -2065,15 +2089,15 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
     let rawAmPm_flag= raw_hTimO.p || time_str.search(/A/) > -1; //chars: A (AM)
 
     if (raw_hTimO.h == 0) { //auto-derive hr from now
-        let h= time_dtO.getHours(); //0-23
-        if (!rawAmPm_flag) raw_hTimO.p= (h >= 12);
-        let m= time_dtO.getMinutes();
-        if (raw_hTimO.m <= m) { //if rawminutes less than nowminutes, goto next hour
-          h++; //inc
-          if (h == 24) h= 0; //wrap
-          raw_hTimO.h= h;
-          proc_24to12(raw_hTimO);
-        }
+      let h= time_dtO.getHours(); //0-23
+      if (!rawAmPm_flag) raw_hTimO.p= (h >= 12);
+      let m= time_dtO.getMinutes();
+      if (raw_hTimO.m <= m) { //if rawMinutes less than nowMinutes, goto next hour
+        h++; //inc
+        if (h == 24) h= 0; //wrap
+        raw_hTimO.h= h;
+        proc_24to12(raw_hTimO);
+      }
     }
 
   } else {
@@ -2128,53 +2152,55 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
   if (moDaO) hTimO.MD= moDaO;
 
 
-  //hTimO done with time_dtO, so time_dtO can now be adjusted for countdown purposes
-  var CDtO= time_dtO; //alias, countdown dto
+  //hTimO done with time_dtO, so time_dtO can now be adjusted for "now" purposes
+  var nowDtO= time_dtO; //alias, now dto
 
-  if (moDaO && moDaO.EoM) CDtO.setMonth(moDaO.mo, 0); //eg. .setMonth(2, 0) //mar 0, means feb 28
+  var EoM_flag= moDaO && moDaO.EoM;
+  if (EoM_flag) nowDtO.setMonth(moDaO.mo, 0); //eg. .setMonth(2, 0) //mar 0, means feb 28
 
+  var tzDif_m;
   if (loc_str) { //eg. "America/Los_Angeles"
-    var tzDif_m= Math.round((CDtO -TMX.timezoned_date(CDtO, loc_str)) /60000);
-    CDtO.setMinutes(CDtO.getMinutes() +tzDif_m); //+- minutes
+    tzDif_m= Math.round((nowDtO -TMX.timezoned_date(nowDtO, loc_str)) /60000);
+    if (tzDif_m) nowDtO.setMinutes(nowDtO.getMinutes() +tzDif_m); //+- minutes
   }
 
-  //countdown, check for turnover
-  var diff_ms= CDtO -new Date();
+  //check for turnover
+  var diff_ms= nowDtO -new Date();
   if (diff_ms < 1) { //less than nowTime
     //dtO to future
     if (hTimO.MD) {
-      if (hTimO.MD.DoW) CDtO.setDate(CDtO.getDate() +7); //+1 week, DayOfWeek
-      else if (hTimO.MD.mW) CDtO.setMonth(CDtO.getMonth() +1); //+1 month, mon_wildcard_str
-      else CDtO.setFullYear(CDtO.getFullYear() +1); //+1 year, m/d
+      if (hTimO.MD.DoW) nowDtO.setDate(nowDtO.getDate() +7); //+1 week, DayOfWeek
+      else if (hTimO.MD.mW) nowDtO.setMonth(nowDtO.getMonth() +1); //+1 month, mon_wildcard_str
+      else nowDtO.setFullYear(nowDtO.getFullYear() +1); //+1 year, m/d
 
     } else {
-      CDtO.setDate(CDtO.getDate() +1); //+1 day
+      nowDtO.setDate(nowDtO.getDate() +1); //+1 day
     }
 
-    //tbd //not sure if this is right..
+//tbd //not sure if this is right..
     if (loc_str) {
-      diff_ms= CDtO -new Date(); //passed interntional dateline?
-      if (diff_ms < 1) CDtO.setDate(CDtO.getDate() +1); //+1 day
+      diff_ms= nowDtO -new Date(); //passed interntional dateline?
+      if (diff_ms < 1) nowDtO.setDate(nowDtO.getDate() +1); //+1 day
     }
   }
 
   var aNow_obj= {
     hTimO: hTimO,
-    time: get_fmatHTime_str(hTimO), //str
-    ms: CDtO.getTime() //countdown
+    hTime_str: get_fmatHTime_str(hTimO),
+    ms: nowDtO.getTime()
   };
 
   if (loc_str) aNow_obj.loc= loc_str;
 
+  if (tzDif_m || EoM_flag) adjustedHTimeStr(aNow_obj, nowDtO);  //adds aNow_obj.hTimeA_str
+
   if (preview_flag == "previewLive") {
     diff_ms= aNow_obj.ms -new Date(); //ms
     plUntil_str+= `(in: ${TMX.g_untilStr(Math.ceil(diff_ms /60000))}) `; //ms to minutes
-
-    if (moDaO && moDaO.EoM) plUntil_str+= " MonthEnd=" +moDaO.EoM;
-
     aNow_obj.plUntil= plUntil_str;
   }
 
+//console.log("aNow_obj",aNow_obj)
   return aNow_obj;
 
   //----//
@@ -2223,10 +2249,10 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
     return {h:h, m:m};
   } //g_procRawTime()
 
-  function get_fmatHTime_str(tO) {
+  function get_fmatHTime_str(htO) {
     var str= "";
-    if (tO.MD) str= (tO.MD.DoW ? tO.MD.DoW : ((tO.MD.mW || tO.MD.mo) +"/" +tO.MD.da)) +" "; //DoW or m/d
-    return str +tO.h +":" +String(tO.m).padStart(2, "0")  +(tO.p?" PM":" AM"); //human time
+    if (htO.MD) str= (htO.MD.DoW ? htO.MD.DoW : ((htO.MD.mW || htO.MD.mo) +"/" +htO.MD.da)) +" "; //DoW or m/d
+    return str +htO.h +":" +String(htO.m).padStart(2, "0")  +(htO.p?" PM":" AM"); //human time
   } //get_fmatHTime_str()
 
   function proc_24to12(tO) { //to human
@@ -2331,6 +2357,20 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
     return o;
   } //proc_moDa()
 
+  function adjustedHTimeStr(aNow_obj, dtO) {
+    var ahtO= structuredClone(aNow_obj.hTimO);
+    var mdO; if (mdO= ahtO.MD) {
+      mdO.mo= dtO.getMonth() +1; //0-11
+      mdO.da= dtO.getDate(); //1 indexed
+    }
+    ahtO.h= dtO.getHours(); //0-23
+    ahtO.m= dtO.getMinutes(); //0-59
+    proc_24to12(ahtO);
+    var hTimeA_str= get_fmatHTime_str(ahtO);
+//console.log("----------hTimeA_str", hTimeA_str)
+    aNow_obj.hTimeA_str= hTimeA_str; //fyi, ahtO not preserved
+  } //adjustedHTimeStr()
+
 }; //TMX.alrm_procTimeText()
 
 
@@ -2347,11 +2387,11 @@ TMX.alrm_setCtdnView= function(aI_EL, flag) {
 }; //TMX.alrm_setCtdnView()
 
 TMX.alrm_init= function(aI_EL) {
-  var alarmNow_obj= TMX.alrm_procTimeText(aI_EL.$E.Time.textContent, aI_EL.$E.Loc.title, "preview");
+  var alarmNow_obj= TMX.alrm_procTimeText(aI_EL.$D.hTime_str, aI_EL.$D.loc, "preview");
   if (alarmNow_obj) {
-    var ms= alarmNow_obj.ms -new Date();
-    if (ms < 60000) ms= 60000; //minimum of 1 minute
-    aI_EL.$D.ctdn_m= Math.ceil(ms /60000);
+    var cd_ms= alarmNow_obj.ms -new Date();
+    if (cd_ms < 60000) ms= 60000; //minimum of 1 minute
+    aI_EL.$D.ctdn_m= Math.ceil(cd_ms /60000);
     aI_EL.$E.Ctdn.textContent= TMX.g_untilStr(aI_EL.$D.ctdn_m);
     TMX.alrm_checkSoon(aI_EL);
 
@@ -2362,7 +2402,8 @@ TMX.alrm_init= function(aI_EL) {
 
     //loc display
     aI_EL.$E.Loc.textContent= alarmNow_obj.loc ? "🌐" : ""; //globe symbol
-    TMXu.classEl(aI_EL.$E.Time, "tz_loc", alarmNow_obj.loc); //time w loc is cyan
+
+    TMXu.classEl(aI_EL.$E.Time, "dt_adjusted", EoM_num || alarmNow_obj.loc);
   }
 }; //TMX.alrm_init()
 
@@ -2432,12 +2473,16 @@ TMX.g_promStr= function(n_str, t_str) {
 }; //TMX.g_promStr()
 
 TMX.g_alStrO= function(aI_EL) {
-  var str= aI_EL.$E.Name.innerHTML.replaceAll("<br>", " | ");
-  var tmp_doc= new DOMParser().parseFromString(str, 'text/html');
-  str= (tmp_doc.body.textContent || "").substring(0, 40);
+  var n_str= aI_EL.$E.Name.innerHTML.replaceAll("<br>", " | ");
+  var tmp_doc= new DOMParser().parseFromString(n_str, 'text/html');
+  n_str= (tmp_doc.body.textContent || "").substring(0, 40);
+
+  var t_str= aI_EL.$E.Time.textContent;
+  if (t_str != aI_EL.$D.hTime_str) t_str= aI_EL.$D.hTime_str +' <span class="adjusted_tm">[' +t_str +"]</span>";
+
   return {
-    name: str,
-    time: aI_EL.$E.Time.textContent
+    name: n_str,
+    time: t_str
   };
 }; //TMX.g_alStrO()
 
@@ -2453,7 +2498,7 @@ TMX.alrm_activate= function(aI_EL) {
 
   var on_flag= !!aI_EL; //to boolean
   if (on_flag) {
-    var alarmNow_obj= TMX.alrm_procTimeText(aI_EL.$E.Time.textContent, aI_EL.$E.Loc.title, "preview"); //nrn, final check of alrm_str
+    var alarmNow_obj= TMX.alrm_procTimeText(aI_EL.$D.hTime_str, aI_EL.$D.loc, "preview"); //nrn, final check of alrm_str
     if (!alarmNow_obj) {on_flag= false; TMXu.message_add("bad alarm time: " +uTime_str +" | " +alStrO.name, "pink"); }
   }
 
@@ -2598,7 +2643,9 @@ TMX.alarms_import= function(imported_str) {
           html_str= `${tSpl_ar[0]} <br><i>${spl_ar[3]}</i>${k_str} <i class="PC_tid" title="?">${spl_ar[5]}</i>`;
           tmx.alarmInst_EL.$E.Name.innerHTML= html_str;
 
-          tmx.alarmInst_EL.$E.Time.textContent= alarmNow_obj.time;
+          tmx.alarmInst_EL.$D.hTime_str= alarmNow_obj.hTime_str;
+          tmx.alarmInst_EL.$E.Time.textContent= alarmNow_obj.hTimeA_str || alarmNow_obj.hTime_str;
+
           TMX.alrm_init(tmx.alarmInst_EL);
           TMX.alrm_glow(4);
           add_arr.push(tmx.alarmInst_EL); //for sound only
@@ -2641,10 +2688,10 @@ TMX.alarms_getDataArr= function() {
     var a_obj;
     var name_str;
     [...tmx.aI_NL].forEach(aI_EL => {
-      a_obj= {id:aI_EL.id *1, t:aI_EL.$E.Time.textContent}; //id, time
+      a_obj= {id:aI_EL.id *1, t:aI_EL.$D.hTime_str}; //id, time
       if (name_str= aI_EL.$E.Name.innerHTML) a_obj.n= name_str;
       if (aI_EL.$D.vu_cd) a_obj.c= 1; //countdown view
-      if (aI_EL.$E.Loc.title) a_obj.l= aI_EL.$E.Loc.title;
+      if (aI_EL.$D.loc) a_obj.l= aI_EL.$D.loc;
 
       if (tmx.disabler_mode ? !aI_EL.querySelector("input").checked : !aI_EL.checkVisibility()) a_obj.d= 1; //disabled
       else tmx.vis_ct++;
