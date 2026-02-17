@@ -604,6 +604,7 @@ div#localeContainerDiv {
   }
 
   span#localeLocalSpan {
+    color: lightgray;
     font-weight: 600;
   }
 
@@ -2142,6 +2143,7 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
       CDtO.setDate(CDtO.getDate() +1); //+1 day
     }
 
+    //tbd //not sure if this is right..
     if (loc_str) {
       diff_ms= CDtO -new Date(); //passed interntional dateline?
       if (diff_ms < 1) CDtO.setDate(CDtO.getDate() +1); //+1 day
