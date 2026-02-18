@@ -1886,7 +1886,7 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
 
       begin_cb: () => {
         pvLive_EL= jm._ELs.Description.querySelector(".pvLive");
-        insertLocaleControls();
+        insertLocaleControls(pvLive_EL);
       },
 
       //custom hook
@@ -1947,8 +1947,7 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
     pvLive_EL.innerHTML= pl_str;
   } //pop_prompt()
 
-
-  function insertLocaleControls() {
+  function insertLocaleControls(pvLv_el) {
     if (!jm._ELs.locale_container) { //auto-init
       var cont_el= document.querySelector("div#localeContainerDiv");
       jm._ELs.locale_container= cont_el;
@@ -2028,26 +2027,28 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
         TMX.setLocaleName("");
       });
 
-      TMX.setLocaleName= function(locale_str, init_flag) {
+      TMX.setLocaleName= function(locale_str, pvLv_el) { //pvLv_el only on session init
         jm._ELs.locale_name.textContent= locale_str;
         TMXu.showEl(localeDeleteEl, locale_str?"inline":false);
         TMXu.showEl(localeLocalEl, locale_str?false:"inline");
         if (!locale_str) TMXu.classEl(jm._ELs.locale_chooser, "css_hidden", true);
 
-        //bug or just weird, pvLive_EL is incorrectly scoped, refers to the one from this auto-init //tbd?
-        if (init_flag) pvLive_EL= jm._ELs.Description.querySelector(".pvLive");
+        //bug or just weird, pvLive_EL (for pop_prompt()) is incorrectly scoped, always refers to one the from the auto-init
+        //fixed by passing pvLv_el //also, moving TMX.setLocaleName to higher scope might of fixed it too
+        if (pvLv_el && pvLv_el!=pvLive_EL) pvLive_EL= pvLv_el;
 
         pop_prompt();
       } //TMX.setLocaleName();
 
-    }
-  } //auto-init
+    } //auto-init
 
-  jm._ELs.Input.insertAdjacentElement("afterend", jm._ELs.locale_container); //cont_el
-  TMXu.classEl(jm._ELs.locale_chooser, "css_hidden", true);
-  delete jm._ELs.locale_chooser.$D_started_flag; //clear modal session
+    jm._ELs.Input.insertAdjacentElement("afterend", jm._ELs.locale_container); //cont_el
+    TMXu.classEl(jm._ELs.locale_chooser, "css_hidden", true);
+    delete jm._ELs.locale_chooser.$D_started_flag; //clear modal session
 
-  TMX.setLocaleName(loc_str, "init");
+    TMX.setLocaleName(loc_str, pvLv_el);
+
+  } //insertLocaleControls()
 
 }; //TMX.alrm_editTime()
 
