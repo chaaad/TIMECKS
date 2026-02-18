@@ -247,13 +247,6 @@ div#alarmsContainer {
       user-select: none;
     }
 
-    div.alarmName {
-
-      .PC_tid { /*PennantChase*/
-        color: orangered;
-      }
-    }
-
     span.alarmActivate {
       color: lightgray;
       margin-right: 0;
@@ -331,16 +324,7 @@ div#alarmsContainer {
     &.dragging {
       opacity: 0.5;
     }
-/*
-    &.dropAbove {
-      border-top: 100px solid lightcyan;
-      border-bottom: "";
-    }
-    &.dropBelow {
-      border-top: "";
-      border-bottom: 100px solid lightcyan;
-    }
-*/
+
     &.expired {
       background: pink;
     }
@@ -943,6 +927,18 @@ TMXu.createCssRule= function(css_str) {
   styleSheet.innerHTML= css_str;
   document.head.appendChild(styleSheet);
 }; //TMXu.createCssRule()
+TMXu.loadScript= function(src_str, cb) {
+  const script= document.createElement("script");
+  script.src= src_str;
+  script.onload= () => {
+    console.log("script loaded:", src_str);
+    if (cb) cb();
+  };
+  script.onerror= () => {
+    console.error("script NOT loaded:", src_str);
+  };
+  document.head.appendChild(script);
+}; //TMXu.loadScript()
 
 TMXu.parseJSON= function(str) {
   var json_dat;
@@ -987,7 +983,7 @@ tmx.hookers= {};
 
 TMX.HOOK= function(hook_key, v) {
   var hook_fn;
-  if (hook_fn= tmx.hookers[hook_key]) hook_fn(v); //sends only 1 arg, v
+  if (hook_fn= tmx.hookers[hook_key]) return hook_fn(v); //sends only 1 arg, v
 }; //TMX.HOOK()
 
 
@@ -1124,11 +1120,11 @@ console.log("TMX.clock_start", tmx.start_dtO.toLocaleTimeString());
         tmx.clock_elapse_ms+= 60000; //inc (fixed)
         if (TMX.clock_advance()) return; //abort mainloop //-->
 
-        TMX.data_load("importedAlarm", dataO => {
-          var imported_str= dataO.importedAlarm;
-          if (imported_str) TMX.alarms_import(imported_str);
+        TMX.data_load("externalAlarms", dataO => {
+          var external_str= dataO.externalAlarms;
+          if (external_str) TMX.alarms_external(external_str);
         });
-        //.. like a poll, for "importedAlarm" in localStorage
+        //.. like a poll, for "externalAlarms" in localStorage
 
         mainloop(); //recurse-->
 
@@ -1474,8 +1470,7 @@ tmx.alarmsCont_EL.addEventListener("click", evt => {
         }
 
       } else if (targ_EL.closest("div.alarmName")) {
-        if (t_cl.contains("PC_tid")) TMX.PClink(targ_EL);
-        else TMX.alrm_editName();
+        if (!TMX.HOOK("alarmNameClick", targ_EL)) TMX.alrm_editName();
 
       } else if (t_cl.contains("alarmT")) {
         TMX.longPress_timerStop();
@@ -2455,7 +2450,7 @@ TMX.alrm_execDelete= function() { //from TMX.alrm_delete() or drag&drop
 
 tmx.deletedAlrmIds_set= new Set(); //TMX.alrm_genId() will "reuse" lower ids, this ensures unique ids (per session)
 
-TMX.alrm_exeDel= function() { //from TMX.alrm_execDelete() or TMX.alarms_import()
+TMX.alrm_exeDel= function() { //from TMX.alrm_execDelete() or TMX.alarms_external()
   if (!tmx.alarmInst_EL) return; //-->
   tmx.alarmInst_EL.remove(); //from DOM
   if (tmx.alarmInst_EL == tmx.ring_aI_EL) {
@@ -2618,32 +2613,35 @@ TMX.alarms_autoActivateOne= function(override_arr =[]) {
   }
 }; //TMX.alarms_autoActivateOne()
 
-TMX.alarms_import= function(imported_str) {
-  TMX.data_save("importedAlarm", "");
+TMX.alarms_external= function(external_str) {
+  TMX.data_save("externalAlarms", ""); //clear
 
   var action_str;
   var spl_ar;
-  var time_str, tSpl_ar;
-  var alarmNow_obj;
+  var time_str, loc_str, timSpl_ar, alarmNow_obj;
+  var name_str;
   var html_str;
-  var k_str; //keeper
   var add_arr= []; //for sound only
   var del_arr= []; //for sound only
-  imported_str.split("\n").forEach(item_str => {
+  external_str.split("\n").forEach(item_str => {
     spl_ar= item_str.split("|");
-    //external|WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123-1 //to test, can paste right into console "Local storage"
-    //0        1               2  3                    4 5
-    action_str= spl_ar[0]; //external, externalDelete
 //console.log(action_str,"item_str",item_str,"split",spl_ar);
-    if (spl_ar[2] == "PC") { //qualify (weakly) as pennantChase
-      if (action_str == "external") {
-        time_str= spl_ar[1]; //WED 5/5 12:34pm
-        tSpl_ar= time_str.split(" ");
-        if (alarmNow_obj= TMX.alrm_procTimeText(`${tSpl_ar[1]} ${tSpl_ar[2]} -020`, "", "preview")) { // -20 minutes
+
+    action_str= spl_ar[0]; //external, externalDelete
+    if (action_str == "external") {
+      //external|5/5 12:34pm|Some Alarm
+      //external|5/5 12:34pm|PC|WED|New%20York%20Yankees|K|123-1 //to test, can paste right into console "Local storage"
+
+      time_str= spl_ar[1]; //5/5 12:34pm loc:America/Los_Angeles
+      if (time_str.indexOf("loc:") >= 0) [time_str, loc_str]= time_str.split("loc:");
+
+      time_str= time_str.trim();
+      if (time_str) {
+        timSpl_ar= time_str.split(" ");
+        if (alarmNow_obj= TMX.alrm_procTimeText(`${timSpl_ar[1]} ${timSpl_ar[2]} -020`, loc_str, "preview")) { // -20 minutes
           TMX.alrm_execAdd();
 
-          k_str= spl_ar[4] ? " (K)" : ""; //keeper league
-          html_str= `${tSpl_ar[0]} <br><i>${spl_ar[3]}</i>${k_str} <i class="PC_tid" title="?">${spl_ar[5]}</i>`;
+          html_str= TMX.HOOK("extAddAlarm", spl_ar) || name_str;
           tmx.alarmInst_EL.$E.Name.innerHTML= html_str;
 
           tmx.alarmInst_EL.$D.hTime_str= alarmNow_obj.hTime_str;
@@ -2653,25 +2651,27 @@ TMX.alarms_import= function(imported_str) {
           TMX.alrm_glow(4);
           add_arr.push(tmx.alarmInst_EL); //for sound only
         }
+      }
 
-      } else if (action_str == "externalDelete") {
-        //externalDelete|123-1|PC
-        //0              1   2
-        let tid= spl_ar[1];
-        let delTid_EL= [...tmx.alarmsCont_EL.querySelectorAll("i.PC_tid")]
-          .find(EL => EL.textContent == tid)
-        ;
-//console.log("externalDelete tid",tid, "delTid_EL",delTid_EL) //debug
-        if (delTid_EL) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
-          del_arr.push(delTid_EL); //for sound only
-          tmx.alarmInst_EL= delTid_EL.closest("div.alarmInstance");
-          TMX.alrm_exeDel();
-        } else {
-          TMXu.message_add("External-delete of " +tid +" failed");
-        }
+    } else if (action_str == "externalDelete") {
+      name_str= spl_ar[1];
+      //externalDelete|Some Alarm
+      //externalDelete|123-1|PC
 
-      } //action_str
-    } //PC
+      let delAlarm_EL= TMX.HOOK("extDeleteAlarm", spl_ar);
+      if (!delAlarm_EL) delAlarm_EL= [...tmx.alarmsCont_EL.querySelectorAll("div.alarmName")]
+        .find(EL => EL.textContent == name_str)
+      ;
+
+      if (delAlarm_EL) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
+        del_arr.push(delAlarm_EL); //for sound only
+        tmx.alarmInst_EL= delAlarm_EL;
+        TMX.alrm_exeDel();
+      } else {
+        TMXu.message_add("External-delete of " +name_str +" failed");
+      }
+
+    } //action_str
   });
 
   TMX.sound_play("bell", add_arr, 1500); //1400, bell is longish clip
@@ -2682,7 +2682,7 @@ TMX.alarms_import= function(imported_str) {
     TMX.alarms_sort(add_arr);
     TMX.alarms_save();
   }
-}; //TMX.alarms_import()
+}; //TMX.alarms_external()
 
 TMX.alarms_getDataArr= function() {
   tmx.vis_ct= 0;
@@ -2809,27 +2809,6 @@ TMX.g_untilStr= function(m, h) {
 
   return str;
 }; //TMX.g_untilStr()
-
-
-tmx.bC= new BroadcastChannel("bc0");
-tmx.bC.postMessage("init");
-
-tmx.bcDupe_flag;
-tmx.bC.onmessage= evt => {
-//console.log("tmx.bC", evt)
-  if (evt.data == "init") tmx.bC.postMessage("dupe");
-  else if (evt.data == "dupe") tmx.bcDupe_flag= true;
-};
-
-
-TMX.PClink= function(tid_EL) { //PennantChase
-  var tid= tid_EL.textContent;
-  var lgid= tid.split("-")[0];
-  var tname= tid_EL.closest("div.alarmName").querySelector("i").textContent; //tree up then down
-  //div.alarmName will contain 2 <i>, 1st will be teamname, 2nd will be tid with <i class="PC_tid">
-  jm.alert(`PennantChase<br>lg${lgid} <b>${tname}</b> <a href="https://www.pennantchase.com/lgTeamLineup.aspx?tid=${tid}&lgid=${lgid}" target="_blank">Lineup</a>`);
-}; //TMX.PClink()
-
 
 
 tmx.alrmExpChange_flag;
@@ -3086,6 +3065,7 @@ TMX.data_save= function(key, data, cb) { //can only save 1 item per call
 //console.log("save LS", key, "data", data);
   if (cb) cb("set");
 }; //TMX.data_save()
+//for TMX.data_remove(), use TMX.data_save() with data as ""
 
 
 TMX.sound_play= function(ac_key, repeat_n =1, step_ms =750) {
@@ -3429,82 +3409,112 @@ jm.init();
   var init_dtO= new Date();
   console.log("INIT", init_dtO.toLocaleString());
 
-  var fClick_flag= true;
-  alarms_urlImport(window.location.search);
-  if (fClick_flag) { //satisfy browser requirement to allow play-sound
+  var app_flag= true;
+  var dataO;
 
-    TMX.data_load(["snooze_num", "timeview_flag"], dataO => {
-      tmx.snooze_def_num= (dataO.snooze_num || 5) *1; //default 5
-      tmx.timeview_def_flag= dataO.timeview_flag == "true"; //true is view-countdown, default is view-time
-    });
-
-    setTimeout(() => {
-      jm.alert(tmx.bcDupe_flag ? "TIMECKS is already running in another window or tab, close this tab" : "Click to start", () => {
-        if (tmx.bcDupe_flag) {
-          window.close();
-        } else {
-          TMX.clock_draw();
-          TMX.alarmsDrag_init();
-          TMX.clock_start();
-          TMX.alarms_start();
-          TMX.HOOK("init");
-        }
+  TMX.data_load(["plugins", "allowUrlEndpoint", "snooze_num", "timeview_flag"], dO => {
+    dataO= dO;
+    if (1||       dataO.plugins) { //zzz
+      TMXu.loadScript("pennantChase_plugin/pC_plugin.js", () => {
+        TMX_init();
       });
-    }, 100); //allow 1st TMX.data_load and bC to complete
-  }
+    } else {
+      TMX_init();
+    }
+  });
 
-  function alarms_urlImport(q_str) { //import from via url querystring, stores "importedAlarm" in localstorage
-    //.. this is a url based endpoint, not really a webpage, self closes
+  function TMX_init() {
+    //localStorage.allowUrlEndpoint, no app access, set in console
+    if (dataO.allowUrlEndpoint) checkUrlEndpoint(window.location.search);
+
+    if (app_flag) {
+      var bcDupe_flag;
+      var bC= new BroadcastChannel("bc0");
+      bC.postMessage("init"); //send
+      bC.onmessage= evt => { //receive
+        //console.log("bC", evt)
+        if (evt.data == "init") bC.postMessage("dupe"); //send
+        else if (evt.data == "dupe") bcDupe_flag= true;
+      };
+
+      setTimeout(() => { //allow bC to complete
+
+        jm.alert(!bcDupe_flag ? "Click to start" : "TIMECKS is already running in another window or tab, close this tab", () => {
+          //will satisfy browser requirement to allow play-sound
+
+          if (bcDupe_flag) {
+            window.close();
+          } else {
+            tmx.snooze_def_num= (dataO.snooze_num || 5) *1; //default 5
+            tmx.timeview_def_flag= dataO.timeview_flag == "true"; //true is view-countdown, default is view-time
+
+            TMX.clock_draw();
+            TMX.alarmsDrag_init();
+            TMX.clock_start();
+            TMX.alarms_start();
+            TMX.HOOK("init");
+          }
+
+        }); //jm.alert()
+
+      }, 100);
+    } //app_flag
+
+  } //TMX_init()
+
+  function checkUrlEndpoint(q_str) {
+    //this executes in a SEPARATE webpage (browser tab)
+    //its a url based endpoint, not really a webpage, self closes
+    //import from via url querystring, stores "externalAlarms" in localstorage
     if (!q_str) return; //-->
 
     var usp= new URLSearchParams(q_str);
     var action_str, external_str;
 
-    //for local testing// file:///C:/Users/chaaad/Documents/GitHub/TIMECKS/index.htm
-    findQS("export");  // ?export=WED 5/5 12:34pm|PC|New%20York%20Yankees|K|123-1
-    findQS("exportDelete"); //?exportDelete=123-1|PC
+    findQS("export");  // ?export=5/5 12:34pm|Some Alarm
+    if (!action_str) findQS("exportDelete"); //?exportDelete=Some Alarm
 
     function findQS(act_str) {
       var exp_str= usp.get(act_str);
       if (exp_str) {
-        var split_arr= exp_str.split("|");
-        if (split_arr[1] == "PC") {
-          //.. qualify //only PC can import
-          action_str= act_str.replace("export", "external");
-          external_str= exp_str;
-        }
+        action_str= act_str.replace("export", "external");
+        external_str= exp_str;
       }
     }
 
-    if (action_str && external_str) {
-      fClick_flag= false;
+    if (action_str && external_str) { //"external", "externalDelete"
+      app_flag= false;
 
       external_str= action_str +"|" +external_str;
 //console.log("external_str:", external_str);
 
-      TMX.data_load("importedAlarm", dataO => {
+      TMX.data_load("externalAlarms", dataO => {
 //console.log("dataO:", dataO);
-        var prevImport_str= dataO.importedAlarm;
+        var prevImport_str= dataO.externalAlarms;
         if (prevImport_str) { //allow multiple
           if (prevImport_str.includes(external_str)) external_str= ""; //dupe, ignore
           else external_str= prevImport_str +"\n" +external_str; //append
         }
-//console.log("importedAlarm:", external_str);
+//console.log("externalAlarms:", external_str);
         if (external_str) {
-          TMX.data_save("importedAlarm", external_str, resp => {
+          TMX.data_save("externalAlarms", external_str, resp => {
             window.close();
           });
         } else window.close();
       }); //TMX.data_load
     }
 
-  } //alarms_urlImport()
+  } //checkUrlEndpoint()
 
 })(); //IIFE
 
 </script>
 
+
+
+
 <!--dropbox sync --start-->
+<!--not regular plugin, TMXu.loadScript only does simple, no-auth loads-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dropbox.js/10.34.0/Dropbox-sdk.min.js" integrity="sha512-PTKs+sPreCz6TLyLj9CYx3LxxPZmY5k1k5Yb5Y5mUQzngf/XUxNdtyWwYjcPcOZJm4wSYiicZr0kotLmDIRFmQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="dropbox_plugin/dBX_plugin.js"></script>
 <!--dropbox sync --end-->
