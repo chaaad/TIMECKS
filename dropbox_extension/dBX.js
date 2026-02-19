@@ -337,7 +337,7 @@ const dBX= {
       const IMG= document.createElement("img");
       document.body.appendChild(IMG);
       IMG.id= "dropboxLogo";
-      IMG.src= "dropbox_plugin/dropbox_logo-mask64.png";
+      IMG.src= "dropbox_extension/dropbox_logo-mask64.png";
 
       dBX.BUT.IMG= IMG;
 
