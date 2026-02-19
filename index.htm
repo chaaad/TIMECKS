@@ -3426,17 +3426,33 @@ jm.init();
 
   TMX.data_load(["plugins", "allowUrlEndpoint", "snooze_num", "timeview_flag"], dO => {
     dataO= dO;
-    if (1||       dataO.plugins) { //zzz
-      TMXu.loadScript("pennantChase_plugin/pC_plugin.js", () => {
-        TMX_init();
-      });
+
+    //dataO.plugins= "pennantChase_plugin/pC_plugin.js someotherplugin/xyz.js"; //single string, multiple items separated by space
+    //localStorage .plugins, no app access, set in console
+
+    var plugins_str;
+    if (plugins_str= dataO.plugins) {
+      var plugins_arr= dataO.plugins.split(" ").filter(Boolean); //split, then remove empties
+      var plugin_str; //path
+      plugin_load(); //kickoff
+
+      function plugin_load() {
+        if (plugin_str= plugins_arr.shift()) {
+          TMXu.loadScript(plugin_str, () => {
+            plugin_load(); //recurse //-->
+          });
+        } else {
+          TMX_init();
+        }
+      } //plugin_load()
+
     } else {
       TMX_init();
     }
   });
 
   function TMX_init() {
-    //localStorage.allowUrlEndpoint, no app access, set in console
+    //localStorage .allowUrlEndpoint, no app access, set in console
     if (dataO.allowUrlEndpoint) checkUrlEndpoint(window.location.search);
 
     if (app_flag) {
@@ -3526,9 +3542,9 @@ jm.init();
 
 
 <!--dropbox sync --start-->
-<!--not regular plugin, TMXu.loadScript only does simple, no-auth loads-->
+<!--not a plugin, TMXu.loadScript only does simple, no-auth loads-->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dropbox.js/10.34.0/Dropbox-sdk.min.js" integrity="sha512-PTKs+sPreCz6TLyLj9CYx3LxxPZmY5k1k5Yb5Y5mUQzngf/XUxNdtyWwYjcPcOZJm4wSYiicZr0kotLmDIRFmQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="dropbox_plugin/dBX_plugin.js"></script>
+<script src="dropbox_extension/dBX.js"></script>
 <!--dropbox sync --end-->
 
 </html>
