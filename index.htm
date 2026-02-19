@@ -980,10 +980,24 @@ const TMX= {}; //global fns
 const tmx= {}; //global vars
 
 tmx.hookers= {};
+tmx.hookKeys_arr= "init extAddAlarm extDeleteAlarm alarmNameClick alarmsSave".split(" ");
 
-TMX.HOOK= function(hook_key, v) {
-  var hook_fn;
-  if (hook_fn= tmx.hookers[hook_key]) return hook_fn(v); //sends only 1 arg, v
+TMX.registerHOOK= function(hook_key, hook_fn) {
+  if (!tmx.hookKeys_arr.includes(hook_key)) return console.log("hook_key:", hook_key, "doesnt exist"); //-->
+  if (!tmx.hookers[hook_key]) tmx.hookers[hook_key]= [];
+  tmx.hookers[hook_key].push(hook_fn);
+}; //TMX.registerHOOK()
+
+TMX.HOOK= function(hook_key, req) {
+  var hook_fns;
+  var resp;
+  if (hook_fns= tmx.hookers[hook_key]) {
+    hook_fns.forEach(hook_fn => {
+      resp= hook_fn(req) || resp; //sends only 1 arg, req
+      //warning: if req is an obj, its possible for plugin to alter it (and mess it up for following plugins)
+    });
+    return resp; //returns only 1 resp, if multiple hooks return a value, the last one "wins"
+  }
 }; //TMX.HOOK()
 
 

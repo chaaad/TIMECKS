@@ -193,7 +193,7 @@ const dBX= {
                 TMXu.ls("alarms", alarmsDBX_str); //direct save to //fn from main page, ls set
 
               } else { //if (choice_key == "LS") {
-                tmx.hookers["alarmsSave"](alarmsLS_str); //direct save to dropbox
+                dBX.uplAlarms(alarmsLS_str); //direct save to dropbox
               }
             } //chose()
 
@@ -432,10 +432,10 @@ const dBX= {
 
 
 //tmx hooks
-tmx.hookers["init"]= function() { //hook fn from main page
+TMX.registerHOOK("init", function() { //hook fn from main page
   dBX.init();
-}; //tmx.hookers["init"]()
+}); //TMX.registerHOOK("init"]()
 
-tmx.hookers["alarmsSave"]= function(json_str) { //hook fn from main page
+TMX.registerHOOK("alarmsSave", function(json_str) { //hook fn from main page
   dBX.uplAlarms(json_str);
-}; //tmx.hookers["alarmsSave"]()
+}); //TMX.registerHOOK("alarmsSave"]()

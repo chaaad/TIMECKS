@@ -14,12 +14,12 @@ const pC= {
 
 //tmx hooks
 
-tmx.hookers["init"]= function() { //hook fn from main page
+TMX.registerHOOK("init", function() { //hook fn from main page
   pC.init();
-}; //tmx.hookers["init"]()
+}); //TMX.registerHOOK("init"]()
 
 
-tmx.hookers["extAddAlarm"]= function(spl_ar) { //hook fn from main page
+TMX.registerHOOK("extAddAlarm", function(spl_ar) { //hook fn from main page
   if (spl_ar[2] != "PC") return; //-->
 /*
 // external|2/19 6:39pm|PC|THU|Hello Kitty|K|1119-12
@@ -29,10 +29,10 @@ idx:                             0        1           2  3   4                  
 */
   var k_str= spl_ar[5] ? " (K)" : ""; //keeper league
   return `${spl_ar[3]} <br><i>${spl_ar[4]}</i>${k_str} <i class="PC_tid" title="?">${spl_ar[6]}</i>`;
-}; //tmx.hookers["extAddAlarm"]()
+}); //TMX.registerHOOK("extAddAlarm"]()
 
 
-tmx.hookers["extDeleteAlarm"]= function(spl_ar) { //hook fn from main page
+TMX.registerHOOK("extDeleteAlarm", function(spl_ar) { //hook fn from main page
   if (spl_ar[2] != "PC") return; //-->
 /*
 test "delete" in console:
@@ -45,10 +45,10 @@ idx:                             0              1     2
   ;
 //console.log("externalDelete tid",tid, "delTid_EL",delTid_EL) //debug
   if (delTid_EL) return delTid_EL.closest("div.alarmInstance");
-}; //tmx.hookers["extDeleteAlarm"]
+}); //TMX.registerHOOK("extDeleteAlarm"]
 
 
-tmx.hookers["alarmNameClick"]= function(targ_el) { //hook fn from main page
+TMX.registerHOOK("alarmNameClick", function(targ_el) { //hook fn from main page
   if (targ_el.classList.contains("PC_tid")) {
     var tid= targ_el.textContent;
     var lgid= tid.split("-")[0];
@@ -58,4 +58,4 @@ tmx.hookers["alarmNameClick"]= function(targ_el) { //hook fn from main page
 
     return true; //prevent default
   }
-}; //tmx.hookers["alarmNameClick"]()
+}); //TMX.registerHOOK("alarmNameClick"]()
