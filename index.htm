@@ -2618,7 +2618,7 @@ TMX.alarms_external= function(external_str) {
 
   var action_str;
   var spl_ar;
-  var time_str, loc_str, timSpl_ar, alarmNow_obj;
+  var time_str, loc_str, alarmNow_obj;
   var name_str;
   var html_str;
   var add_arr= []; //for sound only
@@ -2635,10 +2635,8 @@ TMX.alarms_external= function(external_str) {
       time_str= spl_ar[1]; //5/5 12:34pm loc:America/Los_Angeles
       if (time_str.indexOf("loc:") >= 0) [time_str, loc_str]= time_str.split("loc:");
 
-      time_str= time_str.trim();
       if (time_str) {
-        timSpl_ar= time_str.split(" ");
-        if (alarmNow_obj= TMX.alrm_procTimeText(`${timSpl_ar[1]} ${timSpl_ar[2]} -020`, loc_str, "preview")) { // -20 minutes
+        if (alarmNow_obj= TMX.alrm_procTimeText(time_str +"-020", loc_str, "preview")) { // -20 minutes
           TMX.alrm_execAdd();
 
           html_str= TMX.HOOK("extAddAlarm", spl_ar) || name_str;
