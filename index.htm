@@ -2648,6 +2648,8 @@ TMX.alarms_external= function(external_str) {
 
       time_str= spl_ar[1]; //5/5 12:34pm loc:America/Los_Angeles
       if (time_str.indexOf("loc:") >= 0) [time_str, loc_str]= time_str.split("loc:");
+      if (loc_str) loc_str= loc_str.trim();
+      //!! no validation of loc_str
 
       if (time_str) {
         if (alarmNow_obj= TMX.alrm_procTimeText(time_str +"-020", loc_str, "preview")) { // -20 minutes
@@ -2672,10 +2674,10 @@ TMX.alarms_external= function(external_str) {
 
       let delAlarm_EL= TMX.HOOK("extDeleteAlarm", spl_ar);
       if (!delAlarm_EL) delAlarm_EL= [...tmx.alarmsCont_EL.querySelectorAll("div.alarmName")]
-        .find(EL => EL.textContent == name_str)
+        .find(EL => EL.textContent == name_str) //!! user may have edited name in app, which will cause match to fail
       ;
 
-      if (delAlarm_EL) { //if multiple alarms with this tid, only 1st alarm deleted //so edge its silly
+      if (delAlarm_EL) { //!! if multiple alarms matched, only 1st alarm deleted
         del_arr.push(delAlarm_EL); //for sound only
         tmx.alarmInst_EL= delAlarm_EL;
         TMX.alrm_exeDel();

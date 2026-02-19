@@ -41,7 +41,7 @@ idx:                             0              1     2
 */
   var tid= spl_ar[1];
   var delTid_EL= [...tmx.alarmsCont_EL.querySelectorAll("i.PC_tid")]
-    .find(EL => EL.textContent == tid)
+    .find(EL => EL.textContent == tid) //!! user may have edited name in app, which could cause match to fail
   ;
 //console.log("externalDelete tid",tid, "delTid_EL",delTid_EL) //debug
   if (delTid_EL) return delTid_EL.closest("div.alarmInstance");
