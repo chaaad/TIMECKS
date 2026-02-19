@@ -1748,7 +1748,7 @@ TMX.alarmsDrag_init= function() {
 
     dragAl_EL= evt.target;
     TMXu.classEl(dragAl_EL, "dragging", true);
-    //evt.dataTransfer.effectAllowed= "move"; //what does this even do?
+    //evt.dataTransfer.effectAllowed= "move"; //doesnt apply
   } //dragStart()
 
   function dragOver(evt) {
@@ -1882,7 +1882,7 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
   var orig_time_str= NEW_str ? "12:00" : tmx.alarmInst_EL.$D.hTime_str;
   var time_str= orig_time_str;
 
-  var orig_loc_str= tmx.alarmInst_EL.$D.loc;
+  var orig_loc_str= NEW_str ? "" : tmx.alarmInst_EL.$D.loc;
   var loc_str= orig_loc_str;
 
   var prom_str= "<b>Time</b> for " +(NEW_str?"new ":"") +"alarm:" +TMX.g_promStr(NEW_str, time_str);

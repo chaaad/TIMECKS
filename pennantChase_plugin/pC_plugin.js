@@ -1,6 +1,10 @@
+//to enable pennantChase plugin:
+//in browser console, localStorage..
+  //for key: "allowUrlEndpoint" (add if needed), set value: true
+  //for key: "plugins" (add if needed), add value: "pennantChase_plugin/pC_plugin.js" //single string, multiple items separated by space)
+
 const pC= {
   init: function() {
-
     TMXu.createCssRule(`
       div.alarmName {
         .PC_tid {
