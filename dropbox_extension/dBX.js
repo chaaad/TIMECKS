@@ -140,7 +140,7 @@ const dBX= {
 //console.log("firstLoad->dBX.downloadData", dBX.fPath_str, "loaded");
 //console.log(fileContent_str);
             dBX.BUT.logo_glow("cyan");
-            compareThenFix(fileContent_str);
+            dBX.compareThenFix(fileContent_str);
           });
 
         } else { //no dropbox "alarms.json" //would occur normally with user's very first use of timecks-dropbox-sync
