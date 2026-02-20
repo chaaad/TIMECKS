@@ -67,7 +67,7 @@ const dBX= {
       else dBX.BUT.logo_set();
 
 
-//to debug compareThenFix 1/2
+//to debug, 1/2
 //dBX.compareThenFix()
     }
   }, //init()
@@ -159,7 +159,8 @@ const dBX= {
 
     function get_sortedArrStr(arr) {
       if (Array.isArray(arr)) {
-        arr.sort((a, b) => a.id -b.id); //arr is sorted (in place)
+        arr.sort((a, b) => (a.n).localeCompare(b.n, undefined, {sensitivity:"base"}));; //arr is sorted (in place)
+        //arr.sort((a, b) => a.id -b.id); //arr is sorted (in place)
         return JSON.stringify(arr);
       }
     } //get_sortedArrStr()
@@ -176,9 +177,10 @@ const dBX= {
     var alarmsLS_str= get_sortedArrStr(alarmsLS_arr);
 
 /*
-//to debug compareThenFix 2/2
+//to debug, 2/2
 alarmsDBX_arr= structuredClone(alarmsLS_arr);
 alarmsDBX_arr[0].n= "STUB";
+alarmsDBX_arr[3].t= "whenever";
 alarmsDBX_str= get_sortedArrStr(alarmsDBX_arr);
 console.log("STUB alarmsLS_arr",alarmsLS_arr)
 */
@@ -190,9 +192,26 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
         chosen("LS");
 
       } else { //fix needed
-        var preMerged_arr;
-        var origBaseL_n;
-        create_preMergeArr();
+        var preMerged_arr= structuredClone(alarmsDBX_arr);
+        var origBaseL_n= preMerged_arr.length;
+
+        var changeDBX_arr= procArrs(alarmsDBX_arr, alarmsLS_arr);
+        var changeLS_arr= procArrs(alarmsLS_arr, alarmsDBX_arr, "preMrg");
+
+        function procArrs(base_arr, comp_arr, preMrg_flag) {
+          var change_arr= [];
+
+          base_arr.forEach((base_aO, i) => {
+            if (!comp_arr.find(comp_aO => base_aO.n==comp_aO.n && base_aO.t==comp_aO.t && base_aO.l==comp_aO.l)) { //not found
+              change_arr[i]= true;
+              if (preMrg_flag) preMerged_arr.push(base_aO);
+            }
+          });
+
+          return change_arr;
+        } //procArrs()
+
+        get_sortedArrStr(preMerged_arr); //only to sort
 
         var custButO;
         var html_str;
@@ -212,8 +231,8 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
           }
           html_str+= '<br><div id="dbx_conflict">'; //flex will make children into columns
           if (mode_str == "choose") {
-            addCol("Local", "● ", alarmsLS_arr);
-            addCol("Cloud", "● ", alarmsDBX_arr);
+            addCol("Local", changeLS_arr, alarmsLS_arr);
+            addCol("Cloud", changeDBX_arr, alarmsDBX_arr);
           } else { //"merge"
             addCol("", "", preMerged_arr);
           }
@@ -222,13 +241,13 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
           if (mode_str == "merge") html_str+= '<i class="E">When Merged, unchecked alarms will be discarded</i>';
           else html_str+= '<br><i class="E">When Chosen, one version will be used, other will be discarded</i>';
 
-          function addCol(title_str, bullet_str, arr) {
+          function addCol(title_str, change_arr, arr) {
             html_str+= '<div class="columnDiv">';
             if (title_str) html_str+= '<p><label><input type="radio" name="choose">' +title_str +'</label></p>';
             html_str+= "<ul>";
-            arr.forEach(alO => {
+            arr.forEach((alO, i) => {
               name_str= TMXu.escape_html(alO.n);
-              if (bullet_str) html_str+= `<li>${bullet_str} ${name_str}<br>`;
+              if (change_arr) html_str+= `<li><span class="bullet${change_arr[i]?" mark":""}">● </span>${name_str}<br>`;
               else html_str+= `<li><label><input type="checkbox"> ${name_str}</label><br>`;
 
               html_str+= "<sup>" +alO.t +" " +(alO.l||"") +"</sup></li>";
@@ -321,20 +340,6 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
           }); //modal
 
         } //fix()
-
-        function create_preMergeArr() {
-          var base_arr= alarmsDBX_arr;
-          var add_arr= alarmsLS_arr;
-          if (add_arr.length > base_arr.length) [base_arr, add_arr] = [add_arr, base_arr]; //swap
-
-          preMerged_arr= structuredClone(base_arr);
-          origBaseL_n= preMerged_arr.length;
-          add_arr.forEach(add_aO => {
-            if (!preMerged_arr.find(base_aO => base_aO.n==add_aO.n && base_aO.t==add_aO.t && base_aO.l==add_aO.l)) { //not found
-              preMerged_arr.push(add_aO);
-            }
-          });
-        } //create_preMergeArr()
 
       } //fix needed
 
@@ -487,6 +492,14 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
 
           div.columnDiv {
             flex: 1;
+
+            span.bullet {
+              font-size: x-large;
+
+              &.mark {
+                color: limegreen;
+              }
+            }
 
             ul {
               margin: 8px 8px 0 0;
