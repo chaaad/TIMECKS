@@ -196,39 +196,43 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
 
         var custButO;
         var html_str;
-        var checkbox_str= '<input type="checkbox">';
-        var get_radioStr= str => '<label><input type="radio" name="choose">' +str +'</label>';
+      //  var checkbox_str= `<input type="checkbox">${alO.n}`;
+        var cont_el;
 
         fix("choose"); //kickoff
 
         function fix(mode_str) {
           html_str= "<p>Dropbox Sync, ";
           if (mode_str == "choose") {
-            custButO= {OkBut:"Choose One", NoBut:"Merge Instead"},
+            custButO= {OkBut:"Choose One", NoBut:"Merge instead"},
             html_str+= "difference found between:</p>";
           } else { //"merge"
-            custButO= {OkBut:"Merge", NoBut:"Choose One Instead"};
+            custButO= {OkBut:"Merge", NoBut:"Choose One instead"};
             html_str+= "combined Local and Cloud:</p>";
           }
           html_str+= '<br><div id="dbx_conflict">'; //flex will make children into columns
           if (mode_str == "choose") {
-            addCol(get_radioStr("Local"), "● ", alarmsLS_arr);
-            addCol(get_radioStr("Cloud"), "● ", alarmsDBX_arr);
+            addCol("Local", "● ", alarmsLS_arr);
+            addCol("Cloud", "● ", alarmsDBX_arr);
           } else { //"merge"
-            addCol("", checkbox_str, preMerged_arr);
+            addCol("", "", preMerged_arr);
           }
           html_str+= '</div>'; //end dbx_conflict div
+
           if (mode_str == "merge") html_str+= '<i class="E">When Merged, unchecked alarms will be discarded</i>';
-          else html_str+= '<i class="E">When Chosen, one version will be used, other will be discarded</i>';
+          else html_str+= '<br><i class="E">When Chosen, one version will be used, other will be discarded</i>';
 
           function addCol(title_str, bullet_str, arr) {
-            html_str+= "<ul>"; //col
-            if (title_str) html_str+= "<p>" +title_str +"</p>";
+            html_str+= '<div class="columnDiv">';
+            if (title_str) html_str+= '<p><label><input type="radio" name="choose">' +title_str +'</label></p>';
+            html_str+= "<ul>";
             arr.forEach(alO => {
-              html_str+= "<li>" +bullet_str + alO.n +"<br>";
+              if (bullet_str) html_str+= `<li>${bullet_str} ${alO.n}<br>`;
+              else html_str+= `<li><label><input type="checkbox"> ${alO.n}</label><br>`;
+
               html_str+= "<sup>" +alO.t +" " +(alO.l||"") +"</sup></li>";
             });
-            html_str+= "</ul>"; //end col
+            html_str+= "</ul></div>"; //end col
           } //addCol()
 
           var inputEls;
@@ -237,34 +241,52 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
             custButText: custButO,
             begin_cb: () => {
               TMXu.classEl(jm._ELs.Modal, "mediumWide", true); //fn from main page
-              inputEls= jm._ELs.Description.querySelectorAll("input");
+              cont_el= jm._ELs.Description.querySelector("div#dbx_conflict");
               if (mode_str == "choose") {
-                highlight(inputEls[1], true); //hc, check 2nd radio
-
                 var prevUl_el;
-                inputEls.forEach((inp_el, i) => {
+                inputEls= [];
+
+                cont_el.querySelectorAll("div.columnDiv").forEach((div_el, i) => {
+                  var inp_el= div_el.querySelector("input");
                   inp_el.addEventListener("click", evt => {
-                    highlight(inp_el); //note: inp_el scoped by the forEach fn
+                    highlight(inp_el, true); //note: inp_el scoped by the forEach fn
+                  }); //addEventListener
+                  inputEls.push(inp_el);
+
+                  var ul_el= div_el.querySelector("ul");
+                  ul_el.addEventListener("click", evt => {
+                    highlight(inp_el, true); //note: inp_el scoped by the forEach fn
                   }); //addEventListener
                 });
 
-                function highlight(inp_el, check_flag) {
+                function highlight(inp_el, checked_flag) {
                   if (prevUl_el) TMXu.classEl(prevUl_el, "high", false);
 
-                  var ul_el= inp_el.closest("ul");
+                  var ul_el= inp_el.closest("div").querySelector("ul");
                   TMXu.classEl(ul_el, "high", true);
                   prevUl_el= ul_el;
 
-                  if (check_flag != undefined) inp_el.checked= check_flag;
+                  if (checked_flag != undefined) inp_el.checked= checked_flag;
                 } //highlight()
 
+                highlight(inputEls[1], true); //hc, check 2nd radio
+
               } else { //"merge"
+                inputEls= cont_el.querySelectorAll("input");
                 inputEls.forEach(inp_el => inp_el.checked= true ); //check all checkboxes
               }
             },
             end_cb: resp => {
               TMXu.classEl(jm._ELs.Modal, "mediumWide", false); //fn from main page
-              if (resp) {
+              if (resp == null) {
+                jm.confirm("Dropbox Sync conflict needs to be resolved. To do at a later point:<br><br><p>Exit TIMECKS now</p>", false, {
+                  end_cb: resp => {
+                    if (resp) window.close();
+                    else fix(mode_str);
+                  }
+                });
+
+              } else if (resp) {
                 if (mode_str == "choose") {
                   chosen(inputEls[1].checked ? "DBX" : "LS");
 
@@ -462,15 +484,21 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
         div#dbx_conflict {
           display:flex;
 
-          ul {
+          div.columnDiv {
             flex: 1;
 
-            margin: 0 8px 0 0;
-            padding: 8px;
-            border-radius: 16px;
+            ul {
+              margin: 8px 8px 0 0;
+              padding: 16px;
+              border-radius: 16px;
 
-            &.high {
-              background: lightyellow;
+              &.high {
+                background: lightyellow;
+              }
+
+              sup {
+                color: chocolate;
+              }
             }
           }
 
