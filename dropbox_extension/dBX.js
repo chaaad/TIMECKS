@@ -193,21 +193,21 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
       var preMerged_arr= structuredClone(alarmsDBX_arr);
       var origBaseL_n= preMerged_arr.length;
 
-      var changeDBX_arr= procArrs(alarmsDBX_arr, alarmsLS_arr);
-      var changeLS_arr= procArrs(alarmsLS_arr, alarmsDBX_arr, "preMrg");
+      var diffDBX_arr= procArrs(alarmsDBX_arr, alarmsLS_arr);
+      var diffLS_arr= procArrs(alarmsLS_arr, alarmsDBX_arr, "preMrg");
 
-      function procArrs(base_arr, comp_arr, preMrg_flag) { //creates changed-arrs, and preMerged_arr
-        var change_arr= [];
+      function procArrs(base_arr, comp_arr, preMrg_flag) { //creates diffed-arrs, and preMerged_arr
+        var diff_arr= [];
         base_arr.forEach((base_aO, i) => {
           if (!comp_arr.find(comp_aO => base_aO.n==comp_aO.n && base_aO.t==comp_aO.t && base_aO.l==comp_aO.l)) { //not found
-            change_arr[i]= true;
+            diff_arr[i]= true;
             if (preMrg_flag) preMerged_arr.push(base_aO);
           }
         });
-        return change_arr;
+        return diff_arr;
       } //procArrs()
 
-      if (!changeDBX_arr.length && !changeLS_arr.length) {
+      if (!diffDBX_arr.length && !diffLS_arr.length) {
         console.log('Dropbox Sync: minor differences ignored. "Hidden" and/or "Time/Countdown View" on alarm(s)');
         return; //-->
       }
@@ -231,8 +231,8 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
         }
         html_str+= '<br><div id="dbx_conflict">'; //flex will make children into columns
         if (mode_str == "choose") {
-          addCol("Local", alarmsLS_arr, changeLS_arr);
-          addCol("Cloud", alarmsDBX_arr, changeDBX_arr);
+          addCol("Local", alarmsLS_arr, diffLS_arr);
+          addCol("Cloud", alarmsDBX_arr, diffDBX_arr);
         } else { //"merge"
           addCol("", preMerged_arr);
         }
@@ -241,15 +241,15 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
         if (mode_str == "merge") html_str+= '<i class="E">When Merged, unchecked alarms will be discarded</i>';
         else html_str+= '<br><i class="E">When Chosen, one version will be used, other will be discarded</i>';
 
-        function addCol(title_str, arr, change_arr) {
+        function addCol(title_str, arr, diff_arr) {
           html_str+= '<div class="columnDiv">';
           if (title_str) html_str+= '<p><label><input type="radio" name="choose">' +title_str +'</label></p>';
 
           html_str+= "<ul>";
           arr.forEach((alO, i) => {
             name_str= TMXu.escape_html(alO.n);
-            if (change_arr) html_str+= `<li><span class="bullet${change_arr[i]?" mark":""}">● </span>${name_str}<br>`;
-            else html_str+= `<li><label${i>=origBaseL_n?' class="added"':""}><input type="checkbox"> ${name_str}&nbsp;</label><br>`;
+            if (diff_arr) html_str+= `<li><span class="bullet${diff_arr[i]?" mark":""}">● </span>${name_str}<br>`;
+            else html_str+= `<li><label${i>=origBaseL_n?' class="except"':""}><input type="checkbox"> ${name_str}&nbsp;</label><br>`;
 
             html_str+= "<sup>" +alO.t +" " +(alO.l||"") +"</sup></li>";
           });
@@ -515,7 +515,7 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
             }
           }
 
-          label.added {
+          label.except {
             background: #32cd3247;
           }
 
