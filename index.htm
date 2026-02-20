@@ -895,6 +895,8 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
 //<a href="https://www.freepik.com/icon/alarm-clock_15092469#fromView=keyword&page=1&position=21&uuid=6aee3d4d-c58a-453e-8681-22457f5c0a34">Icon by sonnycandra</a>
 //https://realfavicongenerator.net/
 
+const TMX= {}; //global fns
+const tmx= {}; //global vars
 
 const TMXu= {}; //global utils
 TMXu.showEl= function(el, display_param) { //display_param is truthy, unless its a string, then it true and string is used as value (eg. "inline")
@@ -950,6 +952,18 @@ TMXu.parseJSON= function(str) {
   return json_dat;
 };
 
+tmx.escHTML_rE= /[&"'<>]/g;
+tmx.escHTML_luO= {
+  "&": "&amp;",
+  '"': "&quot;",
+  "\'": "&apos;",
+  "<": "&lt;",
+  ">": "&gt;"
+};
+TMXu.escape_html= function(str) { //https://stackoverflow.com/questions/5251520/how-do-i-escape-some-html-in-javascript
+  return str.replace(tmx.escHTML_rE, key => tmx.escHTML_luO[key] );
+}; //TMXu.escape_html
+
 TMXu.ls= function(key, v) { //localStorage: get, set, v="" to rem
   if (v != undefined) {
     if (v == "") window.localStorage.removeItem(key); //ls rem
@@ -979,9 +993,6 @@ TMXu.txtFile_fetch= async function(url_str, cb) {
   }
 }; //TMXu.txtFile_fetch()
 
-
-const TMX= {}; //global fns
-const tmx= {}; //global vars
 
 tmx.hookers= {};
 tmx.hookKeys_arr= "init extAddAlarm extDeleteAlarm alarmNameClick alarmsSave".split(" ");

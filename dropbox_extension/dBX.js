@@ -196,8 +196,8 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
 
         var custButO;
         var html_str;
-      //  var checkbox_str= `<input type="checkbox">${alO.n}`;
         var cont_el;
+        var name_str;
 
         fix("choose"); //kickoff
 
@@ -227,8 +227,9 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
             if (title_str) html_str+= '<p><label><input type="radio" name="choose">' +title_str +'</label></p>';
             html_str+= "<ul>";
             arr.forEach(alO => {
-              if (bullet_str) html_str+= `<li>${bullet_str} ${alO.n}<br>`;
-              else html_str+= `<li><label><input type="checkbox"> ${alO.n}</label><br>`;
+              name_str= TMXu.escape_html(alO.n);
+              if (bullet_str) html_str+= `<li>${bullet_str} ${name_str}<br>`;
+              else html_str+= `<li><label><input type="checkbox"> ${name_str}</label><br>`;
 
               html_str+= "<sup>" +alO.t +" " +(alO.l||"") +"</sup></li>";
             });
