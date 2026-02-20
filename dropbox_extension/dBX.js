@@ -156,197 +156,196 @@ const dBX= {
 
 
   compareThenFix: function(json_str) {
-
-    function get_sortedArrStr(arr) {
-      if (Array.isArray(arr)) {
-        arr.sort((a, b) => (a.n).localeCompare(b.n, undefined, {sensitivity:"base"}));; //arr is sorted (in place)
-        //arr.sort((a, b) => a.id -b.id); //arr is sorted (in place)
-        return JSON.stringify(arr);
-      }
-    } //get_sortedArrStr()
-
     var alarmsDBX_str, alarmsDBX_arr;
     if (json_str) {
       //cloud
       alarmsDBX_arr= TMXu.parseJSON(json_str); //fn from main page
-      alarmsDBX_str= get_sortedArrStr(alarmsDBX_arr);
+      alarmsDBX_str= get_alphaAlarmsStr(alarmsDBX_arr);
     }
 
     //local
     var alarmsLS_arr= TMX.alarms_getDataArr(); //fn from main page
-    var alarmsLS_str= get_sortedArrStr(alarmsLS_arr);
+    var alarmsLS_str= get_alphaAlarmsStr(alarmsLS_arr);
+
+    function get_alphaAlarmsStr(arr) {
+      if (Array.isArray(arr)) {
+        arr.sort((a, b) => (a.n).localeCompare(b.n, undefined, {sensitivity:"base"}));; //arr is sorted (in place)
+        return JSON.stringify(arr);
+      }
+    } //get_alphaAlarmsStr()
 
 /*
 //to debug, 2/2
 alarmsDBX_arr= structuredClone(alarmsLS_arr);
-alarmsDBX_arr[0].n= "STUB";
-alarmsDBX_arr[3].t= "whenever";
-alarmsDBX_str= get_sortedArrStr(alarmsDBX_arr);
+  alarmsDBX_arr[0].n= "STUB";
+  //alarmsDBX_arr[2].t= "whenever";
+  //alarmsDBX_arr[4].c= 1;
+alarmsDBX_str= get_alphaAlarmsStr(alarmsDBX_arr);
 console.log("STUB alarmsLS_arr",alarmsLS_arr)
 */
 
     if (alarmsLS_str != alarmsDBX_str) { //different
       //instead of comparing objects, just compare the json strs, both were sorted same way before .stringify()
 //console.log("dif", alarmsLS_arr,alarmsDBX_arr);
-      if (!alarmsDBX_str) { //fix not needed
-        chosen("LS");
+      if (!alarmsDBX_str) return chosen("LS"); //fix not needed //-->
 
-      } else { //fix needed
-        var preMerged_arr= structuredClone(alarmsDBX_arr);
-        var origBaseL_n= preMerged_arr.length;
+      //fix needed
+      var preMerged_arr= structuredClone(alarmsDBX_arr);
+      var origBaseL_n= preMerged_arr.length;
 
-        var changeDBX_arr= procArrs(alarmsDBX_arr, alarmsLS_arr);
-        var changeLS_arr= procArrs(alarmsLS_arr, alarmsDBX_arr, "preMrg");
+      var changeDBX_arr= procArrs(alarmsDBX_arr, alarmsLS_arr);
+      var changeLS_arr= procArrs(alarmsLS_arr, alarmsDBX_arr, "preMrg");
 
-        function procArrs(base_arr, comp_arr, preMrg_flag) {
-          var change_arr= [];
+      function procArrs(base_arr, comp_arr, preMrg_flag) { //creates changed-arrs, and preMerged_arr
+        var change_arr= [];
+        base_arr.forEach((base_aO, i) => {
+          if (!comp_arr.find(comp_aO => base_aO.n==comp_aO.n && base_aO.t==comp_aO.t && base_aO.l==comp_aO.l)) { //not found
+            change_arr[i]= true;
+            if (preMrg_flag) preMerged_arr.push(base_aO);
+          }
+        });
+        return change_arr;
+      } //procArrs()
 
-          base_arr.forEach((base_aO, i) => {
-            if (!comp_arr.find(comp_aO => base_aO.n==comp_aO.n && base_aO.t==comp_aO.t && base_aO.l==comp_aO.l)) { //not found
-              change_arr[i]= true;
-              if (preMrg_flag) preMerged_arr.push(base_aO);
-            }
+      if (!changeDBX_arr.length && !changeLS_arr.length) {
+        console.log('Dropbox Sync: minor differences ignored. "Hidden" and/or "Time/Countdown View" on alarm(s)');
+        return; //-->
+      }
+
+
+      var custButO;
+      var html_str;
+      var cont_el;
+      var name_str;
+
+      fix("choose"); //kickoff
+
+      function fix(mode_str) {
+        html_str= "<p>Dropbox Sync, ";
+        if (mode_str == "choose") {
+          custButO= {OkBut:"Choose One", NoBut:"Merge instead"},
+          html_str+= "difference found between:</p>";
+        } else { //"merge"
+          custButO= {OkBut:"Merge", NoBut:"Choose One instead"};
+          html_str+= "Cloud combined with Local:</p>";
+        }
+        html_str+= '<br><div id="dbx_conflict">'; //flex will make children into columns
+        if (mode_str == "choose") {
+          addCol("Local", alarmsLS_arr, changeLS_arr);
+          addCol("Cloud", alarmsDBX_arr, changeDBX_arr);
+        } else { //"merge"
+          addCol("", preMerged_arr);
+        }
+        html_str+= '</div>'; //end dbx_conflict div
+
+        if (mode_str == "merge") html_str+= '<i class="E">When Merged, unchecked alarms will be discarded</i>';
+        else html_str+= '<br><i class="E">When Chosen, one version will be used, other will be discarded</i>';
+
+        function addCol(title_str, arr, change_arr) {
+          html_str+= '<div class="columnDiv">';
+          if (title_str) html_str+= '<p><label><input type="radio" name="choose">' +title_str +'</label></p>';
+
+          html_str+= "<ul>";
+          arr.forEach((alO, i) => {
+            name_str= TMXu.escape_html(alO.n);
+            if (change_arr) html_str+= `<li><span class="bullet${change_arr[i]?" mark":""}">● </span>${name_str}<br>`;
+            else html_str+= `<li><label${i>=origBaseL_n?' class="added"':""}><input type="checkbox"> ${name_str}&nbsp;</label><br>`;
+
+            html_str+= "<sup>" +alO.t +" " +(alO.l||"") +"</sup></li>";
           });
+          html_str+= "</ul></div>"; //end col
+        } //addCol()
 
-          return change_arr;
-        } //procArrs()
+        var inputEls;
+        jm.boolean(html_str, true, { //fn from main page
+          //jm custom cb object
+          custButText: custButO,
+          begin_cb: () => {
+            TMXu.classEl(jm._ELs.Modal, "mediumWide", true); //fn from main page
+            cont_el= jm._ELs.Description.querySelector("div#dbx_conflict");
+            if (mode_str == "choose") {
+              var prevUl_el;
+              inputEls= [];
 
-        get_sortedArrStr(preMerged_arr); //only to sort
+              cont_el.querySelectorAll("div.columnDiv").forEach((div_el, i) => {
+                var inp_el= div_el.querySelector("input");
+                inp_el.addEventListener("click", evt => {
+                  highlight(inp_el, true); //note: inp_el scoped by the forEach fn
+                }); //addEventListener
+                inputEls.push(inp_el);
 
-        var custButO;
-        var html_str;
-        var cont_el;
-        var name_str;
+                var ul_el= div_el.querySelector("ul");
+                ul_el.addEventListener("click", evt => {
+                  highlight(inp_el, true); //note: inp_el scoped by the forEach fn
+                }); //addEventListener
+              });
 
-        fix("choose"); //kickoff
+              function highlight(inp_el, checked_flag) {
+                if (prevUl_el) TMXu.classEl(prevUl_el, "high", false);
 
-        function fix(mode_str) {
-          html_str= "<p>Dropbox Sync, ";
-          if (mode_str == "choose") {
-            custButO= {OkBut:"Choose One", NoBut:"Merge instead"},
-            html_str+= "difference found between:</p>";
-          } else { //"merge"
-            custButO= {OkBut:"Merge", NoBut:"Choose One instead"};
-            html_str+= "combined Local and Cloud:</p>";
-          }
-          html_str+= '<br><div id="dbx_conflict">'; //flex will make children into columns
-          if (mode_str == "choose") {
-            addCol("Local", changeLS_arr, alarmsLS_arr);
-            addCol("Cloud", changeDBX_arr, alarmsDBX_arr);
-          } else { //"merge"
-            addCol("", "", preMerged_arr);
-          }
-          html_str+= '</div>'; //end dbx_conflict div
+                var ul_el= inp_el.closest("div").querySelector("ul");
+                TMXu.classEl(ul_el, "high", true);
+                prevUl_el= ul_el;
 
-          if (mode_str == "merge") html_str+= '<i class="E">When Merged, unchecked alarms will be discarded</i>';
-          else html_str+= '<br><i class="E">When Chosen, one version will be used, other will be discarded</i>';
+                if (checked_flag != undefined) inp_el.checked= checked_flag;
+              } //highlight()
 
-          function addCol(title_str, change_arr, arr) {
-            html_str+= '<div class="columnDiv">';
-            if (title_str) html_str+= '<p><label><input type="radio" name="choose">' +title_str +'</label></p>';
-            html_str+= "<ul>";
-            arr.forEach((alO, i) => {
-              name_str= TMXu.escape_html(alO.n);
-              if (change_arr) html_str+= `<li><span class="bullet${change_arr[i]?" mark":""}">● </span>${name_str}<br>`;
-              else html_str+= `<li><label><input type="checkbox"> ${name_str}</label><br>`;
+              highlight(inputEls[1], true); //hc, check 2nd radio
 
-              html_str+= "<sup>" +alO.t +" " +(alO.l||"") +"</sup></li>";
-            });
-            html_str+= "</ul></div>"; //end col
-          } //addCol()
-
-          var inputEls;
-          jm.boolean(html_str, true, { //fn from main page
-            //jm custom cb object
-            custButText: custButO,
-            begin_cb: () => {
-              TMXu.classEl(jm._ELs.Modal, "mediumWide", true); //fn from main page
-              cont_el= jm._ELs.Description.querySelector("div#dbx_conflict");
-              if (mode_str == "choose") {
-                var prevUl_el;
-                inputEls= [];
-
-                cont_el.querySelectorAll("div.columnDiv").forEach((div_el, i) => {
-                  var inp_el= div_el.querySelector("input");
-                  inp_el.addEventListener("click", evt => {
-                    highlight(inp_el, true); //note: inp_el scoped by the forEach fn
-                  }); //addEventListener
-                  inputEls.push(inp_el);
-
-                  var ul_el= div_el.querySelector("ul");
-                  ul_el.addEventListener("click", evt => {
-                    highlight(inp_el, true); //note: inp_el scoped by the forEach fn
-                  }); //addEventListener
-                });
-
-                function highlight(inp_el, checked_flag) {
-                  if (prevUl_el) TMXu.classEl(prevUl_el, "high", false);
-
-                  var ul_el= inp_el.closest("div").querySelector("ul");
-                  TMXu.classEl(ul_el, "high", true);
-                  prevUl_el= ul_el;
-
-                  if (checked_flag != undefined) inp_el.checked= checked_flag;
-                } //highlight()
-
-                highlight(inputEls[1], true); //hc, check 2nd radio
-
-              } else { //"merge"
-                inputEls= cont_el.querySelectorAll("input");
-                inputEls.forEach(inp_el => inp_el.checked= true ); //check all checkboxes
-              }
-            },
-            end_cb: resp => {
-              TMXu.classEl(jm._ELs.Modal, "mediumWide", false); //fn from main page
-              if (resp == null) {
-                jm.confirm("Dropbox Sync conflict needs to be resolved. To do at a later point:<br><br><p>Exit TIMECKS now</p>", false, {
-                  end_cb: resp => {
-                    if (resp) window.close();
-                    else fix(mode_str);
-                  }
-                });
-
-              } else if (resp) {
-                if (mode_str == "choose") {
-                  chosen(inputEls[1].checked ? "DBX" : "LS");
-
-                } else { //implement edits (unchecked.. remove)
-                  var mergedEdited_arr= [];
-                  var ids_Set= new Set();
-                  var new_id= 1;
-                  var aO;
-                  inputEls.forEach((inp_el, i) => {
-                    if (inp_el.checked) {
-                      aO= preMerged_arr[i]; //have faith, "i" will be correct
-                      if (i < origBaseL_n) { //register id
-                        ids_Set.add(aO.id);
-                      } else { //create id
-                        while (ids_Set.has(new_id)) {
-                          new_id++;
-                        }
-                        aO.id= new_id;
-                        ids_Set.add(new_id);
-                      }
-                      mergedEdited_arr.push(aO);
-                    } //checked
-                  });
-                  chosen("merged", mergedEdited_arr);
-                }
-
-              } else { //fix must be made, no exiting modal
-                fix(mode_str=="choose" ? "merge" : "choose");
-              }
+            } else { //"merge"
+              inputEls= cont_el.querySelectorAll("input");
+              inputEls.forEach(inp_el => inp_el.checked= true ); //check all checkboxes
             }
-          }); //modal
+          },
+          end_cb: resp => {
+            TMXu.classEl(jm._ELs.Modal, "mediumWide", false); //fn from main page
+            if (resp == null) {
+              jm.confirm("Dropbox Sync conflict needs to be resolved. To do at a later point:<br><br><p>Exit TIMECKS now</p>", false, {
+                end_cb: resp => {
+                  if (resp) window.close();
+                  else fix(mode_str);
+                }
+              });
 
-        } //fix()
+            } else if (resp) {
+              if (mode_str == "choose") {
+                chosen(inputEls[1].checked ? "DBX" : "LS");
 
-      } //fix needed
+              } else { //implement edits (unchecked.. remove)
+                var mergedEdited_arr= [];
+                var ids_Set= new Set();
+                var new_id= 1;
+                var aO;
+                inputEls.forEach((inp_el, i) => {
+                  if (inp_el.checked) {
+                    aO= preMerged_arr[i]; //have faith, "i" will be correct
+                    if (i < origBaseL_n) { //register id
+                      ids_Set.add(aO.id);
+                    } else { //create id
+                      while (ids_Set.has(new_id)) {
+                        new_id++;
+                      }
+                      aO.id= new_id;
+                      ids_Set.add(new_id);
+                    }
+                    mergedEdited_arr.push(aO);
+                  } //checked
+                });
+                chosen("merged", mergedEdited_arr);
+              }
+
+            } else { //fix must be made, no exiting modal
+              fix(mode_str=="choose" ? "merge" : "choose");
+            }
+          }
+        }); //modal
+
+      } //fix()
+
 
       function chosen(choice_key, merge_arr) {
-
         var alarmsM_str;
-        if (merge_arr) alarmsM_str= get_sortedArrStr(merge_arr);
+        if (merge_arr) alarmsM_str= get_alphaAlarmsStr(merge_arr);
 
         if (choice_key=="DBX" || merge_arr) {
           TMX.alarms_start(merge_arr || alarmsDBX_arr); //clear, re-render alarms dom //fn from main page
@@ -514,6 +513,10 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
                 color: chocolate;
               }
             }
+          }
+
+          label.added {
+            background: #32cd3247;
           }
 
           input[type="radio"], input[type="checkbox"] {
