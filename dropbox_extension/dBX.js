@@ -67,7 +67,7 @@ const dBX= {
       else dBX.BUT.logo_set();
 
 
-//to debug compareThenFix
+//to debug compareThenFix 1/2
 //dBX.compareThenFix()
     }
   }, //init()
@@ -176,7 +176,7 @@ const dBX= {
     var alarmsLS_str= get_sortedArrStr(alarmsLS_arr);
 
 /*
-//to debug compareThenFix
+//to debug compareThenFix 2/2
 alarmsDBX_arr= structuredClone(alarmsLS_arr);
 alarmsDBX_arr[0].n= "STUB";
 alarmsDBX_str= get_sortedArrStr(alarmsDBX_arr);
@@ -226,7 +226,7 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
             if (title_str) html_str+= "<p>" +title_str +"</p>";
             arr.forEach(alO => {
               html_str+= "<li>" +bullet_str + alO.n +"<br>";
-              html_str+= "<sup>" +alO.t +"</sup></li>";
+              html_str+= "<sup>" +alO.t +" " +(alO.l||"") +"</sup></li>";
             });
             html_str+= "</ul>"; //end col
           } //addCol()
