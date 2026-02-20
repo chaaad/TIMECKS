@@ -644,6 +644,10 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       display: block;
     }
 
+    &.mediumWide {
+      width: 600px;
+    }
+
     &.wide {
       width: auto;
     }
@@ -1621,11 +1625,10 @@ TMX.stgs.readMe= function() {
   var url_str= "readme.txt";
   TMXu.txtFile_fetch(url_str, str => {
     if (str) {
-      var modal_EL= document.getElementById("jwmModal");
       jm.alert("<p>Read Me</p><pre>" +str +"<pre>", {
         //jm custom cb object
-        begin_cb: () => {TMXu.classEl(modal_EL, "wide", true); },
-        end_cb: () => {TMXu.classEl(modal_EL, "wide", false); }
+        begin_cb: () => {TMXu.classEl(jm._ELs.Modal, "wide", true); },
+        end_cb: () => {TMXu.classEl(jm._ELs.Modal, "wide", false); }
       });
 
     } else {
@@ -2434,12 +2437,12 @@ TMX.alrm_execAdd= function() { //add 1
 }; //TMX.alrm_execAdd()
 
 TMX.alrm_genId= function() { //keeps id values low by utilizing unused "slots"
-  var ids_set= new Set(tmx.deletedAlrmIds_set); //shallow copy
+  var ids_Set= new Set(tmx.deletedAlrmIds_set); //shallow copy
   [...tmx.aI_NL].forEach(aI_EL => {
-    ids_set.add(aI_EL.id *1);
+    ids_Set.add(aI_EL.id *1);
   });
   var new_id= 1;
-  while (ids_set.has(new_id)) {
+  while (ids_Set.has(new_id)) {
     new_id++;
   }
   return new_id;
@@ -3111,7 +3114,7 @@ const jm= {
   init: function() {
     //pop jm._ELs (aliasIO is dynamically assigned)
     var el, jid;
-    "div#jwmOverlay, span#jwmCloseBut, div#jwmDescription, input#jwmInput, textarea#jwmTextarea, button#jwmOkBut, button#jwmNoBut, button#jwmCancelBut".split(", ").forEach(sel_str => {
+    "div#jwmModal, div#jwmOverlay, span#jwmCloseBut, div#jwmDescription, input#jwmInput, textarea#jwmTextarea, button#jwmOkBut, button#jwmNoBut, button#jwmCancelBut".split(", ").forEach(sel_str => {
       el= document.querySelector(sel_str);
       jid= sel_str.split("#")[1].replace("jwm", ""); //basically, jid is the element id with the "jwm" removed
       jm._ELs[jid]= el;
