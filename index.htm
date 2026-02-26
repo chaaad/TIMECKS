@@ -227,7 +227,7 @@ div#msgContainer {
   }
 }
 
-div#templates {
+div#templates, div#widgets {
   display: none;
 }
 
@@ -798,6 +798,10 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
     <div class="msgInfo"></div>
   </div>
 
+</div>
+
+
+<div id="widgets">
   <div id="localeContainerDiv">
     <div id="localeBut" title="Toggle Locale chooser">🌐Time Zone</div>
     <span id="localeLocalSpan" title="Edit Locale">LOCAL</span>
@@ -809,8 +813,8 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
       <select id="localePlacesSel"></select>
     </div>
   </div>
-
 </div>
+
 
 <div id="topButtons">
   <div id="editStgsBut" class="squareButton" title="Settings & Info">︙</div>
@@ -1974,8 +1978,7 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
     if (!jm._ELs.locale_container) { //auto-init
       var cont_el= document.querySelector("div#localeContainerDiv");
       jm._ELs.locale_container= cont_el;
-      //is in template div, but not really a template, just an easy place to hide it
-      //single instance that gets embedded into modal when needed
+      //widget, single instance that gets embedded whereever needed (in this case, modal)
 
       jm._ELs.locale_name= cont_el.querySelector("span#lLocaleNameSpan");
       jm._ELs.locale_chooser= cont_el.querySelector("div#localeChooserDiv");
