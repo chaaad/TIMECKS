@@ -194,6 +194,7 @@ div#wakeLockIndicator {
   right: 4px;
   bottom: 4px;
   cursor: default;
+  z-index: -1;
 
   &.on {
     background-color: lightskyblue;
@@ -220,7 +221,7 @@ div#msgContainer {
   left: 16px;
   top: 220px;
   width: 300px;
-  z-index: 4;
+  z-index: 1;
 
   div.msgInstance {
     background: gold;
@@ -623,7 +624,7 @@ div#jwmOverlay { /*background mask and overall container*/  /*edit this css care
   display: none; /* modals are hidden by default */
   position: fixed; /* modal container fixed across whole screen */
   inset: 0;
-  z-index: 2; /* zindex higher than rest of page, except ringer */
+  z-index: 2; /* zindex higher than rest of page */
   padding: 40px;
   overflow: auto; /* enables scrolling for tall modals */
 
@@ -1699,7 +1700,7 @@ TMX.alarms_start= function(al_arr) {
       aInst_EL.$D.hTime_str= t_str; //alarm time
       if (a_obj.l || t_str.indexOf("/31")>0) {
         if (aNow_obj= TMX.alrm_procTimeText(t_str, a_obj.l, "preview")) {
-          if (aNow_obj.hTimeA_str != t_str) t_str= aNow_obj.hTimeA_str;
+          if (aNow_obj.hTimeA_str && aNow_obj.hTimeA_str!=t_str) t_str= aNow_obj.hTimeA_str;
         }
       }
       aInst_EL.$E.Time.textContent= t_str;

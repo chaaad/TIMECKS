@@ -471,6 +471,7 @@ console.log("STUB alarmsLS_arr",alarmsLS_arr)
           margin: 8px;
 
           cursor: pointer;
+          z-index: -1;
 
           &.onState {
             background: #0062FF; /*dropbox blue*/
