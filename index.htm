@@ -2347,7 +2347,6 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
           EoMdtO.setMonth(month, 0); //re-do, leap day handled
         }
         EoM_num= EoMdtO.getDate(); //the last day of month
-        if (day <= EoM_num) EoM_num= undefined;
       }
 
     } else if (mD_str.search(/^[SMTWF]/) == 0) { // DoW (Day of Week)
