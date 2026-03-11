@@ -1488,7 +1488,12 @@ tmx.alarmsCont_EL.addEventListener("click", evt => {
       tmx.alarmInst_EL= _al_EL;
       var t_cl= targ_EL.classList; //alias
 
-      if (_al_EL.classList.contains("expired")) {
+      if (_al_EL == tmx.ring_aI_EL) { //ringing or snoozing, no other action allowed
+        var hooked_flag;
+        if (targ_EL.closest("div.alarmName")) hooked_flag= TMX.HOOK("alarmNameClick", targ_EL); //kludge
+        if (!hooked_flag) jm.alert("Turn ringer off before modifying alarm");
+
+      } else if (_al_EL.classList.contains("expired")) { //expired, no other action allowed
         var msg_EL= _al_EL.$exp_msg_EL; //TMX.alrm_unexpire() will clear .$exp_msg_EL
         TMX.alrm_unexpire(_al_EL);
         TMX.alarms_sort();
