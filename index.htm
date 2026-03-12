@@ -1474,17 +1474,17 @@ tmx.alarmsCont_EL.addEventListener("dragstart", () => {
 tmx.alarmsCont_EL.addEventListener("click", evt => {
   var targ_EL= evt.target;
 
-  if (targ_EL.closest("div#ringSnoozeBut")) {
+  if (targ_EL.closest("div#ringSnoozeBut")) { //ringer snooze
     var n;
     if (targ_EL.tagName == "SPAN") n= targ_EL.textContent *1;
     TMX.ringer_stop("snooze", n);
 
-  } else if (targ_EL.closest("div#ringOffBut")) {
+  } else if (targ_EL.closest("div#ringOffBut")) { //ringer off
     TMX.ringer_stop("off");
 
   } else {
     var _al_EL;
-    if (_al_EL= targ_EL.closest("div.alarmInstance")) {
+    if (_al_EL= targ_EL.closest("div.alarmInstance")) { //alarm
       tmx.alarmInst_EL= _al_EL;
       var t_cl= targ_EL.classList; //alias
 
@@ -1502,7 +1502,7 @@ tmx.alarmsCont_EL.addEventListener("click", evt => {
 
       } else if (t_cl.contains("alarmActivate")) {
         var toggleOff_flag= _al_EL==tmx.active_aI_EL;
-        if (tmx.ring_aI_EL) {
+        if (tmx.ring_aI_EL) { //another alarm has ringer
           TMX.ringer_stop("off");
           if (!toggleOff_flag) TMX.alrm_activate(_al_EL);
         } else {
