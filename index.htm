@@ -1703,7 +1703,7 @@ TMX.alarms_start= function(al_arr) {
 
       t_str= a_obj.t; //alarm time
       aInst_EL.$D.hTime_str= t_str; //alarm time
-      if (a_obj.l || t_str.indexOf("/31")>0) {
+      if (a_obj.l || t_str.indexOf("/32")>0) {
         if (aNow_obj= TMX.alrm_procTimeText(t_str, a_obj.l, "preview")) {
           if (aNow_obj.hTimeA_str && aNow_obj.hTimeA_str!=t_str) t_str= aNow_obj.hTimeA_str;
         }
@@ -1925,8 +1925,10 @@ TMX.alrm_editTime= function(NEW_str) { //if new, NEW_str is alarm name
 
       //custom hook
       Input_keyup: evt => { //or "aliasIO_keyup" would work also
-        if (time_str != jm._ELs.Input.value) pop_prompt();
-        //ignore many unwanted keys like "Shift"
+        if (time_str != jm._ELs.Input.value) { //ignore many unwanted keys like "Shift"
+          time_str= jm._ELs.Input.value;
+          pop_prompt();
+        }
       },
 
       end_cb: resp => {
@@ -2106,7 +2108,8 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
     let mD_str= raw_str.substring(0, index);
     raw_str= raw_str.substring(index +1);
     if (!raw_str) raw_str= "12"; //default midnite
-    moDaO= proc_moDa(mD_str); if (!moDaO) return err("bad month/day or DoW"); //-->
+    moDaO= proc_moDa(mD_str);
+    if (!moDaO) return err("bad month/day or DoW"); //-->
   }
 
   var time_str;
@@ -2205,9 +2208,21 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
   if (diff_ms < 1) { //less than nowTime
     //dtO to future
     if (hTimO.MD) {
-      if (hTimO.MD.DoW) nowDtO.setDate(nowDtO.getDate() +7); //+1 week, DayOfWeek
-      else if (hTimO.MD.mW) nowDtO.setMonth(nowDtO.getMonth() +1); //+1 month, mon_wildcard_str
-      else nowDtO.setFullYear(nowDtO.getFullYear() +1); //+1 year, m/d
+      if (hTimO.MD.DoW) { //DayOfWeek
+        nowDtO.setDate(nowDtO.getDate() +7); //+1 week
+
+      } else if (hTimO.MD.mW) { //mon_wildcard_str
+        if (hTimO.MD.EoM) {
+          nowDtO.setMonth(nowDtO.getMonth() +2, 0); //+1 month
+          hTimO.MD.EoM= nowDtO.getDate(); //the last day of month (1 indexed)
+        } else {
+          nowDtO.setMonth(nowDtO.getMonth() +1); //+1 month
+        }
+        hTimO.MD.mo= nowDtO.getMonth() +1; //0 .. 1 indexed
+
+      } else { //m/d
+        nowDtO.setFullYear(nowDtO.getFullYear() +1); //+1 year
+      }
 
     } else {
       nowDtO.setDate(nowDtO.getDate() +1); //+1 day
@@ -2215,14 +2230,14 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
 
 //tbd //not sure if this is right..
     if (loc_str) {
-      diff_ms= nowDtO -new Date(); //passed interntional dateline?
+      diff_ms= nowDtO -new Date(); //passed international dateline?
       if (diff_ms < 1) nowDtO.setDate(nowDtO.getDate() +1); //+1 day
     }
   }
 
   var aNow_obj= {
     hTimO: hTimO,
-    hTime_str: get_fmatHTime_str(hTimO),
+    hTime_str: get_fmatHTime_str(hTimO, "mW"),
     ms: nowDtO.getTime()
   };
 
@@ -2285,9 +2300,13 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
     return {h:h, m:m};
   } //g_procRawTime()
 
-  function get_fmatHTime_str(htO) {
+  function get_fmatHTime_str(htO, mW_flag) {
     var str= "";
-    if (htO.MD) str= (htO.MD.DoW ? htO.MD.DoW : ((htO.MD.mW || htO.MD.mo) +"/" +htO.MD.da)) +" "; //DoW or m/d
+    if (htO.MD) {
+      var mon_str= htO.MD.mo;
+      if (mW_flag && htO.MD.mW) mon_str= htO.MD.mW; //"?" month
+      str= (htO.MD.DoW ? htO.MD.DoW : (mon_str +"/" +htO.MD.da)) +" "; //DoW or m/d
+    }
     return str +htO.h +":" +String(htO.m).padStart(2, "0")  +(htO.p?" PM":" AM"); //human time
   } //get_fmatHTime_str()
 
@@ -2336,22 +2355,22 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
       month*= 1;
       if (isNaN(month) || month<1 || month>12) {
         mon_wildcard_str= "?"; // ?/d (month wildcard)
-        month= time_dtO.getMonth() +1; //no month? assume this month
+        month= time_dtO.getMonth() +1; //assume this month
       }
 
       day*= 1;
-      if (isNaN(day) || day<1 || day>31) day= 1; //not verifying against number of days in month
+      if (isNaN(day) || day<1 || day>32) day= 1; //not verifying against number of days in month
 
-      //possible EoM
-      if (day == 31) {
+      //EoM
+      if (day == 32) {
         var EoMdtO= new Date();
-        //our "month" var is 1-indexed, js "monnth" is 0-indexed
+        //our "month" var is 1-indexed, js "month" is 0-indexed
         EoMdtO.setMonth(month, 0); //nextMonth 0th day, means thisMonth last day
         if (EoMdtO -new Date() < 0) {
           EoMdtO.setFullYear(EoMdtO.getFullYear() +1); //+1 year
           EoMdtO.setMonth(month, 0); //re-do, leap day handled
         }
-        EoM_num= EoMdtO.getDate(); //the last day of month
+        EoM_num= EoMdtO.getDate(); //the last day of month (1 indexed)
       }
 
     } else if (mD_str.search(/^[SMTWF]/) == 0) { // DoW (Day of Week)
@@ -2394,7 +2413,8 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
 
   function adjustedHTimeStr(aNow_obj, dtO) {
     var ahtO= structuredClone(aNow_obj.hTimO);
-    var mdO; if (mdO= ahtO.MD) {
+    var mdO;
+    if (mdO= ahtO.MD) {
       mdO.mo= dtO.getMonth() +1; //0-11
       mdO.da= dtO.getDate(); //1 indexed
     }
@@ -2402,7 +2422,6 @@ TMX.alrm_procTimeText= function(input_str, loc_str, param) { //returns alarmNow_
     ahtO.m= dtO.getMinutes(); //0-59
     proc_24to12(ahtO);
     var hTimeA_str= get_fmatHTime_str(ahtO);
-//console.log("----------hTimeA_str", hTimeA_str)
     aNow_obj.hTimeA_str= hTimeA_str; //fyi, ahtO not preserved
   } //adjustedHTimeStr()
 

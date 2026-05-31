@@ -96,13 +96,15 @@ Alarms
     +230
 
 
-  For Annually and Monthly, its possible to specify "last day" of the month.
+  For Annually and Monthly, its possible to specify "last day" of the month as "32".
     Annually, last day of the month
-      example: 2/31 2:39 AM
+      example: 2/32 2:39 AM
     Monthly, last day of the month
-      example: ?/31 7:00 PM
-  Note day "31", any day beyond the last day of the month will be considered "MonthEnd".
-  So, 2/30 will also "MonthEnd" to day 28 (leap year, day 29).
+      example: ?/32 7:00 PM
+
+
+  Any day beyond the last day of the month will be "prorated".
+  So, 2/30 will prorate to Mar 2 (of course different if leap year).
 
 
   Specify a timezone by Locale
